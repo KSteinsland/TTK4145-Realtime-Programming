@@ -20,18 +20,23 @@ defmodule UDPBroadcast do
   def init(port) do
 
     {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}])
-    Task.start_link(fn -> loop_send(socket, port) end)
     IO.inspect(Node.self())
+
     if to_string(Node.self()) == "nonode@nohost" do
       name = do_randomizer(5, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.split("", trim: true))
       Node.start(String.to_atom(name))
+
+      Task.start_link(fn -> loop_send(socket, port) end)
+
       {:ok, {socket, port, name, %{}}}
     else
       [name | _] = String.split(to_string(Node.self()), "@")
+
+      Task.start_link(fn -> loop_send(socket, port) end)
+
       {:ok, {socket, port, name, %{}}}
     end
 
-      #spawn loop(socket, %{})
   end
 
   defp do_randomizer(length, lists) do
