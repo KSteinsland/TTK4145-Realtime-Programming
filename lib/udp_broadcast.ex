@@ -24,7 +24,14 @@ defmodule UDPBroadcast do
 
     if to_string(Node.self()) == "nonode@nohost" do
       name = do_randomizer(5, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.split("", trim: true))
-      Node.start(String.to_atom(name))
+
+      {:ok, [host_info | _]} = :inet.getif()
+      [addr | _] = Tuple.to_list(host_info)
+      addr_str = :inet.ntoa(addr)
+
+      full_name = name <> "@" <> to_string(addr_str)
+
+      Node.start(String.to_atom(full_name), :longnames)
 
       Task.start_link(fn -> loop_send(socket, port) end)
 
