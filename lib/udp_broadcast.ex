@@ -33,6 +33,8 @@ defmodule UDPBroadcast do
 
       Node.start(String.to_atom(full_name), :longnames)
 
+      Node.set_cookie(:choc)
+
       Task.start_link(fn -> loop_send(socket, port) end)
 
       {:ok, {socket, port, name, %{}}}
@@ -81,17 +83,14 @@ defmodule UDPBroadcast do
     IO.inspect(nodes)
     Process.sleep(1000)
 
-    unless host_name == name do
-      if Map.get(nodes, host_name) == nil do
-        IO.puts("New node!")
-        #:gen_udp.send(socket, host, 33333, "Hello There!")
-        Node.ping(String.to_atom(full_name))
-        {:noreply, {socket, port, name, Map.put(nodes, host_name, host_adr_str)}}
-      end
+    if Map.get(nodes, host_name) == nil && host_name != name do
+      IO.puts("New node!")
+      #:gen_udp.send(socket, host, 33333, "Hello There!")
+      Node.ping(String.to_atom(full_name))
+      {:noreply, {socket, port, name, Map.put(nodes, host_name, host_adr_str)}}
+    else
+      {:noreply, {socket, port, name, nodes}}
     end
-
-    {:noreply, {socket, port, name, nodes}}
-
   end
 
   def handle_info(msg, state) do
