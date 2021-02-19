@@ -4,7 +4,6 @@ defmodule UDPBroadcast do
   @broadcast_ip {255,255,255,255}
   @sleep_time 3000
 
-
   ## client side
 
   def start(port \\ 33333) do
@@ -23,7 +22,7 @@ defmodule UDPBroadcast do
     IO.inspect(Node.self())
 
     if to_string(Node.self()) == "nonode@nohost" do
-      name = do_randomizer(5, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.split("", trim: true))
+      name = Random.gen_rand_str(5)
 
       {:ok, [host_info | _]} = :inet.getif()
       [addr | _] = Tuple.to_list(host_info)
@@ -48,11 +47,6 @@ defmodule UDPBroadcast do
 
   end
 
-  defp do_randomizer(length, lists) do
-    1..length
-    |> Enum.reduce([], fn(_, acc) -> [Enum.random(lists) | acc] end)
-    |> Enum.join("")
-  end
 
   defp loop_send(socket, port) do
       Process.sleep(@sleep_time)
@@ -75,10 +69,8 @@ defmodule UDPBroadcast do
 
     host_adr_str = :inet.ntoa(host)
 
-
     [host_name | _] = String.split(to_string(packet), "@")
     full_name = host_name <> "@" <> to_string(host_adr_str)
-
 
     IO.inspect(nodes)
     Process.sleep(1000)
@@ -99,6 +91,41 @@ defmodule UDPBroadcast do
   end
 end
 
+
+defmodule Network do
+  @broadcast_ip {255,255,255,255}
+  @port 33334
+
+  def get_local_ip() do
+    {:ok, socket} = :gen_udp.open(@port, [{:broadcast, true}, {:reuseaddr, true}])
+    key = Random.gen_rand_str(5) |> String.to_charlist()
+    :gen_udp.send(socket, @broadcast_ip, @port, key) # packet gets converted to charlist!
+
+    receive do
+      {:udp, _port, localip, @port, ^key} ->
+        :gen_udp.close(socket)
+        {:ok, localip}
+
+      after
+        1000 ->
+          :gen_udp.close(socket)
+          {:error, "could not retreive local ip"}
+    end
+  end
+end
+
+defmodule Random do
+
+  def gen_rand_str(length) do
+    do_randomizer(length, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.split("", trim: true))
+  end
+
+  defp do_randomizer(length, lists) do
+    1..length
+    |> Enum.reduce([], fn(_, acc) -> [Enum.random(lists) | acc] end)
+    |> Enum.join("")
+  end
+end
 
   #     #:inet.gethostname()
   #     #:inet.ntoa(address)
