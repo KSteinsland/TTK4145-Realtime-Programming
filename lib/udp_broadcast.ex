@@ -21,11 +21,12 @@ defmodule UDPBroadcast do
     {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}])
     IO.inspect(Node.self())
 
-    if to_string(Node.self()) == "nonode@nohost" do
+    if Node.self() == :nonode@nohost do
       name = Random.gen_rand_str(5)
 
-      {:ok, [host_info | _]} = :inet.getif()
-      [addr | _] = Tuple.to_list(host_info)
+      #{:ok, [host_info | _]} = :inet.getif()
+      #[addr | _] = Tuple.to_list(host_info)
+      {:ok, addr} = Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
 
       full_name = name <> "@" <> to_string(addr_str)
@@ -44,7 +45,6 @@ defmodule UDPBroadcast do
 
       {:ok, {socket, port, name, %{}}}
     end
-
   end
 
 
@@ -60,12 +60,20 @@ defmodule UDPBroadcast do
     {:reply, nodes, state}
   end
 
+  def handle_info(:shutdown, state) do
+    {socket, _port, _name, _nodes} = state
+    :gen_udp.close(socket)
+    Process.exit(self(), :kill)
+    {:noreply, state}
+  end
+
   def handle_info({:udp, socket, host, port, packet}, state) do
     IO.inspect packet
     IO.inspect host
     IO.inspect state
 
-    {socket, port, name, nodes} = state
+    #should probably pin these
+    {_socket, _port, name, nodes} = state
 
     host_adr_str = :inet.ntoa(host)
 
