@@ -65,24 +65,23 @@ defmodule UDPBroadcast do
   end
 
   def handle_info({:udp, socket, host, port, packet}, state) do
-    #IO.inspect packet
-    #IO.inspect host
-    IO.inspect state
 
     #should probably pin these
     {_socket, _port, name, nodes} = state
 
     host_adr_str = :inet.ntoa(host)
-
     [host_name | _] = String.split(to_string(packet), "@")
     full_name = host_name <> "@" <> to_string(host_adr_str)
 
+    #IO.inspect packet
+    #IO.inspect host
     #IO.inspect(nodes)
+    #IO.inspect state
     #Process.sleep(1000)
 
     if Map.get(nodes, host_name) == nil && host_name != name do
       IO.puts("New node!")
-      #:gen_udp.send(socket, host, 33333, "Hello There!")
+      #:gen_udp.send(socket, host, port, "Hello There!")
       Node.ping(String.to_atom(full_name))
       {:noreply, {socket, port, name, Map.put(nodes, host_name, host_adr_str)}}
     else
