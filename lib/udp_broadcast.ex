@@ -24,15 +24,12 @@ defmodule UDPBroadcast do
     if Node.self() == :nonode@nohost do
       name = Random.gen_rand_str(5)
 
-      #{:ok, [host_info | _]} = :inet.getif()
-      #[addr | _] = Tuple.to_list(host_info)
       {:ok, addr} = Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
-
       full_name = name <> "@" <> to_string(addr_str)
+      IO.puts("New node name" <> full_name)
 
       Node.start(String.to_atom(full_name), :longnames)
-
       Node.set_cookie(:choc)
 
       Task.start_link(fn -> loop_send(socket, port) end)
@@ -68,8 +65,8 @@ defmodule UDPBroadcast do
   end
 
   def handle_info({:udp, socket, host, port, packet}, state) do
-    IO.inspect packet
-    IO.inspect host
+    #IO.inspect packet
+    #IO.inspect host
     IO.inspect state
 
     #should probably pin these
@@ -80,8 +77,8 @@ defmodule UDPBroadcast do
     [host_name | _] = String.split(to_string(packet), "@")
     full_name = host_name <> "@" <> to_string(host_adr_str)
 
-    IO.inspect(nodes)
-    Process.sleep(1000)
+    #IO.inspect(nodes)
+    #Process.sleep(1000)
 
     if Map.get(nodes, host_name) == nil && host_name != name do
       IO.puts("New node!")
