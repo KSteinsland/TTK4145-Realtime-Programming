@@ -6,8 +6,9 @@ defmodule UDPBroadcast do
 
   ## client side
 
-  def start(port \\ 33333) do
-    GenServer.start_link(__MODULE__, port)
+
+  def start(port \\ 33333, name \\ "Elevator") do
+    GenServer.start_link(__MODULE__, {port, name})
   end
 
   def get_all(server_pid) do
@@ -16,16 +17,16 @@ defmodule UDPBroadcast do
 
   ## server
 
-  def init(port) do
+  def init({port, name}) do
 
-    {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}])
+    {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     IO.inspect(Node.self())
 
     if Node.self() == :nonode@nohost do
       {:ok, addr} = Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
-      full_name = "Elevator@" <> to_string(addr_str)
-      IO.puts("New node name" <> full_name)
+      full_name = name <> "@" <> to_string(addr_str)
+      IO.puts("New node name: " <> full_name)
 
       Node.start(String.to_atom(full_name), :longnames)
       Node.set_cookie(:choc)
@@ -116,6 +117,3 @@ defmodule Network do
     end
   end
 end
-  #     #:inet.gethostname()
-  #     #:inet.ntoa(address)
-  #     #:inet.parse_address()
