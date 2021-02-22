@@ -6,8 +6,9 @@ defmodule UDPBroadcast do
 
   ## client side
 
-  def start(port \\ 33333) do
-    GenServer.start_link(__MODULE__, port)
+
+  def start(port \\ 33333, name \\ "Elevator") do
+    GenServer.start_link(__MODULE__, {port, name})
   end
 
   def get_all(server_pid) do
@@ -16,18 +17,16 @@ defmodule UDPBroadcast do
 
   ## server
 
-  def init(port) do
+  def init({port, name}) do
 
-    {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}])
+    {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     IO.inspect(Node.self())
 
     if Node.self() == :nonode@nohost do
-      name = Random.gen_rand_str(5)
-
       {:ok, addr} = Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
       full_name = name <> "@" <> to_string(addr_str)
-      IO.puts("New node name" <> full_name)
+      IO.puts("New node name: " <> full_name)
 
       Node.start(String.to_atom(full_name), :longnames)
       Node.set_cookie(:choc)
@@ -117,20 +116,3 @@ defmodule Network do
     end
   end
 end
-
-defmodule Random do
-
-  def gen_rand_str(length) do
-    do_randomizer(length, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.split("", trim: true))
-  end
-
-  defp do_randomizer(length, lists) do
-    1..length
-    |> Enum.reduce([], fn(_, acc) -> [Enum.random(lists) | acc] end)
-    |> Enum.join("")
-  end
-end
-
-  #     #:inet.gethostname()
-  #     #:inet.ntoa(address)
-  #     #:inet.parse_address()
