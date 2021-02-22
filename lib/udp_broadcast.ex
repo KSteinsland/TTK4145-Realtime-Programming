@@ -22,11 +22,9 @@ defmodule UDPBroadcast do
     IO.inspect(Node.self())
 
     if Node.self() == :nonode@nohost do
-      name = Random.gen_rand_str(5)
-
       {:ok, addr} = Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
-      full_name = name <> "@" <> to_string(addr_str)
+      full_name = "Elevator@" <> to_string(addr_str)
       IO.puts("New node name" <> full_name)
 
       Node.start(String.to_atom(full_name), :longnames)
@@ -118,20 +116,6 @@ defmodule Network do
     end
   end
 end
-
-defmodule Random do
-
-  def gen_rand_str(length) do
-    do_randomizer(length, "ABCDEFGHIJKLMNOPQRSTUVWXYZ" |> String.split("", trim: true))
-  end
-
-  defp do_randomizer(length, lists) do
-    1..length
-    |> Enum.reduce([], fn(_, acc) -> [Enum.random(lists) | acc] end)
-    |> Enum.join("")
-  end
-end
-
   #     #:inet.gethostname()
   #     #:inet.ntoa(address)
   #     #:inet.parse_address()
