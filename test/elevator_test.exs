@@ -1,7 +1,7 @@
 defmodule ElevatorTest do
     use ExUnit.Case
     doctest Elevator
-  
+
     setup do
         {:ok, pid} = Elevator.start_link
         %{pid: pid}
@@ -11,15 +11,15 @@ defmodule ElevatorTest do
         assert Elevator.set_floor(pid, 2) == :ok
         assert Elevator.get_floor(pid) == 2
     end
-    
+
     test "direction", %{pid: pid} do
         assert Elevator.set_direction(pid, :up) == :ok
         assert Elevator.get_direction(pid) == :up
     end
 
     test "requests", %{pid: pid} do
-        assert Elevator.set_request(pid, []) == :ok
-        assert Elevator.get_request(pid) == []
+        assert Elevator.set_requests(pid, []) == :ok
+        assert Elevator.get_requests(pid) == []
     end
 
     test "behaviour", %{pid: pid} do
@@ -27,4 +27,3 @@ defmodule ElevatorTest do
         assert Elevator.get_behaviour(pid) == :idle
     end
   end
-  
