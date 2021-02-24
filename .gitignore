@@ -28,3 +28,6 @@ elevator_project-*.tar
 
 # Temporary files for e.g. tests
 /tmp
+
+
+*.beam
