@@ -4,6 +4,7 @@ defmodule ElevatorTest do
 
     setup do
         {:ok, pid} = Elevator.start_link
+        %{pid: pid}
     end
 
     test "floor" do
