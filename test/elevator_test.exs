@@ -4,26 +4,25 @@ defmodule ElevatorTest do
 
     setup do
         {:ok, pid} = Elevator.start_link
-        %{pid: pid}
     end
 
-    test "floor", %{pid: pid} do
-        assert Elevator.set_floor(pid, 2) == :ok
-        assert Elevator.get_floor(pid) == 2
+    test "floor" do
+        assert Elevator.set_floor(2) == :ok
+        assert Elevator.get_floor() == 2
     end
 
-    test "direction", %{pid: pid} do
-        assert Elevator.set_direction(pid, :up) == :ok
-        assert Elevator.get_direction(pid) == :up
+    test "direction" do
+        assert Elevator.set_direction(:up) == :ok
+        assert Elevator.get_direction() == :up
     end
 
-    test "requests", %{pid: pid} do
-        assert Elevator.set_requests(pid, []) == :ok
-        assert Elevator.get_requests(pid) == []
+    test "requests" do
+        assert Elevator.set_requests([]) == :ok
+        assert Elevator.get_requests() == []
     end
 
-    test "behaviour", %{pid: pid} do
-        assert Elevator.set_behaviour(pid, :idle) == :ok
-        assert Elevator.get_behaviour(pid) == :idle
+    test "behaviour" do
+        assert Elevator.set_behaviour(:idle) == :ok
+        assert Elevator.get_behaviour() == :idle
     end
   end

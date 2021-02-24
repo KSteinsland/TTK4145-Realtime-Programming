@@ -14,41 +14,41 @@ defmodule Elevator do
 
     #API----------------------------------------
     def start_link() do
-        GenServer.start_link(__MODULE__, [])
+        GenServer.start_link(__MODULE__, [], name: __MODULE__)
     end
     
-    
-    def get_floor(pid) do
-        GenServer.call pid, :get_floor
+
+    def get_floor() do
+        GenServer.call __MODULE__, :get_floor
     end
 
-    def get_direction(pid) do
-        GenServer.call pid, :get_direction
+    def get_direction() do
+        GenServer.call __MODULE__, :get_direction
     end
 
-    def get_requests(pid) do
-        GenServer.call pid, :get_requests
+    def get_requests() do
+        GenServer.call __MODULE__, :get_requests
     end
 
-    def get_behaviour(pid) do
-        GenServer.call pid, :get_behaviour
+    def get_behaviour() do
+        GenServer.call __MODULE__, :get_behaviour
     end
 
 
-    def set_floor(pid, floor) do
-        GenServer.cast pid, {:set_floor, floor}
+    def set_floor(floor) do
+        GenServer.cast __MODULE__, {:set_floor, floor}
     end
 
-    def set_direction(pid, direction) do
-        GenServer.cast pid, {:set_direction, direction}
+    def set_direction(direction) do
+        GenServer.cast __MODULE__, {:set_direction, direction}
     end
 
-    def set_requests(pid, requests) do
-        GenServer.cast pid, {:set_requests, requests}
+    def set_requests(requests) do
+        GenServer.cast __MODULE__, {:set_requests, requests}
     end
 
-    def set_behaviour(pid, behaviour) do
-        GenServer.cast pid, {:set_behaviour, behaviour}
+    def set_behaviour(behaviour) do
+        GenServer.cast __MODULE__, {:set_behaviour, behaviour}
     end
 
   
