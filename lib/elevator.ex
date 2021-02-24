@@ -3,6 +3,10 @@ defmodule Elevator do
     @moduledoc """
      Keeps Elevator state.
     """
+
+    @directions {:El_up, :El_down, :El_stop}
+    @behaviours {:El_idle, :El_door_open, :El_moving}
+
     use GenServer
 
     defstruct floor: 0, direction: :El_stop, requests: [], behaviour: :El_idle
