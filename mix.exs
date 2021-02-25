@@ -1,4 +1,4 @@
-defmodule ELEVATOR_PROJECT.MixProject do
+defmodule ElevatorProject.MixProject do
   use Mix.Project
 
   def project do
