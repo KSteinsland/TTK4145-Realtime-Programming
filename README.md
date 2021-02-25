@@ -1,4 +1,4 @@
-# ELEVATOR_PROJECT
+# ElevatorProject
 
 **TODO: Add description**
 

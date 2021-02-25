@@ -1,6 +1,6 @@
-defmodule ELEVATOR_PROJECT do
+defmodule ElevatorProject do
   @moduledoc """
-  Documentation for `ELEVATOR_PROJECT`.
+  Documentation for `ElevatorProject`.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule ELEVATOR_PROJECT do
 
   ## Examples
 
-      iex> ELEVATOR_PROJECT.hello()
+      iex> ElevatorProject.hello()
       :world
 
   """
