@@ -4,12 +4,18 @@ defmodule Elevator do
      Keeps Elevator state.
     """
 
-    @directions {:El_up, :El_down, :El_stop}
-    @behaviours {:El_idle, :El_door_open, :El_moving}
-
     use GenServer
 
-    defstruct floor: 0, direction: :El_stop, requests: [], behaviour: :El_idle
+    @directions {:El_up, :El_down, :El_stop}
+    @behaviours {:El_idle, :El_door_open, :El_moving}
+    @button_tpyes {:hall_up, :hall_down, :cab}
+    @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
+    @num_floors 9 
+    @num_buttons 3
+
+    req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
+
+    defstruct floor: 0, direction: :El_stop, requests: req_list, behaviour: :El_idle
 
     def init(_opts) do
         {:ok, %__MODULE__{}}
@@ -47,8 +53,8 @@ defmodule Elevator do
         GenServer.cast __MODULE__, {:set_direction, direction}
     end
 
-    def set_requests(requests) do
-        GenServer.cast __MODULE__, {:set_requests, requests}
+    def set_request(floor, btn_type) do
+        GenServer.cast __MODULE__, {:set_request, floor, btn_type}
     end
 
     def set_behaviour(behaviour) do
@@ -86,8 +92,12 @@ defmodule Elevator do
         {:noreply, state}
     end
 
-    def handle_cast({:set_requests, requests}, state) do
-        state = %{state | requests: requests}
+    def handle_cast({:set_request, floor, btn_type}, state) do
+        req = state.requests
+        {req_at_floor, _list} = List.pop_at(req, floor)
+        updated_req_at_floor = List.update_at(req_at_floor, btn_type, &(&1*0 + 1)) #fix hack
+        req = List.replace_at(req, floor, updated_req_at_floor)
+        state = %{state | requests: req}
         {:noreply, state}
     end
 
