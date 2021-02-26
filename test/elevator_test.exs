@@ -18,8 +18,9 @@ defmodule ElevatorTest do
     end
 
     test "requests" do
-        assert Elevator.set_requests([]) == :ok
-        assert Elevator.get_requests() == []
+        assert Elevator.get_requests() == [[0,0,0], [0,0,0], [0,0,0], [0,0,0]]
+        assert Elevator.set_request(1, 1) == :ok
+        assert Elevator.get_requests() == [[0,0,0], [0,1,0], [0,0,0], [0,0,0]]
     end
 
     test "behaviour" do

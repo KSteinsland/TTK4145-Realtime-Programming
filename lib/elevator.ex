@@ -10,7 +10,7 @@ defmodule Elevator do
     @behaviours {:El_idle, :El_door_open, :El_moving}
     @button_tpyes {:hall_up, :hall_down, :cab}
     @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
-    @num_floors 9 
+    @num_floors 4
     @num_buttons 3
 
     req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
