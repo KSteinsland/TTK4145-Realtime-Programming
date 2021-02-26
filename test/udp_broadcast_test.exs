@@ -19,7 +19,7 @@ defmodule UDPBroadcastTest do
 
   #import ExUnit.CaptureIO
 
-  
+
   defp setup_slaves(addr, limit) do
     Enum.each(1..limit, fn(index) ->
       IO.puts("starting slave #{index}")
@@ -29,6 +29,7 @@ defmodule UDPBroadcastTest do
   end
 
   setup do
+    System.cmd("epmd", ["-daemon"])
     port = 33330
     {:ok, pid} = UDPBroadcast.start(port, "test_udp")
     %{pid: pid, port: port}
