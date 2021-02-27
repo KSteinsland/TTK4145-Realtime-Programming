@@ -11,7 +11,7 @@ defmodule FSMTest do
   # when code is more reliable we can expand to integration testing, by starting our whole application,
   # and using the processes started in the application, instead of explicity starting them as done below
 
-  defp start_simulator = fn(exec, port, floors)  ->
+  defp start_simulator(exec, port, floors) do
     {:ok, dir_path} = File.cwd()
     script_path = Path.join(dir_path, "sim/start_sim.sh")
     exec_path = Path.join(dir_path, exec)

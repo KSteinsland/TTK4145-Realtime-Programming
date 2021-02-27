@@ -2,7 +2,7 @@ defmodule DriverTest do
   use ExUnit.Case
   doctest Driver, async: false
 
-  defp start_simulator = fn(exec, port, floors)  ->
+  defp start_simulator(exec, port, floors) do
     {:ok, dir_path} = File.cwd()
     script_path = Path.join(dir_path, "sim/start_sim.sh")
     exec_path = Path.join(dir_path, exec)
