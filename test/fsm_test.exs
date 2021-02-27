@@ -11,10 +11,10 @@ defmodule FSMTest do
   # when code is more reliable we can expand to integration testing, by starting our whole application,
   # and using the processes started in the application, instead of explicity starting them as done below
 
-  defp start_simulator_mac(port, floors) do
+  defp start_simulator = fn(exec, port, floors)  ->
     {:ok, dir_path} = File.cwd()
-    script_path = Path.join(dir_path, "sim/start_sim_mac.sh")
-    exec_path = Path.join(dir_path, "sim/SimElevatorServer")
+    script_path = Path.join(dir_path, "sim/start_sim.sh")
+    exec_path = Path.join(dir_path, exec)
     System.cmd(script_path, [exec_path, to_string(port), to_string(floors)])
     Process.sleep(1000)
   end
@@ -30,7 +30,7 @@ defmodule FSMTest do
   setup_all do
       port = 17777
       floors = 4
-      #start_simulator_mac(port, floors)
+      #start_simulator("sim/mac/SimElevatorServer", port, floors)
       {:ok, elevator_driver_pid} = Driver.start_link([{127,0,0,1}, port])
       {:ok, elevator_pid} = Elevator.start_link()
       {:ok, fsm_pid} = FSM.start_link([])

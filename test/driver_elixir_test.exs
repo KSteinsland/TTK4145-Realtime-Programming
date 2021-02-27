@@ -2,10 +2,10 @@ defmodule DriverTest do
   use ExUnit.Case
   doctest Driver, async: false
 
-  defp start_simulator_mac(port, floors) do
+  defp start_simulator = fn(exec, port, floors)  ->
     {:ok, dir_path} = File.cwd()
-    script_path = Path.join(dir_path, "sim/start_sim_mac.sh")
-    exec_path = Path.join(dir_path, "sim/SimElevatorServer")
+    script_path = Path.join(dir_path, "sim/start_sim.sh")
+    exec_path = Path.join(dir_path, exec)
     System.cmd(script_path, [exec_path, to_string(port), to_string(floors)])
     Process.sleep(1000)
   end
@@ -22,7 +22,7 @@ defmodule DriverTest do
   setup_all do
       port = 17777
       floors = 4
-      #start_simulator_mac(port, floors)
+      #start_simulator("sim/mac/SimElevatorServer", port, floors)
       {:ok, pid} = Driver.start_link([{127,0,0,1}, port])
       %{pid: pid, floors: floors}
   end
