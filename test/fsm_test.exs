@@ -30,7 +30,7 @@ defmodule FSMTest do
   setup_all do
       port = 17777
       floors = 4
-      start_simulator_mac(port, floors)
+      #start_simulator_mac(port, floors)
       {:ok, elevator_driver_pid} = Driver.start_link([{127,0,0,1}, port])
       {:ok, elevator_pid} = Elevator.start_link()
       {:ok, fsm_pid} = FSM.start_link([])

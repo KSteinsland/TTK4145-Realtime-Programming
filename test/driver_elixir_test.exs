@@ -22,7 +22,7 @@ defmodule DriverTest do
   setup_all do
       port = 17777
       floors = 4
-      start_simulator_mac(port, floors)
+      #start_simulator_mac(port, floors)
       {:ok, pid} = Driver.start_link([{127,0,0,1}, port])
       %{pid: pid, floors: floors}
   end
