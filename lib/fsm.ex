@@ -20,38 +20,50 @@ defmodule FSM do
 
   defp set_all_lights() do
     #Enum.each(Elevator.get_requests(Elevator), fn x -> Driver.set_order_button_light())
+
+    #order_types = Map.keys(Elevator.button_map)
+    btn_types = [:cab, :hall_down, :hall_up]
+
+    for {floor, floor_ind} <- Enum.with_index(Elevator.get_requests()) do
+      for {order, order_ind} <- Enum.with_index(floor) do
+        Driver.set_order_button_light(Enum.at(btn_types, order_ind), floor_ind, order)
+      end
+    end
   end
 
   # User API ----------------------------------------------
 
 
   def on_init_between_floors(serverpid) do
-    GenServer.cast(serverpid, {:on_init_between_floors})
+    GenServer.call(serverpid, {:on_init_between_floors})
   end
 
   def on_request_button_press(serverpid, btn_floor, btn_type) do
-    GenServer.cast(serverpid, {:on_request_button_press, btn_floor, btn_type})
+    GenServer.call(serverpid, {:on_request_button_press, btn_floor, btn_type})
   end
 
   def on_floor_arrival(serverpid, new_floor) do
-    GenServer.cast(serverpid, {:on_floor_arrival, new_floor})
+    GenServer.call(serverpid, {:on_floor_arrival, new_floor})
   end
 
   # Casts  ----------------------------------------------
 
-  def handle_cast({:on_init_between_floors}, state) do
+
+  # Calls  ----------------------------------------------
+
+  def handle_call({:on_init_between_floors}, _from, state) do
 
     IO.inspect("between floors")
     Driver.set_motor_direction(:down)
     Elevator.set_direction(:down)
     Elevator.set_behaviour(:El_moving)
 
-    {:noreply, state}
+    {:reply, :ok, state}
 
   end
 
 
-  def handle_cast({:on_request_button_press, btn_floor, btn_type}, state) do
+  def handle_call({:on_request_button_press, btn_floor, btn_type}, _from, state) do
 
 
     case Elevator.get_behaviour do
@@ -59,11 +71,11 @@ defmodule FSM do
         if(Elevator.get_floor() == btn_floor) do
           #timer_start(5) #seconds
         else
-          Elevator.set_requests(btn_floor, btn_type, 1)
+          Elevator.set_request(btn_floor, btn_type)
         end
 
       :El_moving ->
-        Elevator.set_requests(btn_type, btn_type, 1)
+        Elevator.set_request(btn_type, btn_type)
 
 
       :El_idle ->
@@ -72,28 +84,31 @@ defmodule FSM do
           #timer_start(5) #seconds
           Elevator.set_behaviour(:El_door_open)
         else
-          Elevator.set_requests(btn_floor, btn_type, 1)
+          Elevator.set_request(btn_floor, btn_type)
           Requests.choose_direction() |> Elevator.set_direction
         end
 
         _ ->
-          {:noreply, state}
+          #{:reply, :ok, state}
     end
 
     # IS TIHS OKAY?
-    {:noreply, state}
+    {:reply, :ok,  state}
 
   end
 
-  def handle_cast({:on_floor_arrival, new_floor}, state) do
+  def handle_call({:on_floor_arrival, new_floor}, _from, state) do
 
     Elevator.set_floor(new_floor)
+
+    IO.inspect("At a new floor")
 
     Elevator.get_floor |> Driver.set_floor_indicator
 
     case Elevator.get_behaviour do
       :El_moving ->
-        if(Requests.shouldStop) do
+        #if(Requests.shouldStop) do
+        if(true) do
           Driver.set_motor_direction(:stop)
           Driver.set_door_open_light(:on)
           #elevator = Request.clear_at_current_floor()
@@ -101,14 +116,15 @@ defmodule FSM do
           set_all_lights()
           Elevator.set_behaviour(:El_door_open)
         end
+      _ ->
     end
 
-    {:noreply, state}
+    {:reply, :ok, state}
 
   end
 
 
-  def handle_cast({:on_door_timeout}, state) do
+  def handle_call({:on_door_timeout},  _from, state) do
 
     case Elevator.get_behaviour do
       El_door_open ->
@@ -124,12 +140,8 @@ defmodule FSM do
         end
     end
 
-    {:noreply, state}
+    {:reply, :ok, state}
 
   end
-
-
-  # Calls  ----------------------------------------------
-
 
 end

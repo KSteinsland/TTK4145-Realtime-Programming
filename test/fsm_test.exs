@@ -39,6 +39,7 @@ defmodule FSMTest do
 
   test "just arrived at a floor", %{pid: fsm_pid} do
     Elevator.set_floor(2)
+    Elevator.set_behaviour(:El_moving)
 
     assert Driver.set_motor_direction(:down) == :ok
     new_floor = wait_for_floor(0)
