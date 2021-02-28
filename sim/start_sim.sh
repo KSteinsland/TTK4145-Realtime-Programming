@@ -10,11 +10,17 @@ SIM_FLOORS=$3
 # Set Session Name
 SESSION="SimTest"
 SESSIONEXISTS=$(tmux list-sessions | grep $SESSION)
+SESSIONCONNECTED=$(tmux list-sessions | grep $SESSION | grep "attached")
 
 # Only create tmux session if it doesn't already exist
 if [ "$SESSIONEXISTS" != "" ]
 then
-    tmux kill-session -t $SESSION
+    if ["$SESSIONCONNECTED" == ""]
+    then
+        tmux kill-session -t $SESSION
+    else
+        kill -9 `pgrep SimElevatorServer`
+    fi
 fi
 
 # Start New Session with our name
