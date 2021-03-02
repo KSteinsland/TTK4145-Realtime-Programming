@@ -51,6 +51,10 @@ defmodule Elevator do
         GenServer.cast __MODULE__, {:set_direction, direction}
     end
 
+    def set_behaviour(behaviour) do
+        GenServer.cast __MODULE__, {:set_behaviour, behaviour}
+    end
+
     def set_request(floor, btn_type) do
         GenServer.cast __MODULE__, {:set_request, floor, btn_type}
     end
@@ -59,10 +63,9 @@ defmodule Elevator do
         GenServer.cast __MODULE__, {:clear_request, floor, btn_type}
     end
 
-    def set_behaviour(behaviour) do
-        GenServer.cast __MODULE__, {:set_behaviour, behaviour}
+    def clear_all_requests_at_floor(floor) do
+        GenServer.cast __MODULE__, {:clear_all_requests_at_floor, floor}
     end
-
   
     #calls----------------------------------------
     def handle_call(:get_floor, _from, state) do
@@ -109,6 +112,13 @@ defmodule Elevator do
         {:noreply, state}
     end
 
+    def handle_cast({:clear_all_requests_at_floor, floor}, state) do
+        b_req = List.duplicate(0, @num_buttons)
+        req = List.replace_at(state.requests, floor, b_req)
+        state = %{state | requests: req}
+        {:noreply, state}
+    end
+
     def handle_cast({:set_behaviour, behaviour}, state) do
         state = %{state | behaviour: behaviour}
         {:noreply, state}
@@ -121,5 +131,7 @@ defmodule Elevator do
         updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
         req = List.replace_at(req, floor, updated_req_at_floor)
     end
+
+    
 
 end
