@@ -40,7 +40,7 @@ defmodule Elevator do
     end
 
     def set_floor(floor) when floor >= 0 and floor < @num_floors do
-        GenServer.cast __MODULE__, {:set_floor, floor}
+        GenServer.cast __MODULE__, {:set_floor, floor}  
     end
 
     def set_direction(direction) do
@@ -61,6 +61,11 @@ defmodule Elevator do
 
     def clear_all_requests_at_floor(floor) do
         GenServer.cast __MODULE__, {:clear_all_requests_at_floor, floor}
+    end
+
+    #Error matches--------------------------------
+    def set_floor(floor) do
+        {:error, "Not a legal floor: #{floor}"}
     end
   
     #calls----------------------------------------
