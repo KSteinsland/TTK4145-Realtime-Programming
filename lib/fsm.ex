@@ -1,6 +1,6 @@
 require Driver
 require Elevator
-#require Requests
+require Requests
 #require Timer
 
 defmodule FSM do
@@ -19,7 +19,6 @@ defmodule FSM do
   end
 
   defp set_all_lights() do
-    #Enum.each(Elevator.get_requests(Elevator), fn x -> Driver.set_order_button_light())
 
     #order_types = Map.keys(Elevator.button_map)
     btn_types = [:cab, :hall_down, :hall_up]
@@ -34,16 +33,16 @@ defmodule FSM do
   # User API ----------------------------------------------
 
 
-  def on_init_between_floors(serverpid) do
-    GenServer.call(serverpid, {:on_init_between_floors})
+  def on_init_between_floors(__MODULE__) do
+    GenServer.call(__MODULE__, {:on_init_between_floors})
   end
 
-  def on_request_button_press(serverpid, btn_floor, btn_type) do
-    GenServer.call(serverpid, {:on_request_button_press, btn_floor, btn_type})
+  def on_request_button_press(__MODULE__, btn_floor, btn_type) do
+    GenServer.call(__MODULE__, {:on_request_button_press, btn_floor, btn_type})
   end
 
-  def on_floor_arrival(serverpid, new_floor) do
-    GenServer.call(serverpid, {:on_floor_arrival, new_floor})
+  def on_floor_arrival(__MODULE__, new_floor) do
+    GenServer.call(__MODULE__, {:on_floor_arrival, new_floor})
   end
 
   # Casts  ----------------------------------------------
@@ -107,14 +106,15 @@ defmodule FSM do
 
     case Elevator.get_behaviour do
       :El_moving ->
-        #if(Requests.shouldStop) do
-        if(true) do
-          Driver.set_motor_direction(:stop)
-          Driver.set_door_open_light(:on)
-          #elevator = Request.clear_at_current_floor()
-          #Timer.start(elevator.config.door_open_duration_s)
-          set_all_lights()
-          Elevator.set_behaviour(:El_door_open)
+        if(Requests.should_stop?) do
+          if(true) do
+            Driver.set_motor_direction(:stop)
+            Driver.set_door_open_light(:on)
+            Request.clear_at_current_floor()
+            #Timer.start(elevator.config.door_open_duration_s)
+            set_all_lights()
+            Elevator.set_behaviour(:El_door_open)
+          end
         end
       _ ->
     end
