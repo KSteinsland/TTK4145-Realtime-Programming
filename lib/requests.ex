@@ -20,12 +20,13 @@ defmodule Requests do
                     true -> :El_stop
                 end
 
-            :El_stop ->
+            direction when direction == :El_down or direction == :El_stop ->
                 cond do
                     request_below?() -> :El_down
                     request_above?() -> :El_up
                     true -> :El_stop
                 end
+
             _ ->
                 :El_stop
         end
