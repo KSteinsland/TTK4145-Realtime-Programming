@@ -3,11 +3,17 @@ require FSM
 #require Timer
 
 defmodule ElevatorPoller do
+  use GenServer
 
   #THIS needs fixing
   @num_floors 4
   @num_buttons 3
   @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
+
+
+  def start_link([]) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
 
   def start_loop() do
     IO.puts("Started!")
