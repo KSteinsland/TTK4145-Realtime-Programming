@@ -45,6 +45,10 @@ defmodule FSM do
     GenServer.call(__MODULE__, {:on_floor_arrival, new_floor})
   end
 
+  def on_door_timeout() do
+    GenServer.call(__MODULE__, {:on_door_timeout})
+  end
+
   # Casts  ----------------------------------------------
 
 
@@ -87,8 +91,8 @@ defmodule FSM do
           Requests.choose_direction() |> Elevator.set_direction
         end
 
-        _ ->
-          #{:reply, :ok, state}
+        # _ ->
+        # {:reply, :ok, state}
     end
 
     # IS TIHS OKAY?
@@ -106,17 +110,19 @@ defmodule FSM do
 
     case Elevator.get_behaviour do
       :El_moving ->
-        if(Requests.should_stop?) do
-          if(true) do
-            Driver.set_motor_direction(:stop)
-            Driver.set_door_open_light(:on)
-            Request.clear_at_current_floor()
-            #Timer.start(elevator.config.door_open_duration_s)
-            set_all_lights()
-            Elevator.set_behaviour(:El_door_open)
-          end
+        if(Requests.should_stop?()) do
+
+          Driver.set_motor_direction(:stop)
+          Driver.set_door_open_light(:on)
+          Requests.clear_at_current_floor()
+          #Timer.start(elevator.config.door_open_duration_s)
+          set_all_lights()
+          Elevator.set_behaviour(:El_door_open)
+
         end
-      _ ->
+
+      # _ ->
+
     end
 
     {:reply, :ok, state}
@@ -126,14 +132,14 @@ defmodule FSM do
 
   def handle_call({:on_door_timeout},  _from, state) do
 
-    case Elevator.get_behaviour do
-      El_door_open ->
-        Request.choose_direction |> Elevator.set_direction
+    case Elevator.get_behaviour() do
+      :El_door_open ->
+        Requests.choose_direction() |> Elevator.set_direction()
 
         Driver.set_door_open_light(0)
-        Elevator.get_direction |> Driver.set_motor_direction
+        Elevator.get_direction() |> Driver.set_motor_direction()
 
-        if (Elevator.get_direction == :D_stop) do
+        if (Elevator.get_direction() == :El_stop) do
           Elevator.set_behaviour(:El_idle)
         else
           Elevator.set_behaviour(:El_moving)
