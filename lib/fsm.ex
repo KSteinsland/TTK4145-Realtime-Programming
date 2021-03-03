@@ -61,8 +61,8 @@ defmodule FSM do
   def handle_call({:on_init_between_floors}, _from, state) do
 
     IO.inspect("between floors")
-    Driver.set_motor_direction(:down)
-    Elevator.set_direction(:down)
+    Driver.set_motor_direction(:El_down)
+    Elevator.set_direction(:El_down)
     Elevator.set_behaviour(:El_moving)
 
     {:reply, :ok, state}
@@ -74,7 +74,7 @@ defmodule FSM do
 
 
     case Elevator.get_behaviour do
-      :El_open ->
+      :El_door_open ->
         if(Elevator.get_floor() == btn_floor) do
           Timer.timer_start(5_000) #seconds
         else
@@ -82,7 +82,7 @@ defmodule FSM do
         end
 
       :El_moving ->
-        Elevator.set_request(btn_type, btn_type)
+        Elevator.set_request(btn_floor, btn_type)
 
 
       :El_idle ->
@@ -92,7 +92,9 @@ defmodule FSM do
           Elevator.set_behaviour(:El_door_open)
         else
           Elevator.set_request(btn_floor, btn_type)
-          Requests.choose_direction() |> Elevator.set_direction
+          Requests.choose_direction() |> Elevator.set_direction()
+          Elevator.get_direction |> Driver.set_motor_direction()
+          Elevator.set_behaviour(:El_moving)
         end
 
         _ ->
@@ -117,7 +119,7 @@ defmodule FSM do
       :El_moving ->
         if(Requests.should_stop?()) do
 
-          Driver.set_motor_direction(:stop)
+          Driver.set_motor_direction(:El_stop)
           Driver.set_door_open_light(:on)
           Requests.clear_at_current_floor()
           Timer.timer_start(3_000) # (elevator.config.door_open_duration_s)

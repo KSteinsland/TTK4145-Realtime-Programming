@@ -20,7 +20,7 @@ defmodule ElevatorPoller do
 
     IO.puts("Started!")
 
-    input_poll_rate_ms = 500#25
+    input_poll_rate_ms = 25
 
     if (Driver.get_floor_sensor_state() == :between_floors) do
       IO.puts("Between floors!")

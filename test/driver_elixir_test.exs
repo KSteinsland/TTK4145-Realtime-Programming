@@ -42,7 +42,7 @@ defmodule DriverTest do
   end
 
   test "testing motor", %{floors: _floors} do
-    assert Driver.set_motor_direction(:down) == :ok
+    assert Driver.set_motor_direction(:El_down) == :ok
     assert wait_for_floor(Driver.get_floor_sensor_state) != :between_floors
     assert Driver.set_motor_direction(:idle) == :ok
     assert Driver.get_floor_sensor_state != :between_floors

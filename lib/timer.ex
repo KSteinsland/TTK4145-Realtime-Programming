@@ -31,19 +31,18 @@ defmodule Timer do
 
   # Cast/calls  ----------------------------------------------
 
-  def handle_cast {:timer_start, time}, state do
-    {timer, timed_out} = state
+  def handle_cast {:timer_start, time}, _state do
     timer = Process.send_after(self(), {:timed_out, true}, time)
     {:noreply, {timer, false}}
   end
 
   def handle_info {:timed_out, bool}, state do
-    {timer, timed_out} = state
+    {timer, _timed_out} = state
     {:noreply, {timer, bool}}
   end
 
   def handle_call :timer_stop, _from, state do
-    {timer, timed_out} = state
+    {timer, _timed_out} = state
     if (timer != nil) do
       Process.cancel_timer timer
     end
@@ -51,7 +50,7 @@ defmodule Timer do
   end
 
   def handle_call :has_timed_out, _from, state do
-    {timer, timed_out} = state
+    {_timer, timed_out} = state
     {:reply, timed_out, state}
   end
 

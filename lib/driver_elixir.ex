@@ -3,14 +3,14 @@ defmodule Driver do
   @call_timeout 1000
   @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
   @state_map  %{:on => 1, :off => 0}
-  @direction_map %{:up => 1, :down => 255, :stop => 0}
+  @direction_map %{:El_up => 1, :El_down => 255, :El_stop => 0}
 
   def start_link([]) do
     start_link [{127,0,0,1}, 15657]
   end
 
   def start_link([address, port]) do
-    GenServer.start_link(__MODULE__, [address, port], [name: __MODULE__, debug: [:trace]])
+    GenServer.start_link(__MODULE__, [address, port], [name: __MODULE__]) #, debug: [:trace]])
   end
 
   def stop do
@@ -24,7 +24,7 @@ defmodule Driver do
 
 
   # User API ----------------------------------------------
-  # direction can be :up/:down/:stop
+  # direction can be :El_up/:El_down/:El_stop
   def set_motor_direction direction do
     GenServer.cast __MODULE__, {:set_motor_direction, direction}
   end

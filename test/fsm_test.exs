@@ -41,7 +41,7 @@ defmodule FSMTest do
     Elevator.set_floor(2)
     Elevator.set_behaviour(:El_moving)
 
-    assert Driver.set_motor_direction(:down) == :ok
+    assert Driver.set_motor_direction(:El_down) == :ok
     new_floor = wait_for_floor(0)
     assert FSM.on_floor_arrival(new_floor) == :ok
 
