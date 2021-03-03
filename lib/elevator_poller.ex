@@ -20,7 +20,7 @@ defmodule ElevatorPoller do
 
     IO.puts("Started!")
 
-    input_poll_rate_ms = 25
+    input_poll_rate_ms = 500#25
 
     if (Driver.get_floor_sensor_state() == :between_floors) do
       FSM.on_init_between_floors()
@@ -67,10 +67,12 @@ defmodule ElevatorPoller do
 
   defp check_requests(prev_req_list) do
 
+    btn_types = [:cab, :hall_down, :hall_up]
+
     for floor_ind <- 0..@num_floors-1 do
       for button_ind <- 0..@num_buttons-1 do
 
-        v = Driver.get_order_button_state(floor_ind, button_ind)
+        v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
 
         prev_v = Enum.at(prev_req_list, floor_ind) |> Enum.at(button_ind)
 

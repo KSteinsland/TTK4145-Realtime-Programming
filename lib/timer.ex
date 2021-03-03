@@ -44,8 +44,10 @@ defmodule Timer do
 
   def handle_call :timer_stop, _from, state do
     {timer, timed_out} = state
-    Process.cancel_timer timer
-    {:reply, :ok, {timer, 1}}
+    if (timer != nil) do
+      Process.cancel_timer timer
+    end
+    {:reply, :ok, {timer, 0}}
   end
 
   def handle_call :has_timed_out, _from, state do

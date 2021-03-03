@@ -72,7 +72,7 @@ defmodule FSM do
     case Elevator.get_behaviour do
       :El_open ->
         if(Elevator.get_floor() == btn_floor) do
-          Timer.timer_start(5) #seconds
+          Timer.timer_start(5_000) #seconds
         else
           Elevator.set_request(btn_floor, btn_type)
         end
@@ -84,15 +84,16 @@ defmodule FSM do
       :El_idle ->
         if(Elevator.get_floor() == btn_floor) do
           Driver.set_door_open_light(:on)
-          Timer.timer_start(5) #seconds
+          Timer.timer_start(5_000) #seconds
           Elevator.set_behaviour(:El_door_open)
         else
           Elevator.set_request(btn_floor, btn_type)
           Requests.choose_direction() |> Elevator.set_direction
         end
 
-        # _ ->
-        # {:reply, :ok, state}
+        _ ->
+          :ok
+          # {:reply, :ok, state}
     end
 
     # IS TIHS OKAY?
@@ -115,13 +116,14 @@ defmodule FSM do
           Driver.set_motor_direction(:stop)
           Driver.set_door_open_light(:on)
           Requests.clear_at_current_floor()
-          Timer.timer_start(3) # (elevator.config.door_open_duration_s)
+          Timer.timer_start(3_000) # (elevator.config.door_open_duration_s)
           set_all_lights()
           Elevator.set_behaviour(:El_door_open)
 
         end
 
-      # _ ->
+      _ ->
+        :ok
 
     end
 
@@ -144,6 +146,9 @@ defmodule FSM do
         else
           Elevator.set_behaviour(:El_moving)
         end
+      
+      _ ->
+        :ok
     end
 
     {:reply, :ok, state}
