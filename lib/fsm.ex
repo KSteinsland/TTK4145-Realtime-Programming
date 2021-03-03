@@ -24,11 +24,11 @@ defmodule FSM do
     btn_types = [:cab, :hall_down, :hall_up]
 
     for {floor, floor_ind} <- Enum.with_index(Elevator.get_requests()) do
-      for {order, order_ind} <- Enum.with_index(floor) do
-        if (order == 1) do
-          Driver.set_order_button_light(Enum.at(btn_types, order_ind), floor_ind, :on)
+      for {btn, btn_ind} <- Enum.with_index(floor) do
+        if (btn == 1) do
+          Driver.set_order_button_light(Enum.at(btn_types, btn_ind), floor_ind, :on)
         else
-          Driver.set_order_button_light(Enum.at(btn_types, order_ind), floor_ind, :off)
+          Driver.set_order_button_light(Enum.at(btn_types, btn_ind), floor_ind, :off)
         end
       end
     end
@@ -101,6 +101,8 @@ defmodule FSM do
           :ok
           # {:reply, :ok, state}
     end
+
+    set_all_lights()
 
     # IS TIHS OKAY?
     {:reply, :ok,  state}

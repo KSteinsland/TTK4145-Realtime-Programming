@@ -78,12 +78,12 @@ defmodule ElevatorPoller do
         v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
 
         #debug
-        if (v != 0), do: IO.inspect(v, [label: "Driver button state"])
+        #if (v != 0), do: IO.inspect(v, [label: "Driver button state"])
 
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
 
         #debug
-        if (prev_v != 0), do: IO.inspect(prev_v, [label: "Prev button state"])
+        #if (prev_v != 0), do: IO.inspect(prev_v, [label: "Prev button state"])
 
         if (v==1 && v != prev_v) do
           FSM.on_request_button_press(floor_ind, button_ind)
