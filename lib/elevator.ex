@@ -6,12 +6,8 @@ defmodule Elevator do
 
     use GenServer
 
-    @directions {:El_up, :El_down, :El_stop}
-    @behaviours {:El_idle, :El_door_open, :El_moving}
-    @button_tpyes {:hall_up, :hall_down, :cab}
-    @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
-    @num_floors 4
-    @num_buttons 3
+    @num_floors Application.fetch_env!(:elevator_project, :num_floors)
+    @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
 
     req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
@@ -43,7 +39,7 @@ defmodule Elevator do
         GenServer.call __MODULE__, :get_behaviour
     end
 
-    def set_floor(floor) do
+    def set_floor(floor) when floor >= 0 and floor < @num_floors do
         GenServer.cast __MODULE__, {:set_floor, floor}
     end
 
