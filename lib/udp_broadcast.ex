@@ -63,10 +63,12 @@ defmodule UDPBroadcast do
     {:noreply, state}
   end
 
+
   def handle_info({:udp, _socket, host, port, packet}, state) do
 
     #should probably pin these
     {socket, _port, name, nodes} = state
+
 
     host_adr_str = :inet.ntoa(host)
     [host_name | _] = String.split(to_string(packet), "@")
