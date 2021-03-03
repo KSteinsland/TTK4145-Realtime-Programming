@@ -1,4 +1,6 @@
 defmodule Requests do
+    #TODO: update to new config enums 
+
     @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
     
     def request_above? do
