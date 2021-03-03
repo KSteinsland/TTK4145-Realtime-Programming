@@ -63,10 +63,12 @@ defmodule UDPBroadcast do
     {:noreply, state}
   end
 
-  def handle_info({:udp, socket, host, port, packet}, state) do
+
+  def handle_info({:udp, _socket, host, port, packet}, state) do
 
     #should probably pin these
-    {_socket, _port, name, nodes} = state
+    {socket, _port, name, nodes} = state
+
 
     host_adr_str = :inet.ntoa(host)
     [host_name | _] = String.split(to_string(packet), "@")
@@ -89,7 +91,8 @@ defmodule UDPBroadcast do
   end
 
   def handle_info(msg, state) do
-    IO.inspect("Invalid Message: #{msg}")
+    IO.inspect("Invalid Message: ")
+    IO.inspect(msg)
     {:noreply, state}
   end
 end

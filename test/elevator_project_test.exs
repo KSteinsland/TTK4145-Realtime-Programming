@@ -1,8 +1,8 @@
-defmodule ELEVATOR_PROJECTTest do
+defmodule ElevatorProjectTest do
   use ExUnit.Case
-  doctest ELEVATOR_PROJECT
+  doctest ElevatorProject
 
   test "greets the world" do
-    assert ELEVATOR_PROJECT.hello() == :world
+    assert ElevatorProject.hello() == :world
   end
 end

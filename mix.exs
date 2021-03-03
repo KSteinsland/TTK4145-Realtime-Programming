@@ -1,4 +1,4 @@
-defmodule ELEVATOR_PROJECT.MixProject do
+defmodule ElevatorProject.MixProject do
   use Mix.Project
 
   def project do
@@ -7,6 +7,7 @@ defmodule ELEVATOR_PROJECT.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
+      #aliases: aliases(),
       deps: deps()
     ]
   end
@@ -14,9 +15,16 @@ defmodule ELEVATOR_PROJECT.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {ElevatorProject.Application, []}
     ]
   end
+
+  # defp aliases do
+  #   [
+  #     test: "test --no-start" #(2)
+  #   ]
+  # end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
