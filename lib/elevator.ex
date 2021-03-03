@@ -20,7 +20,7 @@ defmodule Elevator do
 
     #API----------------------------------------
     def start_link([]) do
-        GenServer.start_link(__MODULE__, [], name: __MODULE__)
+        GenServer.start_link(__MODULE__, [], [name: __MODULE__, debug: [:trace]])
     end
 
     def get_floor() do

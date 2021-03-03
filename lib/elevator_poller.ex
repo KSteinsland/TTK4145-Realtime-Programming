@@ -1,6 +1,6 @@
 require Driver
 require FSM
-#require Timer
+require Timer
 
 defmodule ElevatorPoller do
   use GenServer
@@ -12,10 +12,12 @@ defmodule ElevatorPoller do
 
 
   def start_link([]) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], [name: __MODULE__, debug: [:trace]])
   end
 
-  def start_loop() do
+
+  def init([]) do
+
     IO.puts("Started!")
 
     input_poll_rate_ms = 25
@@ -28,7 +30,39 @@ defmodule ElevatorPoller do
     prev_floor = 0
     prev_req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
     state = {prev_floor, prev_req_list, input_poll_rate_ms}
-    poll_loop(state)
+
+    send(self(), :loop_poller)
+
+    {:ok, state}
+  end
+
+  def handle_info(:loop_poller, state) do
+
+    IO.puts("Looping!")
+
+    {prev_floor, prev_req_list, input_poll_rate_ms} = state
+
+    prev_req_list = check_requests(prev_req_list)
+
+    f = Driver.get_floor_sensor_state()
+
+    if (f != :between_floors && f != prev_floor) do
+      FSM.on_floor_arrival(f)
+    end
+
+    prev_floor = f
+
+    if(Timer.has_timed_out) do
+      FSM.on_door_timeout()
+      Timer.timer_stop()
+    end
+
+    #Process.sleep(input_poll_rate_ms)
+    Process.send_after(self(), :loop_poller, input_poll_rate_ms)
+
+    state = {prev_floor, prev_req_list, input_poll_rate_ms}
+    {:noreply, state}
+
   end
 
   defp check_requests(prev_req_list) do
@@ -50,37 +84,11 @@ defmodule ElevatorPoller do
   end
 
 
-
-  defp poll_loop(state) do
-
-    {prev_floor, prev_req_list, input_poll_rate_ms} = state
-
-    prev_req_list = check_requests(prev_req_list)
-
-    f = Driver.get_floor_sensor_state()
-
-    if (f != :between_floors && f != prev_floor) do
-      FSM.on_floor_arrival(f)
-    end
-
-    prev_floor = f
-
-    if(Timer.timed_out) do
-      FSM.on_door_timeout()
-      Timer.stop()
-    end
-
-    Process.sleep(input_poll_rate_ms)
-
-    state = {prev_floor, prev_req_list, input_poll_rate_ms}
-    poll_loop(state)
-  end
-
   #util----------------------------------------
   defp update_list(req, floor, btn_type, value) do
     {req_at_floor, _list} = List.pop_at(req, floor)
     updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
-    req = List.replace_at(req, floor, updated_req_at_floor)
+    List.replace_at(req, floor, updated_req_at_floor)
   end
 
 end

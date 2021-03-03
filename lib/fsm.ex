@@ -1,7 +1,7 @@
 require Driver
 require Elevator
 require Requests
-#require Timer
+require Timer
 
 defmodule FSM do
   use GenServer
@@ -11,7 +11,7 @@ defmodule FSM do
   # all Request functions should receive which elevator it is handling, to allow for easy expansion to multiple elevators
 
   def start_link([]) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], [name: __MODULE__, debug: [:trace]])
   end
 
   def init(_opts \\ []) do
@@ -72,7 +72,7 @@ defmodule FSM do
     case Elevator.get_behaviour do
       :El_open ->
         if(Elevator.get_floor() == btn_floor) do
-          #timer_start(5) #seconds
+          Timer.timer_start(5) #seconds
         else
           Elevator.set_request(btn_floor, btn_type)
         end
@@ -84,7 +84,7 @@ defmodule FSM do
       :El_idle ->
         if(Elevator.get_floor() == btn_floor) do
           Driver.set_door_open_light(:on)
-          #timer_start(5) #seconds
+          Timer.timer_start(5) #seconds
           Elevator.set_behaviour(:El_door_open)
         else
           Elevator.set_request(btn_floor, btn_type)
@@ -115,7 +115,7 @@ defmodule FSM do
           Driver.set_motor_direction(:stop)
           Driver.set_door_open_light(:on)
           Requests.clear_at_current_floor()
-          #Timer.start(elevator.config.door_open_duration_s)
+          Timer.timer_start(3) # (elevator.config.door_open_duration_s)
           set_all_lights()
           Elevator.set_behaviour(:El_door_open)
 
