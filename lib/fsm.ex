@@ -25,7 +25,11 @@ defmodule FSM do
 
     for {floor, floor_ind} <- Enum.with_index(Elevator.get_requests()) do
       for {order, order_ind} <- Enum.with_index(floor) do
-        Driver.set_order_button_light(Enum.at(btn_types, order_ind), floor_ind, order)
+        if (order == 1) do
+          Driver.set_order_button_light(Enum.at(btn_types, order_ind), floor_ind, :on)
+        else
+          Driver.set_order_button_light(Enum.at(btn_types, order_ind), floor_ind, :off)
+        end
       end
     end
   end
@@ -138,7 +142,7 @@ defmodule FSM do
       :El_door_open ->
         Requests.choose_direction() |> Elevator.set_direction()
 
-        Driver.set_door_open_light(0)
+        Driver.set_door_open_light(:off)
         Elevator.get_direction() |> Driver.set_motor_direction()
 
         if (Elevator.get_direction() == :El_stop) do
@@ -146,7 +150,7 @@ defmodule FSM do
         else
           Elevator.set_behaviour(:El_moving)
         end
-      
+
       _ ->
         :ok
     end
