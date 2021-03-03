@@ -39,7 +39,6 @@ defmodule ElevatorPoller do
 
   def handle_info(:loop_poller, state) do
 
-    #IO.puts("Looping!")
 
     {prev_floor, prev_req_list, input_poll_rate_ms} = state
 
@@ -77,31 +76,16 @@ defmodule ElevatorPoller do
 
         v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
 
-        #debug
-        #if (v != 0), do: IO.inspect(v, [label: "Driver button state"])
-
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
-
-        #debug
-        #if (prev_v != 0), do: IO.inspect(prev_v, [label: "Prev button state"])
 
         if (v==1 && v != prev_v) do
           FSM.on_request_button_press(floor_ind, button_ind)
         end
 
-        #tmp_list = update_list(prev_req_list, floor_ind, button_ind, v)
         v
 
       end
     end
   end
-
-
-  #util----------------------------------------
-  # def update_list(req, floor, btn_type, value) do
-  #   {req_at_floor, _list} = List.pop_at(req, floor)
-  #   updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
-  #   List.replace_at(req, floor, updated_req_at_floor)
-  # end
 
 end

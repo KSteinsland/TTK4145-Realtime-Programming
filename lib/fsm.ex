@@ -1,22 +1,7 @@
-require Driver
-require Elevator
-require Requests
-require Timer
-
 defmodule FSM do
-  use GenServer
-  #use Agent probably enough
 
   #########
   # all Request functions should receive which elevator it is handling, to allow for easy expansion to multiple elevators
-
-  def start_link([]) do
-    GenServer.start_link(__MODULE__, [], [name: __MODULE__, debug: [:trace]])
-  end
-
-  def init(_opts \\ []) do
-    {:ok, {}}
-  end
 
   defp set_all_lights() do
 
@@ -34,44 +19,16 @@ defmodule FSM do
     end
   end
 
-  # User API ----------------------------------------------
-
 
   def on_init_between_floors() do
-    GenServer.call(__MODULE__, {:on_init_between_floors})
-  end
-
-  def on_request_button_press(btn_floor, btn_type) do
-    GenServer.call(__MODULE__, {:on_request_button_press, btn_floor, btn_type})
-  end
-
-  def on_floor_arrival(new_floor) do
-    GenServer.call(__MODULE__, {:on_floor_arrival, new_floor})
-  end
-
-  def on_door_timeout() do
-    GenServer.call(__MODULE__, {:on_door_timeout})
-  end
-
-  # Casts  ----------------------------------------------
-
-
-  # Calls  ----------------------------------------------
-
-  def handle_call({:on_init_between_floors}, _from, state) do
-
     IO.inspect("between floors")
     Driver.set_motor_direction(:El_down)
     Elevator.set_direction(:El_down)
     Elevator.set_behaviour(:El_moving)
 
-    {:reply, :ok, state}
-
   end
 
-
-  def handle_call({:on_request_button_press, btn_floor, btn_type}, _from, state) do
-
+  def on_request_button_press(btn_floor, btn_type) do
 
     case Elevator.get_behaviour do
       :El_door_open ->
@@ -83,7 +40,6 @@ defmodule FSM do
 
       :El_moving ->
         Elevator.set_request(btn_floor, btn_type)
-
 
       :El_idle ->
         if(Elevator.get_floor() == btn_floor) do
@@ -99,17 +55,14 @@ defmodule FSM do
 
         _ ->
           :ok
-          # {:reply, :ok, state}
+
     end
 
     set_all_lights()
 
-    # IS TIHS OKAY?
-    {:reply, :ok,  state}
-
   end
 
-  def handle_call({:on_floor_arrival, new_floor}, _from, state) do
+  def on_floor_arrival(new_floor) do
 
     Elevator.set_floor(new_floor)
 
@@ -135,12 +88,9 @@ defmodule FSM do
 
     end
 
-    {:reply, :ok, state}
-
   end
 
-
-  def handle_call({:on_door_timeout},  _from, state) do
+  def on_door_timeout() do
 
     case Elevator.get_behaviour() do
       :El_door_open ->
@@ -157,9 +107,8 @@ defmodule FSM do
 
       _ ->
         :ok
-    end
 
-    {:reply, :ok, state}
+    end
 
   end
 
