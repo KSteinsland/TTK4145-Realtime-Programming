@@ -33,15 +33,15 @@ defmodule FSM do
   # User API ----------------------------------------------
 
 
-  def on_init_between_floors(__MODULE__) do
+  def on_init_between_floors() do
     GenServer.call(__MODULE__, {:on_init_between_floors})
   end
 
-  def on_request_button_press(__MODULE__, btn_floor, btn_type) do
+  def on_request_button_press(btn_floor, btn_type) do
     GenServer.call(__MODULE__, {:on_request_button_press, btn_floor, btn_type})
   end
 
-  def on_floor_arrival(__MODULE__, new_floor) do
+  def on_floor_arrival(new_floor) do
     GenServer.call(__MODULE__, {:on_floor_arrival, new_floor})
   end
 
