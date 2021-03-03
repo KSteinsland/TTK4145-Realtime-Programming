@@ -65,32 +65,97 @@ defmodule ElevatorPoller do
 
   end
 
-  defp check_requests(prev_req_list) do
+  # defp loop_buttons(floor, prev_floor, floor_ind, button_ind) do
+
+  #   btn_types = [:cab, :hall_down, :hall_up]
+
+  #   v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
+  #   IO.inspect v
+
+  #   prev_v = Enum.at(prev_floor, button_ind)
+  #   IO.inspect prev_v
+
+  #   if (v && v != prev_v) do
+  #     FSM.on_request_button_press(floor_ind, button_ind)
+  #   end
+
+  #   floor  =  List.replace_at(prev_floor, Enum.at(btn_types, button_ind), v)
+  #   #= update_list(prev_req_list, floor_ind, button_ind, v)
+  #   IO.inspect floor
+
+  #   if button_ind < @num_buttons-1 do
+  #     loop_buttons(floor, prev_floor, floor_ind, button_ind+1)
+  #   else
+  #     {floor, prev_floor, floor_ind, button_ind}
+  #   end
+  # end
+
+  # def check_requests_old(prev_req_list) do
+
+  #   btn_types = [:cab, :hall_down, :hall_up]
+
+  #   tmp_list = for floor_ind <- 0..@num_floors-1 do
+  #     tmp_list =for button_ind <- 0..@num_buttons-1 do
+
+
+  #       v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
+  #       IO.inspect v
+
+  #       prev_v = Enum.at(prev_req_list, floor_ind) |> Enum.at(button_ind)
+  #       IO.inspect prev_v
+
+  #       if (v && v != prev_v) do
+  #         FSM.on_request_button_press(floor_ind, button_ind)
+  #       end
+
+  #       tmp_list = update_list(prev_req_list, floor_ind, button_ind, v)
+  #       IO.inspect tmp_list
+  #       tmp_list
+  #     end
+  #     IO.inspect tmp_list
+  #   end
+  #   IO.inspect tmp_list
+  # end
+
+  # def check_requests_old2(prev_req_list) do
+  #   for floor_ind <- 0..@num_floors-1 do
+  #     {tmp_list, _, _, _} = loop_buttons(nil, Enum.at(prev_req_list, floor_ind), floor_ind, 0)
+  #     IO.inspect(tmp_list)
+  #     prev_req_list = List.replace_at(prev_req_list, floor_ind, tmp_list)
+  #   end
+  # end
+
+  def check_requests(prev_req_list) do
 
     btn_types = [:cab, :hall_down, :hall_up]
 
-    for floor_ind <- 0..@num_floors-1 do
-      for button_ind <- 0..@num_buttons-1 do
+    for {floor, floor_ind} <- Enum.with_index(prev_req_list) do
+      for {_button, button_ind} <- Enum.with_index(floor) do
 
         v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
 
-        prev_v = Enum.at(prev_req_list, floor_ind) |> Enum.at(button_ind)
+        IO.inspect(v, [label: "Driver button state"])
+
+        prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
+        IO.inspect(prev_v, [label: "Prev button state"])
 
         if (v && v != prev_v) do
           FSM.on_request_button_press(floor_ind, button_ind)
         end
 
-        update_list(prev_req_list, floor_ind, button_ind, v)
+        #tmp_list = update_list(prev_req_list, floor_ind, button_ind, v)
+        v
+
       end
     end
   end
 
 
   #util----------------------------------------
-  defp update_list(req, floor, btn_type, value) do
-    {req_at_floor, _list} = List.pop_at(req, floor)
-    updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
-    List.replace_at(req, floor, updated_req_at_floor)
-  end
+  # def update_list(req, floor, btn_type, value) do
+  #   {req_at_floor, _list} = List.pop_at(req, floor)
+  #   updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
+  #   List.replace_at(req, floor, updated_req_at_floor)
+  # end
 
 end
