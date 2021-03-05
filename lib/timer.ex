@@ -2,8 +2,8 @@ defmodule Timer do
   use GenServer
   require Kernel
 
-  def start_link do
-    GenServer.start_link(__MODULE__, {nil, 0}, name: __MODULE__)
+  def start_link [] do
+    GenServer.start_link(__MODULE__, {nil, false}, name: __MODULE__)
   end
 
   def init {timer, timed_out} do
@@ -31,25 +31,26 @@ defmodule Timer do
 
   # Cast/calls  ----------------------------------------------
 
-  def handle_cast {:timer_start, time}, state do
-    {timer, timed_out} = state
-    timer = Process.send_after(self(), {:timed_out, 1}, time)
-    {:noreply, {timer, 0}}
+  def handle_cast {:timer_start, time}, _state do
+    timer = Process.send_after(self(), {:timed_out, true}, time)
+    {:noreply, {timer, false}}
   end
 
   def handle_info {:timed_out, bool}, state do
-    {timer, timed_out} = state
+    {timer, _timed_out} = state
     {:noreply, {timer, bool}}
   end
 
   def handle_call :timer_stop, _from, state do
-    {timer, timed_out} = state
-    Process.cancel_timer timer
-    {:reply, :ok, {timer, 1}}
+    {timer, _timed_out} = state
+    if (timer != nil) do
+      Process.cancel_timer timer
+    end
+    {:reply, :ok, {timer, false}}
   end
 
   def handle_call :has_timed_out, _from, state do
-    {timer, timed_out} = state
+    {_timer, timed_out} = state
     {:reply, timed_out, state}
   end
 

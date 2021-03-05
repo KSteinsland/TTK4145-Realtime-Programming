@@ -3,7 +3,7 @@ defmodule RequestsTest do
     doctest Elevator
 
     setup do
-        {:ok, pid} = Elevator.start_link
+        {:ok, pid} = Elevator.start_link([])
         %{pid: pid}
     end
 

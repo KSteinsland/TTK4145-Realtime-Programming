@@ -19,8 +19,8 @@ defmodule Elevator do
 
 
     #API----------------------------------------
-    def start_link() do
-        GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    def start_link([]) do
+        GenServer.start_link(__MODULE__, [], [name: __MODULE__, debug: [:trace]])
     end
 
     def get_floor() do
@@ -40,7 +40,7 @@ defmodule Elevator do
     end
 
     def set_floor(floor) when floor >= 0 and floor < @num_floors do
-        GenServer.cast __MODULE__, {:set_floor, floor}  
+        GenServer.cast __MODULE__, {:set_floor, floor}
     end
 
     def set_direction(direction) do
@@ -67,12 +67,12 @@ defmodule Elevator do
     def set_floor(floor) do
         {:error, "Not a legal floor: #{floor}"}
     end
-  
+
     #calls----------------------------------------
     def handle_call(:get_floor, _from, state) do
         {:reply, state.floor, state}
     end
-   
+
     def handle_call(:get_direction, _from, state) do
         {:reply, state.direction, state}
     end
@@ -127,12 +127,12 @@ defmodule Elevator do
 
 
     #util----------------------------------------
-    defp update_requests(req, floor, btn_type, value) do 
+    defp update_requests(req, floor, btn_type, value) do
         {req_at_floor, _list} = List.pop_at(req, floor)
         updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
         req = List.replace_at(req, floor, updated_req_at_floor)
     end
 
-    
+
 
 end
