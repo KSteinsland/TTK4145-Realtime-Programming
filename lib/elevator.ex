@@ -8,14 +8,10 @@ defmodule Elevator do
 
     @num_floors Application.fetch_env!(:elevator_project, :num_floors)
     @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-    @directions Application.fetch_env!(:elevator_project, :directions)
-    @behaviours Application.fetch_env!(:elevator_project, :behaviours)
-    @btn_types Application.fetch_env!(:elevator_project, :button_types)
-    @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
 
     req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
-    defstruct floor: 0, direction: :dir_stop, requests: req_list, behaviour: :be_idle
+    defstruct floor: 0, direction: :El_stop, requests: req_list, behaviour: :El_idle
 
     def init(_opts) do
         {:ok, %__MODULE__{}}
@@ -47,25 +43,23 @@ defmodule Elevator do
         GenServer.cast __MODULE__, {:set_floor, floor}
     end
 
-    def set_direction(direction) when direction in @directions do
+    def set_direction(direction) do
         GenServer.cast __MODULE__, {:set_direction, direction}
     end
 
-    def set_behaviour(behaviour) when behaviour in @behaviours do
+    def set_behaviour(behaviour) do
         GenServer.cast __MODULE__, {:set_behaviour, behaviour}
     end
 
-    def set_request(floor, btn_type) when btn_type in @btn_types 
-                                     and floor >= 0 and floor < @num_floors do
+    def set_request(floor, btn_type) do
         GenServer.cast __MODULE__, {:set_request, floor, btn_type}
     end
 
-    def clear_request(floor, btn_type) when btn_type in @btn_types 
-                                       and floor >= 0 and floor < @num_floors do
+    def clear_request(floor, btn_type) do
         GenServer.cast __MODULE__, {:clear_request, floor, btn_type}
     end
 
-    def clear_all_requests_at_floor(floor) when floor >= 0 and floor < @num_floors do
+    def clear_all_requests_at_floor(floor) do
         GenServer.cast __MODULE__, {:clear_all_requests_at_floor, floor}
     end
 
@@ -74,26 +68,6 @@ defmodule Elevator do
         {:error, "Not a legal floor: #{floor}"}
     end
 
-    def set_direction(direction) do
-        {:error, "Not a legal direction: #{direction}"}
-    end
-
-    def set_behaviour(behaviour) do
-        {:error, "Not a legal behaviour: #{behaviour}"}
-    end
-
-    def set_request(floor, btn_type) do
-        {:error, "Bad request"}
-    end
-
-    def clear_request(floor, btn_type) do
-        {:error, "Bad request"}
-    end
-
-    def clear_all_requests_at_floor(floor) do
-        {:error, "Bad request"}
-    end
-  
     #calls----------------------------------------
     def handle_call(:get_floor, _from, state) do
         {:reply, state.floor, state}
@@ -101,6 +75,10 @@ defmodule Elevator do
 
     def handle_call(:get_direction, _from, state) do
         {:reply, state.direction, state}
+    end
+
+    def handle_call(:get_requests, _from, state) do
+        {:reply, state.requests, state}
     end
 
     def handle_call(:get_requests, _from, state) do
@@ -151,7 +129,7 @@ defmodule Elevator do
     #util----------------------------------------
     defp update_requests(req, floor, btn_type, value) do
         {req_at_floor, _list} = List.pop_at(req, floor)
-        updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
+        updated_req_at_floor = List.replace_at(req_at_floor, btn_type, value)
         req = List.replace_at(req, floor, updated_req_at_floor)
     end
 

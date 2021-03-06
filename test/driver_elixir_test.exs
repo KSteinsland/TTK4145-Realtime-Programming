@@ -27,14 +27,14 @@ defmodule DriverTest do
     IO.puts("buttons tested")
 
     for floor <- 0..(floors-1) do
-      assert Driver.get_order_button_state(floor, :btn_hall_up) == 0
-      assert Driver.get_order_button_state(floor, :btn_hall_down) == 0
-      assert Driver.get_order_button_state(floor, :btn_cab) == 0
+      assert Driver.get_order_button_state(floor, :hall_up) == 0
+      assert Driver.get_order_button_state(floor, :hall_down) == 0
+      assert Driver.get_order_button_state(floor, :cab) == 0
     end
   end
 
   test "testing motor", %{floors: _floors} do
-    assert Driver.set_motor_direction(:dir_down) == :ok
+    assert Driver.set_motor_direction(:El_down) == :ok
     assert wait_for_floor(Driver.get_floor_sensor_state) != :between_floors
     assert Driver.set_motor_direction(:idle) == :ok
     assert Driver.get_floor_sensor_state != :between_floors

@@ -1,7 +1,5 @@
 defmodule Requests do
-    #TODO: update to new config enums 
-
-    @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
+    @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
 
     def request_above? do
         {_below, above} = Elevator.get_requests |> Enum.split(Elevator.get_floor+1)
@@ -15,22 +13,22 @@ defmodule Requests do
 
     def choose_direction do
         case Elevator.get_direction do
-            :dir_up ->
+            :El_up ->
                 cond do
-                    request_above?() -> :dir_up
-                    request_below?() -> :dir_down
-                    true -> :dir_stop
+                    request_above?() -> :El_up
+                    request_below?() -> :El_down
+                    true -> :El_stop
                 end
 
-            direction when direction == :dir_down or direction == :dir_stop ->
+            direction when direction == :El_down or direction == :El_stop ->
                 cond do
-                    request_below?() -> :dir_down
-                    request_above?() -> :dir_up
-                    true -> :dir_stop
+                    request_below?() -> :El_down
+                    request_above?() -> :El_up
+                    true -> :El_stop
                 end
 
             _ ->
-                :dir_stop
+                :El_stop
         end
     end
 
@@ -39,14 +37,14 @@ defmodule Requests do
         flr = Elevator.get_floor
 
         case Elevator.get_direction do
-            :dir_down ->
-                req |> Enum.at(flr) |> Enum.at(@button_map[:btn_hall_down]) > 0 or
-                req |> Enum.at(flr) |> Enum.at(@button_map[:btn_cab]) > 0 or
+            :El_down ->
+                req |> Enum.at(flr) |> Enum.at(@button_map[:hall_down]) > 0 or
+                req |> Enum.at(flr) |> Enum.at(@button_map[:cab]) > 0 or
                 not request_below?()
 
-            :dir_up ->
-                req |> Enum.at(flr) |> Enum.at(@button_map[:btn_hall_up]) > 0 or
-                req |> Enum.at(flr) |> Enum.at(@button_map[:btn_cab]) > 0 or
+            :El_up ->
+                req |> Enum.at(flr) |> Enum.at(@button_map[:hall_up]) > 0 or
+                req |> Enum.at(flr) |> Enum.at(@button_map[:cab]) > 0 or
                 not request_above?()
 
             _ ->

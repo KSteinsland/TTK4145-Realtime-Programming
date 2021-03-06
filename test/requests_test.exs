@@ -12,11 +12,11 @@ defmodule RequestsTest do
         assert Requests.request_above? == false
         assert Requests.request_below? == false
 
-        assert Elevator.set_request(1, :btn_hall_down) == :ok
+        assert Elevator.set_request(1, 1) == :ok
         assert Requests.request_above? == false
         assert Requests.request_above? == false
 
-        assert Elevator.set_request(2, :btn_hall_down) == :ok
+        assert Elevator.set_request(2, 1) == :ok
         assert Requests.request_above? == true
         assert Requests.request_below? == false
 

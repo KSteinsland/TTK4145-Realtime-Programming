@@ -30,15 +30,15 @@ defmodule FSMTest do
 
   test "just arrived at a floor", %{pid: _pid} do
     Elevator.set_floor(2)
-    Elevator.set_behaviour(:be_moving)
+    Elevator.set_behaviour(:El_moving)
 
-    assert Driver.set_motor_direction(:dir_down) == :ok
+    assert Driver.set_motor_direction(:El_down) == :ok
     new_floor = wait_for_floor(0)
     assert FSM.on_floor_arrival(new_floor) == :ok
 
     assert Elevator.get_floor == new_floor
     assert Driver.get_floor_sensor_state == new_floor
-    assert Elevator.get_behaviour() == :be_door_open
+    assert Elevator.get_behaviour() == :El_door_open
 
     IO.puts("testing init")
   end

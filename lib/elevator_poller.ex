@@ -8,8 +8,7 @@ defmodule ElevatorPoller do
   #THIS needs fixing
   @num_floors 4
   @num_buttons 3
-  @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
-  @button_map_inv %{0 => :btn_cab, 1 => :btn_hall_down, 2 => :btn_hall_up}
+  @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
 
 
   def start_link([]) do
@@ -70,7 +69,7 @@ defmodule ElevatorPoller do
 
   def check_requests(prev_req_list) do
 
-    btn_types = [:btn_hall_up, :btn_hall_down, :btn_cab, ]
+    btn_types = [:cab, :hall_down, :hall_up]
 
     for {floor, floor_ind} <- Enum.with_index(prev_req_list) do
       for {_button, button_ind} <- Enum.with_index(floor) do
@@ -80,8 +79,7 @@ defmodule ElevatorPoller do
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
 
         if (v==1 && v != prev_v) do
-          #this needs cleanup by theo
-          FSM.on_request_button_press(floor_ind, @button_map_inv[button_ind])
+          FSM.on_request_button_press(floor_ind, button_ind)
         end
 
         v
