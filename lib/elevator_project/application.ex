@@ -12,7 +12,7 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       Elevator,
       Timer,
-      {Driver, [{127,0,0,1}, 17777]},
+      {Driver, [{127, 0, 0, 1}, 17777]},
       ElevatorPoller
     ]
 

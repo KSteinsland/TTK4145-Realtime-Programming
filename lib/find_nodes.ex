@@ -1,5 +1,5 @@
 defmodule FindNodes do
-  @broadcast_ip {255,255,255,255}
+  @broadcast_ip {255, 255, 255, 255}
   @sleep_time 3000
 
   def create_socket(port) do
@@ -7,16 +7,15 @@ defmodule FindNodes do
     socket
   end
 
-  def broadcast_self(socket, receiver_port) do 
-      Process.sleep(@sleep_time)
-      
-      me = to_string(Node.self)
-      :gen_udp.send(socket, @broadcast_ip, receiver_port, me)
+  def broadcast_self(socket, receiver_port) do
+    Process.sleep(@sleep_time)
 
-      broadcast_self(socket, receiver_port)
+    me = to_string(Node.self())
+    :gen_udp.send(socket, @broadcast_ip, receiver_port, me)
+
+    broadcast_self(socket, receiver_port)
   end
 
-  
   def listen_for_nodes(socket) do
     Process.sleep(@sleep_time)
 
@@ -26,12 +25,10 @@ defmodule FindNodes do
     listen_for_nodes(socket)
   end
 
-
-  #Test functions
+  # Test functions
   def test_broadcast do
     s = create_socket(9090)
-    Task.start(fn ->  broadcast_self(s, 9091) end)
-   
+    Task.start(fn -> broadcast_self(s, 9091) end)
   end
 
   def test_listen do
@@ -39,4 +36,3 @@ defmodule FindNodes do
     Task.start(fn -> listen_for_nodes(s) end)
   end
 end
-

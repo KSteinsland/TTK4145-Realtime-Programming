@@ -3,7 +3,7 @@ ExUnit.start()
 # Loads support modules
 {:ok, files} = File.ls("./test/support")
 
-Enum.each(files, fn(file) ->
+Enum.each(files, fn file ->
   Code.require_file("support/#{file}", __DIR__)
 end)
 
@@ -22,5 +22,4 @@ case :os.type() do
   _ ->
     IO.puts("You need to start the simulator yourself!")
     {:error, "Not supported system"}
-
 end

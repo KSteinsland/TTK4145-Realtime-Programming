@@ -4,27 +4,28 @@ defmodule NetworkTest do
 
   test "finds local ip" do
     {:ok, local_ip} = Network.get_local_ip()
-    assert :inet.getif
-    |> elem(1)
-    |> Enum.map(fn x -> elem(x,0) end)
-    |> Enum.find(&match?(^local_ip, &1))
-    == local_ip
+
+    assert :inet.getif()
+           |> elem(1)
+           |> Enum.map(fn x -> elem(x, 0) end)
+           |> Enum.find(&match?(^local_ip, &1)) ==
+             local_ip
   end
 end
 
-
 defmodule UDPBroadcastTest do
-  use ExUnit.Case # , async: true
+  # , async: true
+  use ExUnit.Case
   doctest UDPBroadcast
 
-  #import ExUnit.CaptureIO
-
+  # import ExUnit.CaptureIO
 
   defp setup_slaves(addr, limit) do
-    Enum.each(1..limit, fn(index) ->
+    Enum.each(1..limit, fn index ->
       IO.puts("starting slave #{index}")
       :slave.start_link(addr, 'slave_#{index}')
     end)
+
     [node() | Node.list()]
   end
 
@@ -35,12 +36,9 @@ defmodule UDPBroadcastTest do
     %{pid: pid, port: port}
   end
 
-
   test "starts the server", %{pid: pid} do
-
     assert UDPBroadcast.get_all(pid) == %{}
     assert Process.alive?(pid)
-
   end
 
   test "handles invalid commands correctly", %{pid: pid} do
@@ -68,5 +66,4 @@ defmodule UDPBroadcastTest do
   #   send pid, :shutdown
   #   assert !Process.alive?(pid)
   # end
-
 end

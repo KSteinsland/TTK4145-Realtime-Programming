@@ -1,11 +1,10 @@
 defmodule UDPBroadcast do
   use GenServer
 
-  @broadcast_ip {255,255,255,255}
+  @broadcast_ip {255, 255, 255, 255}
   @sleep_time 3000
 
   ## client side
-
 
   def start(port \\ 33333, name \\ "Elevator") do
     GenServer.start_link(__MODULE__, {port, name})
@@ -18,7 +17,6 @@ defmodule UDPBroadcast do
   ## server
 
   def init({port, name}) do
-
     {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     IO.inspect(Node.self())
 
@@ -43,12 +41,10 @@ defmodule UDPBroadcast do
     end
   end
 
-
   defp loop_send(socket, port) do
-      Process.sleep(@sleep_time)
-      :gen_udp.send(socket, @broadcast_ip, port, "#{Node.self}")
-      loop_send(socket, port)
-
+    Process.sleep(@sleep_time)
+    :gen_udp.send(socket, @broadcast_ip, port, "#{Node.self()}")
+    loop_send(socket, port)
   end
 
   def handle_call(:get_all, _from, state) do
@@ -63,26 +59,23 @@ defmodule UDPBroadcast do
     {:noreply, state}
   end
 
-
   def handle_info({:udp, _socket, host, port, packet}, state) do
-
-    #should probably pin these
+    # should probably pin these
     {socket, _port, name, nodes} = state
-
 
     host_adr_str = :inet.ntoa(host)
     [host_name | _] = String.split(to_string(packet), "@")
     full_name = host_name <> "@" <> to_string(host_adr_str)
 
-    #IO.inspect packet
-    #IO.inspect host
-    #IO.inspect(nodes)
-    #IO.inspect state
-    #Process.sleep(1000)
+    # IO.inspect packet
+    # IO.inspect host
+    # IO.inspect(nodes)
+    # IO.inspect state
+    # Process.sleep(1000)
 
     if Map.get(nodes, host_name) == nil && host_name != name do
       IO.puts("New node!")
-      #:gen_udp.send(socket, host, port, "Hello There!")
+      # :gen_udp.send(socket, host, port, "Hello There!")
       Node.ping(String.to_atom(full_name))
       {:noreply, {socket, port, name, Map.put(nodes, host_name, host_adr_str)}}
     else
@@ -97,25 +90,24 @@ defmodule UDPBroadcast do
   end
 end
 
-
 defmodule Network do
-  @broadcast_ip {255,255,255,255}
+  @broadcast_ip {255, 255, 255, 255}
   @port 33334
 
   def get_local_ip() do
     {:ok, socket} = :gen_udp.open(@port, [{:broadcast, true}, {:reuseaddr, true}])
     key = Random.gen_rand_str(5) |> String.to_charlist()
-    :gen_udp.send(socket, @broadcast_ip, @port, key) # packet gets converted to charlist!
+    # packet gets converted to charlist!
+    :gen_udp.send(socket, @broadcast_ip, @port, key)
 
     receive do
       {:udp, _port, localip, @port, ^key} ->
         :gen_udp.close(socket)
         {:ok, localip}
-
-      after
-        1000 ->
-          :gen_udp.close(socket)
-          {:error, "could not retreive local ip"}
+    after
+      1000 ->
+        :gen_udp.close(socket)
+        {:error, "could not retreive local ip"}
     end
   end
 end

@@ -5,29 +5,26 @@ require Timer
 defmodule ElevatorPoller do
   use GenServer
 
-  #THIS needs fixing
+  # THIS needs fixing
   @num_floors 4
   @num_buttons 3
   @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
   @button_map_inv %{0 => :btn_cab, 1 => :btn_hall_down, 2 => :btn_hall_up}
 
-
   def start_link([]) do
-    GenServer.start_link(__MODULE__, [], [name: __MODULE__]) #, debug: [:trace]])
+    # , debug: [:trace]])
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-
   def init([]) do
-
     IO.puts("Started!")
 
     input_poll_rate_ms = 25
 
-    if (Driver.get_floor_sensor_state() == :between_floors) do
+    if Driver.get_floor_sensor_state() == :between_floors do
       IO.puts("Between floors!")
       FSM.on_init_between_floors()
     end
-
 
     prev_floor = 0
     prev_req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
@@ -39,15 +36,13 @@ defmodule ElevatorPoller do
   end
 
   def handle_info(:loop_poller, state) do
-
-
     {prev_floor, prev_req_list, input_poll_rate_ms} = state
 
     prev_req_list = check_requests(prev_req_list)
 
     f = Driver.get_floor_sensor_state()
 
-    if (f != :between_floors && f != prev_floor) do
+    if f != :between_floors && f != prev_floor do
       IO.puts("Arrived at floor!")
       FSM.on_floor_arrival(f)
     end
@@ -60,34 +55,29 @@ defmodule ElevatorPoller do
       Timer.timer_stop()
     end
 
-    #Process.sleep(input_poll_rate_ms)
+    # Process.sleep(input_poll_rate_ms)
     Process.send_after(self(), :loop_poller, input_poll_rate_ms)
 
     state = {prev_floor, prev_req_list, input_poll_rate_ms}
     {:noreply, state}
-
   end
 
   def check_requests(prev_req_list) do
-
-    btn_types = [:btn_hall_up, :btn_hall_down, :btn_cab, ]
+    btn_types = [:btn_hall_up, :btn_hall_down, :btn_cab]
 
     for {floor, floor_ind} <- Enum.with_index(prev_req_list) do
       for {_button, button_ind} <- Enum.with_index(floor) do
-
         v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
 
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
 
-        if (v==1 && v != prev_v) do
-          #this needs cleanup by theo
+        if v == 1 && v != prev_v do
+          # this needs cleanup by theo
           FSM.on_request_button_press(floor_ind, @button_map_inv[button_ind])
         end
 
         v
-
       end
     end
   end
-
 end
