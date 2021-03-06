@@ -2,14 +2,6 @@ defmodule DriverTest do
   use ExUnit.Case
   doctest Driver, async: false
 
-  defp start_simulator(exec, port, floors) do
-    {:ok, dir_path} = File.cwd()
-    script_path = Path.join(dir_path, "sim/start_sim.sh")
-    exec_path = Path.join(dir_path, exec)
-    System.cmd(script_path, [exec_path, to_string(port), to_string(floors)])
-    Process.sleep(1000)
-  end
-
   defp wait_for_floor(state) do
     case Driver.get_floor_sensor_state do
       :between_floors ->
@@ -20,9 +12,9 @@ defmodule DriverTest do
   end
 
   setup_all do
+
       port = 17777
-      floors = 4
-      #start_simulator("sim/mac/SimElevatorServer", port, floors)
+      floors = 4 #FIX this hardcoded variable
       {:ok, pid} = Driver.start_link([{127,0,0,1}, port])
       %{pid: pid, floors: floors}
   end
@@ -35,14 +27,14 @@ defmodule DriverTest do
     IO.puts("buttons tested")
 
     for floor <- 0..(floors-1) do
-      assert Driver.get_order_button_state(floor, :hall_up) == 0
-      assert Driver.get_order_button_state(floor, :hall_down) == 0
-      assert Driver.get_order_button_state(floor, :cab) == 0
+      assert Driver.get_order_button_state(floor, :btn_hall_up) == 0
+      assert Driver.get_order_button_state(floor, :btn_hall_down) == 0
+      assert Driver.get_order_button_state(floor, :btn_cab) == 0
     end
   end
 
   test "testing motor", %{floors: _floors} do
-    assert Driver.set_motor_direction(:down) == :ok
+    assert Driver.set_motor_direction(:dir_down) == :ok
     assert wait_for_floor(Driver.get_floor_sensor_state) != :between_floors
     assert Driver.set_motor_direction(:idle) == :ok
     assert Driver.get_floor_sensor_state != :between_floors

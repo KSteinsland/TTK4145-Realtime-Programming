@@ -15,7 +15,7 @@ defmodule Elevator do
 
     req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
-    defstruct floor: 0, direction: :Dir_stop, requests: req_list, behaviour: :Be_idle
+    defstruct floor: 0, direction: :dir_stop, requests: req_list, behaviour: :be_idle
 
     def init(_opts) do
         {:ok, %__MODULE__{}}
@@ -23,8 +23,8 @@ defmodule Elevator do
 
 
     #API----------------------------------------
-    def start_link() do
-        GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    def start_link([]) do
+        GenServer.start_link(__MODULE__, [], [name: __MODULE__, debug: [:trace]])
     end
 
     def get_floor() do
@@ -44,7 +44,7 @@ defmodule Elevator do
     end
 
     def set_floor(floor) when floor >= 0 and floor < @num_floors do
-        GenServer.cast __MODULE__, {:set_floor, floor}  
+        GenServer.cast __MODULE__, {:set_floor, floor}
     end
 
     def set_direction(direction) when direction in @directions do
@@ -98,7 +98,7 @@ defmodule Elevator do
     def handle_call(:get_floor, _from, state) do
         {:reply, state.floor, state}
     end
-   
+
     def handle_call(:get_direction, _from, state) do
         {:reply, state.direction, state}
     end
@@ -149,12 +149,12 @@ defmodule Elevator do
 
 
     #util----------------------------------------
-    defp update_requests(req, floor, btn_type, value) do 
+    defp update_requests(req, floor, btn_type, value) do
         {req_at_floor, _list} = List.pop_at(req, floor)
         updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
         req = List.replace_at(req, floor, updated_req_at_floor)
     end
 
-    
+
 
 end
