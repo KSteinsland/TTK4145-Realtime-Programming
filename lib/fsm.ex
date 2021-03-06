@@ -1,12 +1,11 @@
 defmodule FSM do
-
   #########
   # all Request functions should receive which elevator it is handling, to allow for easy expansion to multiple elevators
 
   defp set_all_lights() do
 
     #order_types = Map.keys(Elevator.button_map)
-    btn_types = [:cab, :hall_down, :hall_up]
+    btn_types = [:btn_cab, :btn_hall_down, :btn_hall_up]
 
     for {floor, floor_ind} <- Enum.with_index(Elevator.get_requests()) do
       for {btn, btn_ind} <- Enum.with_index(floor) do
@@ -22,35 +21,35 @@ defmodule FSM do
 
   def on_init_between_floors() do
     IO.inspect("between floors")
-    Driver.set_motor_direction(:El_down)
-    Elevator.set_direction(:El_down)
-    Elevator.set_behaviour(:El_moving)
+    Driver.set_motor_direction(:dir_down)
+    Elevator.set_direction(:dir_down)
+    Elevator.set_behaviour(:be_moving)
 
   end
 
   def on_request_button_press(btn_floor, btn_type) do
 
     case Elevator.get_behaviour do
-      :El_door_open ->
+      :be_door_open ->
         if(Elevator.get_floor() == btn_floor) do
           Timer.timer_start(5_000) #seconds
         else
           Elevator.set_request(btn_floor, btn_type)
         end
 
-      :El_moving ->
+      :be_moving ->
         Elevator.set_request(btn_floor, btn_type)
 
-      :El_idle ->
+      :be_idle ->
         if(Elevator.get_floor() == btn_floor) do
           Driver.set_door_open_light(:on)
           Timer.timer_start(5_000) #seconds
-          Elevator.set_behaviour(:El_door_open)
+          Elevator.set_behaviour(:be_door_open)
         else
           Elevator.set_request(btn_floor, btn_type)
           Requests.choose_direction() |> Elevator.set_direction()
           Elevator.get_direction |> Driver.set_motor_direction()
-          Elevator.set_behaviour(:El_moving)
+          Elevator.set_behaviour(:be_moving)
         end
 
         _ ->
@@ -71,15 +70,15 @@ defmodule FSM do
     Elevator.get_floor |> Driver.set_floor_indicator
 
     case Elevator.get_behaviour do
-      :El_moving ->
+      :be_moving ->
         if(Requests.should_stop?()) do
 
-          Driver.set_motor_direction(:El_stop)
+          Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
           Requests.clear_at_current_floor()
           Timer.timer_start(3_000) # (elevator.config.door_open_duration_s)
           set_all_lights()
-          Elevator.set_behaviour(:El_door_open)
+          Elevator.set_behaviour(:be_door_open)
 
         end
 
@@ -93,16 +92,16 @@ defmodule FSM do
   def on_door_timeout() do
 
     case Elevator.get_behaviour() do
-      :El_door_open ->
+      :be_door_open ->
         Requests.choose_direction() |> Elevator.set_direction()
 
         Driver.set_door_open_light(:off)
         Elevator.get_direction() |> Driver.set_motor_direction()
 
-        if (Elevator.get_direction() == :El_stop) do
-          Elevator.set_behaviour(:El_idle)
+        if (Elevator.get_direction() == :dir_stop) do
+          Elevator.set_behaviour(:be_idle)
         else
-          Elevator.set_behaviour(:El_moving)
+          Elevator.set_behaviour(:be_moving)
         end
 
       _ ->

@@ -4,11 +4,9 @@ import Config
 config :elevator_project,
     num_floors: 4,
     num_buttons: 3,
-    #directions: {:Dir_up, :Dir_down, :Dir_stop},
-    directions: {:El_up, :El_down, :El_stop},
-    #behaviours: {:Be_idle, :Be_door_open, :Be_moving},
-    behaviours: {:El_idle, :El_door_open, :El_moving},
-    button_types: {:Btn_hall_up, :Btn_hall_down, :Btn_cab},
-    button_map: %{:Btn_hall_up => 0, :Btn_hall_down => 1, :Btn_cab => 2}
+    directions: [:dir_up, :dir_down, :dir_stop],
+    behaviours: [:be_idle, :be_door_open, :be_moving],
+    button_types: [:btn_hall_up, :btn_hall_down, :btn_cab],
+    button_map: %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
 
 #import_config "#{config_env()}.exs"

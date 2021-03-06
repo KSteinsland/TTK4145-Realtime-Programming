@@ -1,9 +1,9 @@
 defmodule Driver do
   use GenServer
   @call_timeout 1000
-  @button_map %{:hall_up => 0, :hall_down => 1, :cab => 2}
+  @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
   @state_map  %{:on => 1, :off => 0}
-  @direction_map %{:El_up => 1, :El_down => 255, :El_stop => 0}
+  @direction_map %{:dir_up => 1, :dir_down => 255, :dir_stop => 0}
 
   def start_link([]) do
     start_link [{127,0,0,1}, 15657]
@@ -24,12 +24,12 @@ defmodule Driver do
 
 
   # User API ----------------------------------------------
-  # direction can be :El_up/:El_down/:El_stop
+  # direction can be :dir_up/:dir_down/:dir_stop
   def set_motor_direction direction do
     GenServer.cast __MODULE__, {:set_motor_direction, direction}
   end
 
-  # button_type can be :hall_up/:hall_down/:cab
+  # button_type can be :btn_hall_up/:btn_hall_down/:btn_cab
   # state can be :on/:off
   def set_order_button_light button_type, floor, state do
     GenServer.cast __MODULE__, {:set_order_button_light, button_type, floor, state}
