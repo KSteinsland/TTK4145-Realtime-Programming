@@ -14,7 +14,7 @@ defmodule ElevatorProject.Application do
       Timer,
       #{Driver, [{127, 0, 0, 1}, 17777]},
       #ElevatorPoller
-      {UDPBroadcast, [33333, Random.gen_rand_str(5)]}
+      {UDPBroadcast, [33333, 10, Random.gen_rand_str(5)]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

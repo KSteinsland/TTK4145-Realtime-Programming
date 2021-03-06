@@ -23,3 +23,5 @@ case :os.type() do
     IO.puts("You need to start the simulator yourself!")
     {:error, "Not supported system"}
 end
+
+# Cluster.spawn([:"node1@127.0.0.1", :"node2@127.0.0.1"])

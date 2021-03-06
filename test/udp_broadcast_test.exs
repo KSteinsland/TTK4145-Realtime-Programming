@@ -14,31 +14,27 @@ defmodule NetworkTest do
 end
 
 defmodule UDPBroadcastTest do
-  # , async: true
-  use ExUnit.Case
+
+  use ExUnit.Case, async: false
   doctest UDPBroadcast
-
-  # import ExUnit.CaptureIO
-
-  defp setup_slaves(addr, limit) do
-    Enum.each(1..limit, fn index ->
-      IO.puts("starting slave #{index}")
-      :slave.start_link(addr, 'slave_#{index}')
-    end)
-
-    [node() | Node.list()]
-  end
 
   setup do
     System.cmd("epmd", ["-daemon"])
-    port = 33330
-    {:ok, pid} = UDPBroadcast.start_link([port, "test_udp"])
+    port = 33333
+    {:ok, pid} = UDPBroadcast.start_link([port, 10, "test_udp"])
     %{pid: pid, port: port}
   end
 
-  test "starts the server", %{pid: pid} do
-    assert UDPBroadcast.get_all(pid) == %{}
+  test "starts the server", %{pid: _pid} do
+    assert UDPBroadcast.get_all() == %{}
   end
+
+  # test "check for other nodes", %{pid: _pid} do
+  #   Process.sleep(2500)
+  #   #IO.inspect UDPBroadcast.get_all()
+  #   IO.inspect(Node.list)
+  #   assert True
+  # end
 
   test "handles invalid commands correctly", %{pid: pid} do
     # This test needs to be improved
@@ -47,22 +43,4 @@ defmodule UDPBroadcastTest do
     assert Process.alive?(pid)
   end
 
-  # test "receives incoming messages", %{pid: pid, port: port} do
-  #   # This test needs to be improved
-
-  #   {:ok, ip} = Network.get_local_ip()
-  #   nodes = setup_slaves(String.to_atom(List.to_string(:inet.ntoa(ip))), 2)
-
-  #   IO.inspect(nodes)
-
-  #   #:gen_udp.send()
-  #   #send(pid, {:udp, "dummy_socket", {1,1,1,1}, port, "testhost@1.1.1.1"})
-
-  #   assert UDPBroadcast.get_all(pid) == %{testhost: {1,1,1,1}}
-  # end
-
-  # test "server is down", %{pid: pid} do
-  #   send pid, :shutdown
-  #   assert !Process.alive?(pid)
-  # end
 end
