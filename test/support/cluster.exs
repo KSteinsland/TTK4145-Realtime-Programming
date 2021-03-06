@@ -19,6 +19,7 @@ defmodule Cluster do
     transfer_configuration(node)
     ensure_applications_started(node)
     # start_pubsub(node)
+    # rpc lets you start function at remote node!
     {:ok, node}
   end
 
@@ -42,8 +43,8 @@ defmodule Cluster do
   defp transfer_configuration(node) do
     for {app_name, _, _} <- Application.loaded_applications() do
       for {key, val} <- Application.get_all_env(app_name) do
-        IO.inspect(key)
-        IO.inspect(val)
+        # IO.inspect(key)
+        # IO.inspect(val)
         rpc(node, Application, :put_env, [app_name, key, val])
       end
     end
