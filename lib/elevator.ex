@@ -82,7 +82,7 @@ defmodule Elevator do
         {:error, "Not a legal behaviour: #{behaviour}"}
     end
 
-    def set_request(fllor, btn_type) do
+    def set_request(floor, btn_type) do
         {:error, "Bad request"}
     end
 
