@@ -12,8 +12,9 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       Elevator,
       Timer,
-      {Driver, [{127, 0, 0, 1}, 17777]},
-      ElevatorPoller
+      #{Driver, [{127, 0, 0, 1}, 17777]},
+      #ElevatorPoller
+      {UDPBroadcast, [33333, Random.gen_rand_str(5)]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
