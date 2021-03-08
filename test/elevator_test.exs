@@ -27,8 +27,8 @@ defmodule ElevatorTest do
     assert Elevator.set_request(0, :btn_hall_up) == :ok
     assert Elevator.set_request(1, :btn_hall_up) == :ok
     assert Elevator.set_request(1, :btn_hall_down) == :ok
-    assert Elevator.clear_all_requests_at_floor(1) == :ok
-    assert Elevator.get_requests() == [[1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    # assert Elevator.clear_all_requests_at_floor(1) == :ok
+    # assert Elevator.get_requests() == [[1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
   end
 
   test "behaviour" do

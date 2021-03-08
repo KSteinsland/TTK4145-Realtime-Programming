@@ -22,7 +22,12 @@ defmodule Elevator do
 
   # API----------------------------------------
   def start_link([]) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__, debug: [:trace])
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    # , debug: [:trace])
+  end
+
+  def state() do
+    GenServer.call(__MODULE__, :get_state)
   end
 
   def get_floor() do
@@ -39,6 +44,10 @@ defmodule Elevator do
 
   def get_behaviour() do
     GenServer.call(__MODULE__, :get_behaviour)
+  end
+
+  def set_requests(requests) do # when size is correct and data in requests is correct
+    GenServer.cast(__MODULE__, {:set_requests, requests})
   end
 
   def set_floor(floor) when floor >= 0 and floor < @num_floors do
@@ -65,9 +74,9 @@ defmodule Elevator do
     GenServer.cast(__MODULE__, {:clear_request, floor, btn_type})
   end
 
-  def clear_all_requests_at_floor(floor) when floor >= 0 and floor < @num_floors do
-    GenServer.cast(__MODULE__, {:clear_all_requests_at_floor, floor})
-  end
+  # def clear_all_requests_at_floor(floor) when floor >= 0 and floor < @num_floors do
+  #   GenServer.cast(__MODULE__, {:clear_all_requests_at_floor, floor})
+  # end
 
   # Error matches--------------------------------
   def set_floor(floor) do
@@ -90,11 +99,16 @@ defmodule Elevator do
     {:error, "Bad request"}
   end
 
-  def clear_all_requests_at_floor(floor) do
-    {:error, "Bad request"}
-  end
+  # def clear_all_requests_at_floor(floor) do
+  #   {:error, "Bad request"}
+  # end
 
   # calls----------------------------------------
+
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state}
+  end
+
   def handle_call(:get_floor, _from, state) do
     {:reply, state.floor, state}
   end
@@ -112,6 +126,11 @@ defmodule Elevator do
   end
 
   # casts----------------------------------------
+  def handle_cast({:set_requests, requests}, state) do
+    state = %{state | requests: requests}
+    {:noreply, state}
+  end
+
   def handle_cast({:set_floor, floor}, state) do
     state = %{state | floor: floor}
     {:noreply, state}
@@ -134,12 +153,12 @@ defmodule Elevator do
     {:noreply, state}
   end
 
-  def handle_cast({:clear_all_requests_at_floor, floor}, state) do
-    b_req = List.duplicate(0, @num_buttons)
-    req = List.replace_at(state.requests, floor, b_req)
-    state = %{state | requests: req}
-    {:noreply, state}
-  end
+  # def handle_cast({:clear_all_requests_at_floor, floor}, state) do
+  #   b_req = List.duplicate(0, @num_buttons)
+  #   req = List.replace_at(state.requests, floor, b_req)
+  #   state = %{state | requests: req}
+  #   {:noreply, state}
+  # end
 
   def handle_cast({:set_behaviour, behaviour}, state) do
     state = %{state | behaviour: behaviour}

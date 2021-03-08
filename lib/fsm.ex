@@ -45,7 +45,7 @@ defmodule FSM do
           Elevator.set_behaviour(:be_door_open)
         else
           Elevator.set_request(btn_floor, btn_type)
-          Requests.choose_direction() |> Elevator.set_direction()
+          Elevator.state() |> Requests.choose_direction() |> Elevator.set_direction()
           Elevator.get_direction() |> Driver.set_motor_direction()
           Elevator.set_behaviour(:be_moving)
         end
@@ -66,10 +66,11 @@ defmodule FSM do
 
     case Elevator.get_behaviour() do
       :be_moving ->
-        if(Requests.should_stop?()) do
+        if(Requests.should_stop?(Elevator.state)) do
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
-          Requests.clear_at_current_floor()
+          new_state = Elevator.state() |> Requests.clear_at_current_floor()
+          new_state.requests |> Elevator.set_requests()
           # (elevator.config.door_open_duration_s)
           Timer.timer_start(3_000)
           set_all_lights()
@@ -84,7 +85,7 @@ defmodule FSM do
   def on_door_timeout() do
     case Elevator.get_behaviour() do
       :be_door_open ->
-        Requests.choose_direction() |> Elevator.set_direction()
+        Elevator.state() |> Requests.choose_direction() |> Elevator.set_direction()
 
         Driver.set_door_open_light(:off)
         Elevator.get_direction() |> Driver.set_motor_direction()
