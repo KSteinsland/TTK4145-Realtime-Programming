@@ -46,7 +46,8 @@ defmodule Elevator do
     GenServer.call(__MODULE__, :get_behaviour)
   end
 
-  def set_requests(requests) do # when size is correct and data in requests is correct
+  # when size is correct and data in requests is correct
+  def set_requests(requests) do
     GenServer.cast(__MODULE__, {:set_requests, requests})
   end
 

@@ -63,6 +63,7 @@ defmodule Requests do
     b_req = List.duplicate(0, @num_buttons)
     req = List.replace_at(elevator.requests, elevator.floor, b_req)
     # state = %{state | requests: req}
+    # maybe change this to only return requests?
     %Elevator{elevator | requests: req}
   end
 end

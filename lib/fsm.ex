@@ -66,7 +66,7 @@ defmodule FSM do
 
     case Elevator.get_behaviour() do
       :be_moving ->
-        if(Requests.should_stop?(Elevator.state)) do
+        if(Requests.should_stop?(Elevator.state())) do
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
           new_state = Elevator.state() |> Requests.clear_at_current_floor()
