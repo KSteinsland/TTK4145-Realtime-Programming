@@ -1,15 +1,16 @@
-defmodule UDPBroadcast do
+defmodule NodeConnector do
   use GenServer
 
   @broadcast_ip {255, 255, 255, 255}
   @sleep_time 1000
+  @port_range Application.fetch_env!(:elevator_project, :port_range)
 
   def start_link([]) do
-    start_link([33333, 1, "Elevator"])
+    start_link([33333, "Elevator"])
   end
 
-  def start_link([start_port, port_range, name]) do
-    GenServer.start_link(__MODULE__, [start_port, port_range, name], name: __MODULE__)
+  def start_link([start_port, name]) do
+    GenServer.start_link(__MODULE__, [start_port, name], name: __MODULE__)
   end
 
   ## client side
@@ -20,13 +21,14 @@ defmodule UDPBroadcast do
 
   ## server
 
-  def init([start_port, port_range, name]) do
+  def init([start_port, name]) do
+    {:ok, socket, port} = try_create_socket(start_port, start_port + @port_range)
+    name = register_node(name)
+    send(self(), {:loop_send, start_port, start_port + @port_range})
+    {:ok, %{socket: socket, port: port, name: name, nodes: %{}}}
+  end
 
-    # IO.inspect(Node.self())
-    IO.puts("Port range #{port_range}")
-
-    {:ok, socket, port} = try_create_socket(start_port, start_port + port_range)
-
+  defp register_node(name) do
     if Node.self() == :nonode@nohost do
       {:ok, addr} = Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
@@ -36,20 +38,14 @@ defmodule UDPBroadcast do
       Node.start(String.to_atom(full_name), :longnames)
       Node.set_cookie(:choc)
 
-      task = Task.start_link(fn -> loop_send(socket, start_port, port_range) end)
-
-      {:ok, %{socket: socket, port: port, name: name, task: task, nodes: %{}}}
+      name
     else
-      [name | _] = String.split(to_string(Node.self()), "@")
-
-      task = Task.start_link(fn -> loop_send(socket, start_port, port_range) end)
-
-      {:ok, %{socket: socket, port: port, name: name, task: task, nodes: %{}}}
+      IO.puts("Node already named: " <> to_string(Node.self()))
+      String.split(to_string(Node.self()), "@") |> Enum.at(0)
     end
   end
 
   defp try_create_socket(port, max_port) do
-
     case :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}]) do
       {:ok, socket} ->
         {:ok, socket, port}
@@ -57,19 +53,11 @@ defmodule UDPBroadcast do
       {:error, :eaddrinuse} ->
         if port < max_port do
           IO.puts("trying port #{port}")
-          try_create_socket(port+1, max_port)
+          try_create_socket(port + 1, max_port)
         else
           {:error, :port_out_of_range}
         end
-      end
-  end
-
-  defp loop_send(socket, start_port, port_range) do
-    for port <-start_port..start_port + port_range do
-      Process.sleep(@sleep_time)
-      :gen_udp.send(socket, @broadcast_ip, port, "#{Node.self()}")
     end
-    loop_send(socket, start_port, port_range)
   end
 
   def handle_call(:get_all, _from, state) do
@@ -77,9 +65,29 @@ defmodule UDPBroadcast do
     {:reply, state.nodes, state}
   end
 
+  def handle_info({:loop_send, start_port, end_port}, state) do
+    :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}")
+    # IO.puts("sending udp")
+
+    new_port = fn start_port, end_port ->
+      if start_port == end_port do
+        start_port - @port_range
+      else
+        start_port
+      end
+    end
+
+    Process.send_after(
+      self(),
+      {:loop_send, new_port.(start_port, end_port), end_port},
+      @sleep_time
+    )
+
+    {:noreply, state}
+  end
+
   def handle_info(:shutdown, state) do
     :gen_udp.close(state.socket)
-    Task.shutdown(state.task)
     Process.exit(self(), :kill)
     {:noreply, state}
   end
@@ -95,7 +103,7 @@ defmodule UDPBroadcast do
       IO.puts("New node!")
       # :gen_udp.send(socket, host, port, "Hello There!")
       Node.ping(String.to_atom(full_name))
-      IO.inspect(Node.list)
+      IO.inspect(Node.list())
       {:noreply, %{state | nodes: Map.put(state.nodes, host_name, host_adr_str)}}
     else
       {:noreply, state}

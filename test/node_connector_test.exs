@@ -13,25 +13,24 @@ defmodule NetworkTest do
   end
 end
 
-defmodule UDPBroadcastTest do
-
+defmodule NodeConnectorTest do
   use ExUnit.Case, async: false
-  doctest UDPBroadcast
+  doctest NodeConnector
 
   setup do
     System.cmd("epmd", ["-daemon"])
     port = 33333
-    {:ok, pid} = UDPBroadcast.start_link([port, 10, "test_udp"])
+    {:ok, pid} = NodeConnector.start_link([port, "test_udp"])
     %{pid: pid, port: port}
   end
 
   test "starts the server", %{pid: _pid} do
-    assert UDPBroadcast.get_all() == %{}
+    assert NodeConnector.get_all() == %{}
   end
 
   # test "check for other nodes", %{pid: _pid} do
   #   Process.sleep(2500)
-  #   #IO.inspect UDPBroadcast.get_all()
+  #   #IO.inspect NodeConnector.get_all()
   #   IO.inspect(Node.list)
   #   assert True
   # end
@@ -42,5 +41,4 @@ defmodule UDPBroadcastTest do
     send(pid, msg)
     assert Process.alive?(pid)
   end
-
 end

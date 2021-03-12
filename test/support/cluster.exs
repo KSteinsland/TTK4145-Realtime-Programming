@@ -1,12 +1,11 @@
 defmodule Cluster do
-
   def spawn(nodes) do
     # Turn node into a distributed node with the given long name
     :net_kernel.start([:"primary@127.0.0.1"])
 
     # Allow spawned nodes to fetch all code from this node
     :erl_boot_server.start([])
-    allow_boot to_charlist("127.0.0.1")
+    allow_boot(to_charlist("127.0.0.1"))
 
     nodes
     |> Enum.map(&Task.async(fn -> spawn_node(&1) end))
@@ -53,6 +52,7 @@ defmodule Cluster do
   defp ensure_applications_started(node) do
     rpc(node, Application, :ensure_all_started, [:mix])
     rpc(node, Mix, :env, [Mix.env()])
+
     for {app_name, _, _} <- Application.loaded_applications() do
       rpc(node, Application, :ensure_all_started, [app_name])
     end
@@ -72,6 +72,6 @@ defmodule Cluster do
     |> to_string
     |> String.split("@")
     |> Enum.at(0)
-    |> String.to_atom
+    |> String.to_atom()
   end
 end
