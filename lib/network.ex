@@ -12,7 +12,7 @@ defmodule Network do
     GenServer.call(__MODULE__, :get_counter)
   end
 
-  def send_2_node(dest, data, nodes \\ []) do
+  def send_2(dest, data, nodes \\ []) do
     GenServer.call(__MODULE__, {:send_2_node, dest, data, nodes})
   end
 
