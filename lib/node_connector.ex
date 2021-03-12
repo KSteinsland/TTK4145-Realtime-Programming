@@ -30,7 +30,7 @@ defmodule NodeConnector do
 
   defp register_node(name) do
     if Node.self() == :nonode@nohost do
-      {:ok, addr} = Network.get_local_ip()
+      {:ok, addr} = Network.Util.get_local_ip()
       addr_str = :inet.ntoa(addr)
       full_name = name <> "@" <> to_string(addr_str)
       IO.puts("New node name: " <> full_name)
@@ -110,31 +110,16 @@ defmodule NodeConnector do
     end
   end
 
+  # DEBUG FUNCTION FOR NETWORK MODULE
+  def handle_info({:testing, data}, state) do
+    IO.inspect("Message: ")
+    IO.inspect(data)
+    {:noreply, state}
+  end
+
   def handle_info(msg, state) do
     IO.inspect("Invalid Message: ")
     IO.inspect(msg)
     {:noreply, state}
-  end
-end
-
-defmodule Network do
-  @broadcast_ip {255, 255, 255, 255}
-  @port 33332
-
-  def get_local_ip() do
-    {:ok, socket} = :gen_udp.open(@port, [{:broadcast, true}, {:reuseaddr, true}])
-    key = Random.gen_rand_str(5) |> String.to_charlist()
-    # packet gets converted to charlist!
-    :gen_udp.send(socket, @broadcast_ip, @port, key)
-
-    receive do
-      {:udp, _port, localip, @port, ^key} ->
-        :gen_udp.close(socket)
-        {:ok, localip}
-    after
-      1000 ->
-        :gen_udp.close(socket)
-        {:error, "could not retreive local ip"}
-    end
   end
 end

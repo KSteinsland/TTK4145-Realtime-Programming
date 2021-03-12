@@ -3,7 +3,7 @@ defmodule NetworkTest do
   doctest Network
 
   test "finds local ip" do
-    {:ok, local_ip} = Network.get_local_ip()
+    {:ok, local_ip} = Network.Util.get_local_ip()
 
     assert :inet.getif()
            |> elem(1)
