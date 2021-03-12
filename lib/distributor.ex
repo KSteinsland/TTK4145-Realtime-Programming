@@ -29,7 +29,7 @@ defmodule Distributor do
             pid = spawn(__MODULE__, :watchdog, [floor, up?])
             active_orders = order_replace_at(active_orders, floor, up?, pid)
         end
-        {:no_reply, active_orders}
+        {:noreply, active_orders}
     end 
 
 
@@ -41,7 +41,7 @@ defmodule Distributor do
         {active_orders, watchdog_pid} = order_finished(active_orders, floor, up?)
         send(watchdog_pid, {:hall_order_done, floor, up?})
 
-        {:no_reply, active_orders}
+        {:noreply, active_orders}
     end
 
     def watchdog(floor, up?) do
@@ -75,6 +75,6 @@ defmodule Distributor do
     end
 
     def order_finished(active_orders, floor, up?) do
-        #TODO
+        #TODO: if its not zero set to zero and return pid
     end
 end
