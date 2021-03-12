@@ -32,13 +32,12 @@ defmodule UDPBroadcastTest do
   setup do
     System.cmd("epmd", ["-daemon"])
     port = 33330
-    {:ok, pid} = UDPBroadcast.start(port, "test_udp")
+    {:ok, pid} = UDPBroadcast.start_link([port, "test_udp"])
     %{pid: pid, port: port}
   end
 
   test "starts the server", %{pid: pid} do
     assert UDPBroadcast.get_all(pid) == %{}
-    assert Process.alive?(pid)
   end
 
   test "handles invalid commands correctly", %{pid: pid} do
