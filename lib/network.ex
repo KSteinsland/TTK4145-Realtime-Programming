@@ -1,16 +1,13 @@
 defmodule Network do
   use GenServer
 
-  # defmodule Network.Package do
-  #   defstruct dest: nil, data: "ok", nodes: []
-  # end
-
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   ## client side
 
+  # DEBUG
   def get_counter() do
     GenServer.call(__MODULE__, :get_counter)
   end
@@ -26,21 +23,22 @@ defmodule Network do
   end
 
   def handle_call(:get_counter, _from, state) do
-    IO.puts("getting all nodes")
+    IO.puts("getting counter")
     {:reply, state.counter, state}
   end
 
   def handle_call({:send_2_node, dest, data, nodes}, _from, state) do
-    {:reply, :ok, state, {:continue, {:send_cont, dest, data, nodes}}}
+    {:reply, :ok, %{state | counter: state.counter + 1},
+     {:continue, {:send_cont, dest, data, nodes}}}
   end
 
   def handle_continue({:send_cont, dest, data, nodes}, state) do
     for node <- send_to(nodes) do
       IO.puts("sending to #{node}!")
-      send({Network, node}, {:new_msg, dest, data, state.counter + 1})
+      send({Network, node}, {:new_msg, dest, data, state.counter})
     end
 
-    {:noreply, %{state | counter: state.counter + 1}}
+    {:noreply, state}
   end
 
   def handle_info({:new_msg, dest, data, counter}, state) when counter > state.counter do

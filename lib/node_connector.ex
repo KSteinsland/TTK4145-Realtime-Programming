@@ -2,8 +2,8 @@ defmodule NodeConnector do
   use GenServer
 
   @broadcast_ip {255, 255, 255, 255}
-  @sleep_time 1000
   @port_range Application.fetch_env!(:elevator_project, :port_range)
+  @sleep_time 1000
 
   def start_link([]) do
     start_link([33333, "Elevator"])
@@ -73,7 +73,7 @@ defmodule NodeConnector do
       if start_port == end_port do
         start_port - @port_range
       else
-        start_port
+        start_port + 1
       end
     end
 
@@ -103,11 +103,21 @@ defmodule NodeConnector do
       IO.puts("New node!")
       # :gen_udp.send(socket, host, port, "Hello There!")
       Node.ping(String.to_atom(full_name))
+      Node.connect(String.to_atom(full_name))
+      Node.monitor(String.to_atom(full_name), true)
       IO.inspect(Node.list())
       {:noreply, %{state | nodes: Map.put(state.nodes, host_name, host_adr_str)}}
     else
       {:noreply, state}
     end
+  end
+
+  def handle_info({:nodedown, node}, state) do
+    IO.puts("Lost connection to node #{node}!")
+
+    # do something useful here...
+    name = node |> to_string() |> String.split("@") |> Enum.at(0)
+    {:noreply, %{state | nodes: Map.delete(state.nodes, name)}}
   end
 
   # DEBUG FUNCTION FOR NETWORK MODULE
