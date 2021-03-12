@@ -5,52 +5,51 @@ defmodule Distributor do
 
     @timeout 1000*20 #20 sec 
 
-    def dist() do 
+    use GenServer
+
+    def start_link([]) do 
+        GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    end
+
+    def init(_opts) do
         active_orders = List.duplicate(0, @num_hall_order_types) |> List.duplicate(@num_floors)
-        dist(active_orders)
+        {:ok, active_orders}
     end
 
-    def dist(active_orders) do
-        receive do
-            {:new_hall_order, floor, up?} ->
-
-                if not order_is_already_active?(active_orders, floor, up?) do
-                    Enum.each Node.list, fn node ->
-                        #TODO: send new hall order to dist on other nodes 
-                        send({Distributor, node}, {:new_hall_order, floor, up?})
-                    end 
-                
-                    if order_belongs_to_me(floor, up?) do
-                        Elevator.set_request(floor, %{true: 0, false: 1}[up?]) #this should be message, not call 
-                    end
-                    
-                    pid = Process.spawn(__MODULE__.watchdog, {:new_hall_order, floor, up?})
-                    active_orders = order_replace_at(active_orders, floor, up?, pid)
-                end
+    def handle_info({:new_hall_order, floor, up?}, active_orders) do
+        if not order_is_already_active?(active_orders, floor, up?) do
+            Enum.each Node.list, fn node ->
+                send({Distributor, node}, {:new_hall_order, floor, up?})
+            end 
+        
+            if order_belongs_to_me(floor, up?) do
+                Elevator.set_request(floor, %{true: 0, false: 1}[up?]) #this should be message, not call 
+            end
             
-                dist(active_orders)
-
-
-            {:hall_order_finished, floor, up?} ->
-                Enum.each Node.list, fn node ->
-                    #TODO: send hall order finished to dist on other nodes 
-                end 
-
-                {active_orders, watchdog_pid} = order_finished(active_orders, floor, up?)
-                Process.send(watchdog_pid, {:hall_order_done, floor, up?})
-
-                dist(active_orders)
-                
+            pid = spawn(__MODULE__, :watchdog, [floor, up?])
+            active_orders = order_replace_at(active_orders, floor, up?, pid)
         end
-    end
+        {:no_reply, active_orders}
+    end 
 
+
+    def handle_info({:hall_order_finished, floor, up?}, active_orders) do
+        Enum.each Node.list, fn node ->
+            send({Distributor, node}, {:hall_order_finished, floor, up?})
+        end 
+
+        {active_orders, watchdog_pid} = order_finished(active_orders, floor, up?)
+        send(watchdog_pid, {:hall_order_done, floor, up?})
+
+        {:no_reply, active_orders}
+    end
 
     def watchdog(floor, up?) do
         receive do
             {:hall_order_done, floor, up?} -> 
                 Process.exit(self, :normal)
         after 
-            @timeout -> #TODO: send new hall order to dist on self node 
+            @timeout -> send(Distributor, {:new_hall_order, floor, up?})
         end
     end
 
@@ -59,15 +58,20 @@ defmodule Distributor do
     #2D array (floor x button_type) of pids corresponding to watchdog processes
 
     def order_is_already_active?(active_orders, floor, up?) do
-        #TODO
+        {orders_at_floor, _rest} = List.pop_at(active_orders, floor)
+        {order, _rest } = List.pop_at(orders_at_floor, %{true: 0, false: 1}[up?]) 
+        order != 0
     end
 
     def order_replace_at(active_orders, floor, up?, value) do
-        #TODO
+        {orders_at_floor, _rest} = List.pop_at(active_orders, floor)
+        orders_at_floor = List.replace_at(orders_at_floor, %{true: 0, false: 1}[up?], value)
+        List.replace_at(active_orders, floor, orders_at_floor)
     end
 
     def order_belongs_to_me(floor, up?) do
         #TODO: assignment part here
+        true
     end
 
     def order_finished(active_orders, floor, up?) do

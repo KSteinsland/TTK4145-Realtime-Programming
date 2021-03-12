@@ -13,7 +13,8 @@ defmodule ElevatorProject.Application do
       Elevator,
       Timer,
       {Driver, [{127, 0, 0, 1}, 17777]},
-      ElevatorPoller
+      ElevatorPoller,
+      Distributor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
