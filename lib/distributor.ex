@@ -17,10 +17,11 @@ defmodule Distributor do
                 if not order_is_already_active?(active_orders, floor, up?) do
                     Enum.each Node.list, fn node ->
                         #TODO: send new hall order to dist on other nodes 
+                        send({Distributor, node}, {:new_hall_order, floor, up?})
                     end 
                 
                     if order_belongs_to_me(floor, up?) do
-                        Elevator.set_request(floor, %{true: 0, false: 1}[up?])
+                        Elevator.set_request(floor, %{true: 0, false: 1}[up?]) #this should be message, not call 
                     end
                     
                     pid = Process.spawn(__MODULE__.watchdog, {:new_hall_order, floor, up?})
@@ -55,7 +56,7 @@ defmodule Distributor do
 
 
     #Active hall order datatype, should be seperate module propably 
-    #2D array (floor x button_type) of pids corresponding to watchdog process 
+    #2D array (floor x button_type) of pids corresponding to watchdog processes
 
     def order_is_already_active?(active_orders, floor, up?) do
         #TODO
