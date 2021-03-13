@@ -1,6 +1,8 @@
 defmodule ElevatorPoller do
   use GenServer
 
+  alias Elevator.Server, as: ES
+
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
@@ -20,8 +22,8 @@ defmodule ElevatorPoller do
     if Driver.get_floor_sensor_state() == :between_floors do
       IO.puts("Between floors!")
       Driver.set_motor_direction(:dir_down)
-      elevator = %Elevator{Elevator.state() | direction: :dir_down, behaviour: :be_moving}
-      Elevator.set_state(elevator)
+      elevator = Elevator.new(ES.get_state(), %{direction: :dir_down, behaviour: :be_moving})
+      ES.set_state(elevator)
     end
 
     prev_floor = 0
@@ -42,7 +44,7 @@ defmodule ElevatorPoller do
 
     if f != :between_floors && f != prev_floor do
       IO.puts("Arrived at floor!")
-      {action, new_state} = FSM.on_floor_arrival(Elevator.state(), f)
+      {action, new_state} = FSM.on_floor_arrival(ES.get_state(), f)
 
       Driver.set_floor_indicator(new_state.floor)
       case action do
@@ -55,7 +57,7 @@ defmodule ElevatorPoller do
         _ ->
           :ok
       end
-      Elevator.set_state(new_state)
+      ES.set_state(new_state)
 
     end
 
@@ -63,7 +65,7 @@ defmodule ElevatorPoller do
 
     if(Timer.has_timed_out()) do
       IO.puts("Door open timer has timed out!")
-      {actions, new_state} = FSM.on_door_timeout(Elevator.state())
+      {actions, new_state} = FSM.on_door_timeout(ES.get_state())
 
       case actions do
         :close_doors ->
@@ -75,7 +77,7 @@ defmodule ElevatorPoller do
       end
 
       Timer.timer_stop()
-      Elevator.set_state(new_state)
+      ES.set_state(new_state)
     end
 
     Process.send_after(self(), :loop_poller, @input_poll_rate_ms)
@@ -93,7 +95,7 @@ defmodule ElevatorPoller do
 
         if v == 1 && v != prev_v do
           # this needs cleanup by theo
-          elevator = Elevator.state()
+          elevator = ES.get_state()
 
           {action, elevator} =
             FSM.on_request_button_press(elevator, floor_ind, Enum.at(@btn_types, button_ind))
@@ -118,7 +120,7 @@ defmodule ElevatorPoller do
           end
 
           set_all_lights(elevator)
-          Elevator.set_state(elevator)
+          ES.set_state(elevator)
         end
 
         v

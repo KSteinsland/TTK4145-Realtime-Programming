@@ -2,12 +2,14 @@ defmodule ElevatorTest do
   use ExUnit.Case
   doctest Elevator
 
+  # TODO fix tests...
+
   setup do
-    {:ok, pid} = Elevator.start_link([])
-    %{pid: pid}
+    :ok
   end
 
   test "floor" do
+    el = Elevator.new()
     assert Elevator.set_floor(2) == :ok
     assert Elevator.get_floor() == 2
   end

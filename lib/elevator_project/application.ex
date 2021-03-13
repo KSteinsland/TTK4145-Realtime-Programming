@@ -10,7 +10,7 @@ defmodule ElevatorProject.Application do
     children = [
       # Starts a worker by calling: ElevatorProject.Worker.start_link(arg)
       # {ElevatorProject.Worker, arg}
-      Elevator,
+      Elevator.Server,
       Timer,
       {Driver, [{127, 0, 0, 1}, 17777]},
       ElevatorPoller
