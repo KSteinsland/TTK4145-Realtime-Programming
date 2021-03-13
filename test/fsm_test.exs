@@ -19,26 +19,48 @@ defmodule FSMTest do
   end
 
   setup_all do
-    port = 17777
+    # todo, move this to a integration test
+    # port = 17777
+    # {:ok, elevator_driver_pid} = Driver.start_link([{127, 0, 0, 1}, port])
+    # {:ok, elevator_pid} = Elevator.start_link([])
+    # %{pid: elevator_pid}
 
-    {:ok, elevator_driver_pid} = Driver.start_link([{127, 0, 0, 1}, port])
-    {:ok, elevator_pid} = Elevator.start_link([])
-
-    %{pid: elevator_pid}
+    # %{elevator: %Elevator{}}
+    :ok
   end
 
-  test "just arrived at a floor", %{pid: _pid} do
-    Elevator.set_floor(2)
-    Elevator.set_behaviour(:be_moving)
+  test "just arrived at a floor" do
+    elevator = %Elevator{
+      floor: 2,
+      behaviour: :be_moving
+    }
 
-    assert Driver.set_motor_direction(:dir_down) == :ok
-    new_floor = wait_for_floor(0)
-    assert FSM.on_floor_arrival(new_floor) == :ok
+    new_floor = 0
+    {action, elevator} = FSM.on_floor_arrival(elevator, new_floor)
 
-    assert Elevator.get_floor() == new_floor
-    assert Driver.get_floor_sensor_state() == new_floor
-    assert Elevator.get_behaviour() == :be_door_open
+    assert {action, elevator} == {:should_stop, %Elevator{elevator | floor: new_floor}}
+    assert elevator.behaviour == :be_door_open
 
-    IO.puts("testing init")
+    elevator = %Elevator{
+      floor: 2,
+      behaviour: :be_door_open
+    }
+
+    new_floor = 0
+    {action, elevator} = FSM.on_floor_arrival(elevator, new_floor)
+
+    assert {action, elevator} == {nil, %Elevator{elevator | floor: new_floor}}
+    assert elevator.behaviour == :be_door_open
+
+    elevator = %Elevator{
+      floor: 2,
+      behaviour: :be_idle
+    }
+
+    new_floor = 0
+    {action, elevator} = FSM.on_floor_arrival(elevator, new_floor)
+
+    assert {action, elevator} == {nil, %Elevator{elevator | floor: new_floor}}
+    assert elevator.behaviour == :be_idle
   end
 end

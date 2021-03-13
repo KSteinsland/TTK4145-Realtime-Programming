@@ -30,7 +30,13 @@ defmodule Timer do
 
   # Cast/calls  ----------------------------------------------
 
-  def handle_cast({:timer_start, time}, _state) do
+  def handle_cast({:timer_start, time}, state) do
+    # for now timer restarts if timer_start called multiple times
+    # could be beneficial to be able to start a named timer
+    {timer, _timed_out} = state
+    if timer != nil do
+      Process.cancel_timer(timer)
+    end
     timer = Process.send_after(self(), {:timed_out, true}, time)
     {:noreply, {timer, false}}
   end

@@ -58,7 +58,6 @@ defmodule Requests do
 
   def clear_at_current_floor(%Elevator{} = elevator) do
     # clear all variant for now
-    # Elevator.clear_all_requests_at_floor(Elevator.get_floor())
 
     b_req = List.duplicate(0, @num_buttons)
     req = List.replace_at(elevator.requests, elevator.floor, b_req)

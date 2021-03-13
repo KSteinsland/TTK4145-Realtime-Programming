@@ -3,6 +3,9 @@ defmodule Elevator do
    Keeps Elevator state.
   """
 
+  # defmodule ElevatorState
+  # defmodule ElevatorState.Server
+
   use GenServer
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
@@ -28,6 +31,21 @@ defmodule Elevator do
 
   def state() do
     GenServer.call(__MODULE__, :get_state)
+  end
+
+  # we need to separate the server keeping the state from the struct functions
+
+  # no need to check if keys are valid, keyerror is thrown
+  # but need to check values
+
+  def new_state(%__MODULE__{} = elevator, key, val) do
+    # check guards here
+    Map.put(elevator, key, val)
+  end
+
+  def set_state(new_state) do
+    # check guards here?
+    GenServer.call(__MODULE__, {:set_state, new_state})
   end
 
   def get_floor() do
@@ -80,25 +98,25 @@ defmodule Elevator do
   # end
 
   # Error matches--------------------------------
-  def set_floor(floor) do
-    {:error, "Not a legal floor: #{floor}"}
-  end
+  # def set_floor(floor) do
+  #   {:error, "Not a legal floor: #{floor}"}
+  # end
 
-  def set_direction(direction) do
-    {:error, "Not a legal direction: #{direction}"}
-  end
+  # def set_direction(direction) do
+  #   {:error, "Not a legal direction: #{direction}"}
+  # end
 
-  def set_behaviour(behaviour) do
-    {:error, "Not a legal behaviour: #{behaviour}"}
-  end
+  # def set_behaviour(behaviour) do
+  #   {:error, "Not a legal behaviour: #{behaviour}"}
+  # end
 
-  def set_request(floor, btn_type) do
-    {:error, "Bad request"}
-  end
+  # def set_request(floor, btn_type) do
+  #   {:error, "Bad request"}
+  # end
 
-  def clear_request(floor, btn_type) do
-    {:error, "Bad request"}
-  end
+  # def clear_request(floor, btn_type) do
+  #   {:error, "Bad request"}
+  # end
 
   # def clear_all_requests_at_floor(floor) do
   #   {:error, "Bad request"}
@@ -108,6 +126,18 @@ defmodule Elevator do
 
   def handle_call(:get_state, _from, state) do
     {:reply, state, state}
+  end
+
+  def handle_call({:set_state, new_state}, _from, _state) do
+    # check guards!
+    with {:ok, _floor} <- parse_floor(new_state.floor),
+         {:ok, _direction} <- parse_direction(new_state.direction),
+         {:ok, _requests} <- parse_requests(new_state.requests),
+         {:ok, _behaviour} <- parse_behaviour(new_state.behaviour) do
+      {:reply, :ok, new_state}
+    else
+      err -> err
+    end
   end
 
   def handle_call(:get_floor, _from, state) do
@@ -166,10 +196,42 @@ defmodule Elevator do
     {:noreply, state}
   end
 
+  # guards-------------------------------------
+  defp parse_floor(nil), do: {:error, "floor is required"}
+
+  defp parse_floor(floor) when is_integer(floor) and floor < @num_floors and floor >= 0,
+    do: {:ok, floor}
+
+  defp parse_floor(_invalid), do: {:error, "floor must be a integer in range [0, #{@num_floors})"}
+
+  defp parse_direction(nil), do: {:error, "direction is required"}
+
+  defp parse_direction(direction) when is_atom(direction) and direction in @directions,
+    do: {:ok, direction}
+
+  defp parse_direction(_invalid), do: {:error, "direction must be a valid atom"}
+
+  defp parse_requests(nil), do: {:error, "requests are required"}
+
+  defp parse_requests(requests)
+       when is_list(requests) and length(requests) == @num_floors and
+              length(hd(requests)) == @num_buttons,
+       do: {:ok, requests}
+
+  defp parse_requests(_invalid),
+    do: {:error, "requests must be a valid 2d list of size #{@num_floors}x#{@num_buttons}"}
+
+  defp parse_behaviour(nil), do: {:error, "behaviour is required"}
+
+  defp parse_behaviour(behaviour) when is_atom(behaviour) and behaviour in @behaviours,
+    do: {:ok, behaviour}
+
+  defp parse_behaviour(_invalid), do: {:error, "behaviour must be a valid atom"}
+
   # util----------------------------------------
   defp update_requests(req, floor, btn_type, value) do
     {req_at_floor, _list} = List.pop_at(req, floor)
     updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
-    req = List.replace_at(req, floor, updated_req_at_floor)
+    List.replace_at(req, floor, updated_req_at_floor)
   end
 end
