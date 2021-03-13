@@ -1,7 +1,7 @@
 defmodule ElevatorPoller do
   use GenServer
 
-  alias Elevator.Server, as: ES
+  alias Elevator.StateServer, as: ES
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
@@ -47,6 +47,7 @@ defmodule ElevatorPoller do
       {action, new_state} = FSM.on_floor_arrival(ES.get_state(), f)
 
       Driver.set_floor_indicator(new_state.floor)
+
       case action do
         :should_stop ->
           Driver.set_motor_direction(:dir_stop)
@@ -57,8 +58,8 @@ defmodule ElevatorPoller do
         _ ->
           :ok
       end
-      ES.set_state(new_state)
 
+      ES.set_state(new_state)
     end
 
     prev_floor = f
@@ -87,18 +88,20 @@ defmodule ElevatorPoller do
   end
 
   defp check_requests(prev_req_list) do
-    for {floor, floor_ind} <- Enum.with_index(prev_req_list) do
-      for {_button, button_ind} <- Enum.with_index(floor) do
-        v = Driver.get_order_button_state(floor_ind, Enum.at(@btn_types, button_ind))
+    Enum.with_index(prev_req_list)
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.with_index(floor)
+      |> Enum.map(fn {_btn, btn_ind} ->
+        v = Driver.get_order_button_state(floor_ind, Enum.at(@btn_types, btn_ind))
 
-        prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
+        prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
         if v == 1 && v != prev_v do
           # this needs cleanup by theo
           elevator = ES.get_state()
 
           {action, elevator} =
-            FSM.on_request_button_press(elevator, floor_ind, Enum.at(@btn_types, button_ind))
+            FSM.on_request_button_press(elevator, floor_ind, Enum.at(@btn_types, btn_ind))
 
           case action do
             :start_timer ->
@@ -124,19 +127,21 @@ defmodule ElevatorPoller do
         end
 
         v
-      end
-    end
+      end)
+    end)
   end
 
   defp set_all_lights(elevator) do
-    for {floor, floor_ind} <- Enum.with_index(elevator.requests) do
-      for {btn, btn_ind} <- Enum.with_index(floor) do
+    Enum.with_index(elevator.requests)
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.with_index(floor)
+      |> Enum.map(fn {btn, btn_ind} ->
         if btn == 1 do
           Driver.set_order_button_light(Enum.at(@btn_types, btn_ind), floor_ind, :on)
         else
           Driver.set_order_button_light(Enum.at(@btn_types, btn_ind), floor_ind, :off)
         end
-      end
-    end
+      end)
+    end)
   end
 end

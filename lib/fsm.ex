@@ -1,6 +1,4 @@
 defmodule FSM do
-  @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
-
   # def on_init_between_floors(%Elevator{} = elevator) do
   #   {:dir_down, %Elevator{elevator |
   #   direction: :dir_down,
@@ -9,6 +7,8 @@ defmodule FSM do
 
   # TODO use Elevator.new function to check for errors!
 
+  # TODO fix keywords
+
   def on_request_button_press(%Elevator{} = elevator, btn_floor, btn_type) do
     case elevator.behaviour do
       :be_door_open ->
@@ -16,12 +16,18 @@ defmodule FSM do
           {:start_timer, elevator}
         else
           {nil,
-           %Elevator{elevator | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)}}
+           %Elevator{
+             elevator
+             | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+           }}
         end
 
       :be_moving ->
         {nil,
-         %Elevator{elevator | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)}}
+         %Elevator{
+           elevator
+           | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+         }}
 
       :be_idle ->
         if(elevator.floor == btn_floor) do
@@ -78,5 +84,4 @@ defmodule FSM do
         {nil, elevator}
     end
   end
-
 end

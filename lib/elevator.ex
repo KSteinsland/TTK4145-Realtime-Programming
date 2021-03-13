@@ -16,12 +16,12 @@ defmodule Elevator do
   # no need to check if keys are valid, keyerror is thrown
 
   def new(%__MODULE__{} = elevator \\ %__MODULE__{}, map \\ %{}) do
-
     elevator = struct(elevator, map)
+
     with {:ok, _floor} <- parse_floor(elevator.floor),
-      {:ok, _direction} <- parse_direction(elevator.direction),
-      {:ok, _requests} <- parse_requests(elevator.requests),
-      {:ok, _behaviour} <- parse_behaviour(elevator.behaviour) do
+         {:ok, _direction} <- parse_direction(elevator.direction),
+         {:ok, _requests} <- parse_requests(elevator.requests),
+         {:ok, _behaviour} <- parse_behaviour(elevator.behaviour) do
       elevator
     else
       err -> err

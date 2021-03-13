@@ -1,4 +1,4 @@
-defmodule Elevator.Server do
+defmodule Elevator.StateServer do
   use GenServer
 
   def init(_opts) do
@@ -117,49 +117,49 @@ defmodule Elevator.Server do
     case Elevator.new(new_state) do
       {:error, msg} ->
         {:reply, {:error, msg}, state}
+
       _ ->
         {:reply, :ok, new_state}
     end
   end
 
-# casts----------------------------------------
-# def handle_cast({:set_requests, requests}, state) do
-#   state = %{state | requests: requests}
-#   {:noreply, state}
-# end
+  # casts----------------------------------------
+  # def handle_cast({:set_requests, requests}, state) do
+  #   state = %{state | requests: requests}
+  #   {:noreply, state}
+  # end
 
-# def handle_cast({:set_floor, floor}, state) do
-#   state = %{state | floor: floor}
-#   {:noreply, state}
-# end
+  # def handle_cast({:set_floor, floor}, state) do
+  #   state = %{state | floor: floor}
+  #   {:noreply, state}
+  # end
 
-# def handle_cast({:set_direction, direction}, state) do
-#   state = %{state | direction: direction}
-#   {:noreply, state}
-# end
+  # def handle_cast({:set_direction, direction}, state) do
+  #   state = %{state | direction: direction}
+  #   {:noreply, state}
+  # end
 
-# def handle_cast({:set_request, floor, btn_type}, state) do
-#   req = update_requests(state.requests, floor, btn_type, 1)
-#   state = %{state | requests: req}
-#   {:noreply, state}
-# end
+  # def handle_cast({:set_request, floor, btn_type}, state) do
+  #   req = update_requests(state.requests, floor, btn_type, 1)
+  #   state = %{state | requests: req}
+  #   {:noreply, state}
+  # end
 
-# def handle_cast({:clear_request, floor, btn_type}, state) do
-#   req = update_requests(state.requests, floor, btn_type, 0)
-#   state = %{state | requests: req}
-#   {:noreply, state}
-# end
+  # def handle_cast({:clear_request, floor, btn_type}, state) do
+  #   req = update_requests(state.requests, floor, btn_type, 0)
+  #   state = %{state | requests: req}
+  #   {:noreply, state}
+  # end
 
-# def handle_cast({:clear_all_requests_at_floor, floor}, state) do
-#   b_req = List.duplicate(0, @num_buttons)
-#   req = List.replace_at(state.requests, floor, b_req)
-#   state = %{state | requests: req}
-#   {:noreply, state}
-# end
+  # def handle_cast({:clear_all_requests_at_floor, floor}, state) do
+  #   b_req = List.duplicate(0, @num_buttons)
+  #   req = List.replace_at(state.requests, floor, b_req)
+  #   state = %{state | requests: req}
+  #   {:noreply, state}
+  # end
 
-# def handle_cast({:set_behaviour, behaviour}, state) do
-#   state = %{state | behaviour: behaviour}
-#   {:noreply, state}
-# end
-
+  # def handle_cast({:set_behaviour, behaviour}, state) do
+  #   state = %{state | behaviour: behaviour}
+  #   {:noreply, state}
+  # end
 end

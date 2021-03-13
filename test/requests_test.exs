@@ -8,13 +8,6 @@ defmodule RequestsTest do
     %{elevator: %Elevator{}}
   end
 
-  # TODO fix this...
-  defp update_requests(req, floor, btn_type, value) do
-    {req_at_floor, _list} = List.pop_at(req, floor)
-    updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
-    List.replace_at(req, floor, updated_req_at_floor)
-  end
-
   # TODO split this up in smaller tests and good tests
 
   test "requests above/below", %{elevator: elevator} do
