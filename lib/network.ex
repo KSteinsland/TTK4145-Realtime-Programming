@@ -50,6 +50,7 @@ defmodule Network do
 
   def handle_info({:new_msg, _dest, _data, _counter}, state) do
     IO.puts("Outdated msg!")
+    # send(dest, {:error, :outdated_node})
     # should do something here to send new state to outdated server
     {:noreply, state}
   end
