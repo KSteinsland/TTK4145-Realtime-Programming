@@ -1,0 +1,10 @@
+{application,elevator_project,
+             [{applications,[kernel,stdlib,elixir,logger]},
+              {description,"elevator_project"},
+              {modules,['Elixir.Driver','Elixir.ElevatorProject',
+                        'Elixir.ElevatorProject.Application',
+                        'Elixir.FindNodes','Elixir.Network','Elixir.Random',
+                        'Elixir.UDPBroadcast']},
+              {registered,[]},
+              {vsn,"0.1.0"},
+              {mod,{'Elixir.ElevatorProject.Application',[]}}]}.
