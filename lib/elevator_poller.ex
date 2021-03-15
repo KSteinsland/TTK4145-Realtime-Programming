@@ -27,6 +27,7 @@ defmodule ElevatorPoller do
     end
 
     prev_floor = 0
+    # :between_floors
     prev_req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
     state = {prev_floor, prev_req_list}
 
@@ -132,15 +133,13 @@ defmodule ElevatorPoller do
   end
 
   defp set_all_lights(elevator) do
+    light_state = [:off, :on]
+
     Enum.with_index(elevator.requests)
     |> Enum.map(fn {floor, floor_ind} ->
-      Enum.with_index(floor)
-      |> Enum.map(fn {btn, btn_ind} ->
-        if btn == 1 do
-          Driver.set_order_button_light(Enum.at(@btn_types, btn_ind), floor_ind, :on)
-        else
-          Driver.set_order_button_light(Enum.at(@btn_types, btn_ind), floor_ind, :off)
-        end
+      Enum.zip(floor, @btn_types)
+      |> Enum.map(fn {btn, btn_type} ->
+        Driver.set_order_button_light(btn_type, floor_ind, Enum.at(light_state, btn))
       end)
     end)
   end

@@ -33,6 +33,8 @@ defmodule Elevator do
   # guards-------------------------------------
   defp parse_floor(nil), do: {:error, "floor is required"}
 
+  defp parse_floor(floor = :between_floors), do: {:ok, floor}
+
   defp parse_floor(floor) when is_integer(floor) and floor < @num_floors and floor >= 0,
     do: {:ok, floor}
 
@@ -47,11 +49,24 @@ defmodule Elevator do
 
   defp parse_requests(nil), do: {:error, "requests are required"}
 
-  # TODO check the interior of the list somehow...
   defp parse_requests(requests)
        when is_list(requests) and length(requests) == @num_floors and
-              length(hd(requests)) == @num_buttons,
-       do: {:ok, requests}
+              length(hd(requests)) == @num_buttons do
+    # TODO make this a config maybe?
+    valid_buttons = [0, 1]
+
+    valid_requests? =
+      Enum.concat(requests)
+      |> Enum.all?(fn btn ->
+        btn in valid_buttons
+      end)
+
+    if valid_requests? do
+      {:ok, requests}
+    else
+      {:error, "requests must be a valid 2d list of size #{@num_floors}x#{@num_buttons}"}
+    end
+  end
 
   defp parse_requests(_invalid),
     do: {:error, "requests must be a valid 2d list of size #{@num_floors}x#{@num_buttons}"}
@@ -65,7 +80,10 @@ defmodule Elevator do
 
   # util----------------------------------------
   def update_requests(req, floor, btn_type, value) do
-    # maybe check value here?
+    # TODO make this a config maybe?
+    # valid_buttons = [0, 1]
+    # also check floor and btn_type beforehand!
+
     {req_at_floor, _list} = List.pop_at(req, floor)
     updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
     List.replace_at(req, floor, updated_req_at_floor)
