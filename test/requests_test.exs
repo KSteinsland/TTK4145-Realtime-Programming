@@ -19,7 +19,7 @@ defmodule RequestsTest do
 
     elevator = %Elevator{
       elevator
-      | requests: update_requests(elevator.requests, 1, :btn_hall_down, 1)
+      | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 1)
     }
 
     assert Requests.should_stop?(elevator) == true
@@ -27,12 +27,12 @@ defmodule RequestsTest do
 
     assert Requests.clear_at_current_floor(elevator) == %Elevator{
              elevator
-             | requests: update_requests(elevator.requests, 1, :btn_hall_down, 0)
+             | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 0)
            }
 
     elevator = %Elevator{
       elevator
-      | requests: update_requests(elevator.requests, 2, :btn_hall_down, 1)
+      | requests: Elevator.update_requests(elevator.requests, 2, :btn_hall_down, 1)
     }
 
     assert Requests.should_stop?(elevator) == true
@@ -40,7 +40,7 @@ defmodule RequestsTest do
 
     assert Requests.clear_at_current_floor(elevator) == %Elevator{
              elevator
-             | requests: update_requests(elevator.requests, 1, :btn_hall_down, 0)
+             | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 0)
            }
 
     elevator = %Elevator{elevator | floor: 3}

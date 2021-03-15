@@ -23,7 +23,7 @@ defmodule ElevatorPoller do
       IO.puts("Between floors!")
       Driver.set_motor_direction(:dir_down)
       elevator = Elevator.new(ES.get_state(), %{direction: :dir_down, behaviour: :be_moving})
-      ES.set_state(elevator)
+      :ok = ES.set_state(elevator)
     end
 
     prev_floor = 0
@@ -60,7 +60,7 @@ defmodule ElevatorPoller do
           :ok
       end
 
-      ES.set_state(new_state)
+      :ok = ES.set_state(new_state)
     end
 
     prev_floor = f
@@ -79,7 +79,7 @@ defmodule ElevatorPoller do
       end
 
       Timer.timer_stop()
-      ES.set_state(new_state)
+      :ok = ES.set_state(new_state)
     end
 
     Process.send_after(self(), :loop_poller, @input_poll_rate_ms)
@@ -124,7 +124,7 @@ defmodule ElevatorPoller do
           end
 
           set_all_lights(elevator)
-          ES.set_state(elevator)
+          :ok = ES.set_state(elevator)
         end
 
         v
