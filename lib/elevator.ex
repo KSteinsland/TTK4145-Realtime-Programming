@@ -15,7 +15,6 @@ defmodule Elevator do
 
   # no need to check if keys are valid, keyerror is thrown
 
-
   def new(%__MODULE__{} = elevator \\ %__MODULE__{}, map \\ %{}) do
     elevator = struct(elevator, map)
 

@@ -41,19 +41,27 @@ defmodule Network do
     {:noreply, state}
   end
 
-  def handle_info({:new_msg, dest, data, counter}, state) when counter > state.counter do
-    IO.puts("rec msg!")
-    IO.inspect(data)
-    send(dest, data)
-    {:noreply, %{state | counter: counter}}
+  # when counter > state.counter do
+  def handle_info({:new_msg, dest, data, counter}, state) do
+    if counter > state.counter do
+      IO.puts("rec msg!")
+      IO.inspect(data)
+      send(dest, data)
+      {:noreply, %{state | counter: counter}}
+    else
+      IO.puts("Outdated msg!")
+      # send(dest, {:error, :outdated_node})
+      # should do something here to send new state to outdated server
+      {:noreply, state}
+    end
   end
 
-  def handle_info({:new_msg, _dest, _data, _counter}, state) do
-    IO.puts("Outdated msg!")
-    # send(dest, {:error, :outdated_node})
-    # should do something here to send new state to outdated server
-    {:noreply, state}
-  end
+  # def handle_info({:new_msg, _dest, _data, _counter}, state) do
+  #   IO.puts("Outdated msg!")
+  #   # send(dest, {:error, :outdated_node})
+  #   # should do something here to send new state to outdated server
+  #   {:noreply, state}
+  # end
 
   def handle_info(msg, state) do
     IO.inspect("Network invalid Message: ")
