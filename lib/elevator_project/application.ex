@@ -13,7 +13,9 @@ defmodule ElevatorProject.Application do
       Elevator.StateServer,
       Timer,
       {Driver, [{127, 0, 0, 1}, 17777]},
-      ElevatorPoller
+      ElevatorPoller,
+      {NodeConnector, [33333, Random.gen_rand_str(5)]},
+      Network
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

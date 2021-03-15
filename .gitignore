@@ -1,5 +1,12 @@
-#macos
+# macos
 .DS_Store
+
+# VS code workspace config
+/.vscode/
+
+# Pictures and dot files
+*.png
+*.dot
 
 # The directory Mix will write compiled artifacts to.
 /_build/
