@@ -17,7 +17,7 @@ case :os.type() do
 
   {:unix, :darwin} ->
     IO.puts("Starting mac sim")
-    Simulator.start_simulator("sim/mac/SimElevatorServer", port, floors)
+    Simulator.start_simulator("sim/mac/SimElevatorServer", port, floors, 2)
 
   _ ->
     IO.puts("You need to start the simulator yourself!")
