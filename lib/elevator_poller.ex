@@ -1,15 +1,15 @@
-require Driver
-require FSM
-require Timer
-
 defmodule ElevatorPoller do
   use GenServer
 
-  # THIS needs fixing
-  @num_floors 4
-  @num_buttons 3
-  @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
-  @button_map_inv %{0 => :btn_cab, 1 => :btn_hall_down, 2 => :btn_hall_up}
+  alias Elevator.StateServer, as: ES
+
+  @num_floors Application.fetch_env!(:elevator_project, :num_floors)
+  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+
+  @input_poll_rate_ms 25
+  @door_open_duration_ms 3_000
+  @stop_duration_ms 5_000
 
   def start_link([]) do
     # , debug: [:trace]])
@@ -19,16 +19,17 @@ defmodule ElevatorPoller do
   def init([]) do
     IO.puts("Started!")
 
-    input_poll_rate_ms = 25
-
     if Driver.get_floor_sensor_state() == :between_floors do
       IO.puts("Between floors!")
-      FSM.on_init_between_floors()
+      Driver.set_motor_direction(:dir_down)
+      elevator = Elevator.new(ES.get_state(), %{direction: :dir_down, behaviour: :be_moving})
+      :ok = ES.set_state(elevator)
     end
 
     prev_floor = 0
+    # :between_floors
     prev_req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
-    state = {prev_floor, prev_req_list, input_poll_rate_ms}
+    state = {prev_floor, prev_req_list}
 
     send(self(), :loop_poller)
 
@@ -36,7 +37,7 @@ defmodule ElevatorPoller do
   end
 
   def handle_info(:loop_poller, state) do
-    {prev_floor, prev_req_list, input_poll_rate_ms} = state
+    {prev_floor, prev_req_list} = state
 
     prev_req_list = check_requests(prev_req_list)
 
@@ -44,40 +45,102 @@ defmodule ElevatorPoller do
 
     if f != :between_floors && f != prev_floor do
       IO.puts("Arrived at floor!")
-      FSM.on_floor_arrival(f)
+      {action, new_state} = FSM.on_floor_arrival(ES.get_state(), f)
+
+      Driver.set_floor_indicator(new_state.floor)
+
+      case action do
+        :should_stop ->
+          Driver.set_motor_direction(:dir_stop)
+          Driver.set_door_open_light(:on)
+          Timer.timer_start(@door_open_duration_ms)
+          set_all_lights(new_state)
+
+        _ ->
+          :ok
+      end
+
+      :ok = ES.set_state(new_state)
     end
 
     prev_floor = f
 
     if(Timer.has_timed_out()) do
       IO.puts("Door open timer has timed out!")
-      FSM.on_door_timeout()
+      {actions, new_state} = FSM.on_door_timeout(ES.get_state())
+
+      case actions do
+        :close_doors ->
+          Driver.set_door_open_light(:off)
+          new_state.direction |> Driver.set_motor_direction()
+
+        _ ->
+          :ok
+      end
+
       Timer.timer_stop()
+      :ok = ES.set_state(new_state)
     end
 
-    # Process.sleep(input_poll_rate_ms)
-    Process.send_after(self(), :loop_poller, input_poll_rate_ms)
+    Process.send_after(self(), :loop_poller, @input_poll_rate_ms)
 
-    state = {prev_floor, prev_req_list, input_poll_rate_ms}
+    state = {prev_floor, prev_req_list}
     {:noreply, state}
   end
 
-  def check_requests(prev_req_list) do
-    btn_types = [:btn_hall_up, :btn_hall_down, :btn_cab]
+  defp check_requests(prev_req_list) do
+    Enum.with_index(prev_req_list)
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.with_index(floor)
+      |> Enum.map(fn {_btn, btn_ind} ->
+        v = Driver.get_order_button_state(floor_ind, Enum.at(@btn_types, btn_ind))
 
-    for {floor, floor_ind} <- Enum.with_index(prev_req_list) do
-      for {_button, button_ind} <- Enum.with_index(floor) do
-        v = Driver.get_order_button_state(floor_ind, Enum.at(btn_types, button_ind))
-
-        prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(button_ind)
+        prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
         if v == 1 && v != prev_v do
           # this needs cleanup by theo
-          FSM.on_request_button_press(floor_ind, @button_map_inv[button_ind])
+          elevator = ES.get_state()
+
+          {action, elevator} =
+            FSM.on_request_button_press(elevator, floor_ind, Enum.at(@btn_types, btn_ind))
+
+          case action do
+            :start_timer ->
+              IO.puts("starting timer")
+              Timer.timer_start(@stop_duration_ms)
+
+            :open_door ->
+              IO.puts("opening door!")
+              Driver.set_door_open_light(:on)
+              Timer.timer_start(@stop_duration_ms)
+
+            :move_elevator ->
+              IO.puts("setting motor direction")
+              IO.inspect(elevator.direction)
+              elevator.direction |> Driver.set_motor_direction()
+
+            nil ->
+              :ok
+          end
+
+          set_all_lights(elevator)
+          :ok = ES.set_state(elevator)
         end
 
         v
-      end
-    end
+      end)
+    end)
+  end
+
+  defp set_all_lights(elevator) do
+    light_state = [:off, :on]
+
+    Enum.with_index(elevator.requests)
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.zip(floor, @btn_types)
+      |> Enum.map(fn {btn, btn_type} ->
+        Driver.set_order_button_light(btn_type, floor_ind, Enum.at(light_state, btn))
+      end)
+    end)
   end
 end

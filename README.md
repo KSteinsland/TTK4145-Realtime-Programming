@@ -1,5 +1,4 @@
-# ElevatorProject
-
+# ElevatorProject ![](https://github.com/KSteinsland/TTK4145/workflows/Elixir%20CI/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/KSteinsland/TTK4145/badge.svg?branch=main&t=jZrpDf)](https://coveralls.io/github/KSteinsland/TTK4145?branch=main)
 **TODO: Add description**
 
 ## Installation

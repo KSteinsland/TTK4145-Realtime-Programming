@@ -2,26 +2,47 @@ defmodule RequestsTest do
   use ExUnit.Case
   doctest Elevator
 
+  @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
+
   setup do
-    {:ok, pid} = Elevator.start_link([])
-    %{pid: pid}
+    %{elevator: %Elevator{}}
   end
 
-  test "requests above/below" do
-    assert Elevator.set_floor(1) == :ok
-    assert Requests.request_above?() == false
-    assert Requests.request_below?() == false
+  # TODO split this up in smaller tests and good tests
 
-    assert Elevator.set_request(1, :btn_hall_down) == :ok
-    assert Requests.request_above?() == false
-    assert Requests.request_above?() == false
+  test "requests above/below", %{elevator: elevator} do
+    elevator = %Elevator{elevator | floor: 1}
 
-    assert Elevator.set_request(2, :btn_hall_down) == :ok
-    assert Requests.request_above?() == true
-    assert Requests.request_below?() == false
+    assert Requests.should_stop?(elevator) == true
+    assert Requests.choose_direction(elevator) == :dir_stop
+    assert Requests.clear_at_current_floor(elevator) == elevator
 
-    assert Elevator.set_floor(3) == :ok
-    assert Requests.request_above?() == false
-    assert Requests.request_below?() == true
+    elevator = %Elevator{
+      elevator
+      | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 1)
+    }
+
+    assert Requests.should_stop?(elevator) == true
+    assert Requests.choose_direction(elevator) == :dir_stop
+
+    assert Requests.clear_at_current_floor(elevator) == %Elevator{
+             elevator
+             | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 0)
+           }
+
+    elevator = %Elevator{
+      elevator
+      | requests: Elevator.update_requests(elevator.requests, 2, :btn_hall_down, 1)
+    }
+
+    assert Requests.should_stop?(elevator) == true
+    assert Requests.choose_direction(elevator) == :dir_up
+
+    assert Requests.clear_at_current_floor(elevator) == %Elevator{
+             elevator
+             | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 0)
+           }
+
+    elevator = %Elevator{elevator | floor: 3}
   end
 end
