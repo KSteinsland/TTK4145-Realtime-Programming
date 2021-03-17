@@ -10,16 +10,16 @@ defmodule timerTest do
 
   test "timer" do
     assert Timer.timer_start(1_000) == :ok
-    assert Timer.has_timed_out == 0
+    assert Timer.has_timed_out == false
     :timer.sleep(1000)
-    assert Timer.has_timed_out == 1
+    assert Timer.has_timed_out == true
   end
 
   test "stop" do
     assert Timer.timer_start(1_000) == :ok
-    assert Timer.has_timed_out == 0
+    assert Timer.has_timed_out == false
     assert Timer.timer_stop == :ok
-    assert Timer.has_timed_out == 1
+    assert Timer.has_timed_out == true
   end
 
 end
