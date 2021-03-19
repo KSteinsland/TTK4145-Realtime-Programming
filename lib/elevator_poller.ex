@@ -22,7 +22,7 @@ defmodule ElevatorPoller do
     if Driver.get_floor_sensor_state() == :between_floors do
       IO.puts("Between floors!")
       Driver.set_motor_direction(:dir_down)
-      elevator = Elevator.new(ES.get_state(), %{direction: :dir_down, behaviour: :be_moving})
+      elevator = Elevator.new(%Elevator{ES.get_state() | direction: :dir_down, behaviour: :be_moving})
       :ok = ES.set_state(elevator)
     end
 
@@ -50,7 +50,7 @@ defmodule ElevatorPoller do
       Driver.set_floor_indicator(new_state.floor)
 
       case action do
-        :should_stop ->
+        :stop ->
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
           Timer.timer_start(@door_open_duration_ms)
