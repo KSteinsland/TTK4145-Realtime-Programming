@@ -13,7 +13,7 @@ defmodule RequestsTest do
     elevator = %Elevator{elevator | floor: 0}
 
     assert Requests.request_above?(elevator) == false
-    
+
     elevator = %Elevator{
       elevator
       | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 1)
@@ -26,7 +26,7 @@ defmodule RequestsTest do
     elevator = %Elevator{elevator | floor: 2}
 
     assert Requests.request_below?(elevator) == false
-    
+
     elevator = %Elevator{
       elevator
       | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 1)
@@ -34,7 +34,6 @@ defmodule RequestsTest do
 
     assert Requests.request_below?(elevator) == true
   end
-
 
   test "choose direction", %{elevator: elevator} do
     elevator = %Elevator{elevator | floor: 0}
@@ -58,7 +57,6 @@ defmodule RequestsTest do
     elevator = %Elevator{
       elevator
       | requests: Elevator.update_requests(elevator.requests, 2, :btn_hall_down, 2)
-    
     }
 
     elevator = %Elevator{
@@ -71,27 +69,24 @@ defmodule RequestsTest do
 
     elevator = %Elevator{elevator | floor: 2}
     assert Requests.should_stop?(elevator) == true
-    
   end
-
 
   test "clear_at_current_floor", %{elevator: elevator} do
     elevator = %Elevator{elevator | floor: 0}
-    
+
     assert elevator == Requests.clear_at_current_floor(elevator)
 
     elevator = %Elevator{
       elevator
       | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 1)
     }
+
     assert elevator == Requests.clear_at_current_floor(elevator)
 
     elevator = %Elevator{elevator | floor: 1}
     empty_request_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
     assert Requests.clear_at_current_floor(elevator).requests == empty_request_list
-    
   end
-
 
   test "full module test", %{elevator: elevator} do
     elevator = %Elevator{elevator | floor: 1}
