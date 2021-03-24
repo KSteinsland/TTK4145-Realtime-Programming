@@ -1,7 +1,7 @@
 defmodule ElevatorPoller do
   use GenServer
 
-  alias Elevator.StateServer, as: ES
+  alias StateInterface, as: ES
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
