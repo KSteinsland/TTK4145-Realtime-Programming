@@ -1,20 +1,32 @@
 defmodule Requests do
-  # TODO: update to new config enums
+  @moduledoc """
+  Pure functions that operate on elevator struct 
+  """
 
-  @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
-
+  @button_map Application.fetch_env!(:elevator_project, :button_map)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
 
-  defp request_above?(%Elevator{} = elevator) do
+  @doc """
+  Returns bool ':true' if there is a request above current floor. 'false' if not.
+  """
+  def request_above?(%Elevator{} = elevator) do
     {_below, above} = elevator.requests |> Enum.split(elevator.floor + 1)
     above |> List.flatten() |> Enum.sum() > 0
   end
 
-  defp request_below?(%Elevator{} = elevator) do
+  @doc """
+  Returns bool ':true' if there is a request below current floor. 'false' if not.
+  """
+  def request_below?(%Elevator{} = elevator) do
     {below, _above} = elevator.requests |> Enum.split(elevator.floor)
     below |> List.flatten() |> Enum.sum() > 0
   end
 
+  @doc """
+  Returns direction ':dir_up', ':dir_down' or ':dir_stop' based on current
+  traveling direction and whether or not there are orders above or below. 
+  Will continue in same direction when possible.
+  """
   def choose_direction(%Elevator{} = elevator) do
     case elevator.direction do
       :dir_up ->
@@ -36,6 +48,11 @@ defmodule Requests do
     end
   end
 
+  @doc """
+  Returns bool ':true' or ':false' on wheter the elevator should stop. 
+  Stops if there is an hall order that matches direction, a cab order or no more 
+  orders in direction of travel. 
+  """
   def should_stop?(%Elevator{} = elevator) do
     req = elevator.requests
     flr = elevator.floor
@@ -56,13 +73,13 @@ defmodule Requests do
     end
   end
 
+  @doc """
+  Returns a new elevator struct with a orders at current floor set to zero. 
+  Uses the clear all variant of order behaviour. 
+  """
   def clear_at_current_floor(%Elevator{} = elevator) do
-    # clear all variant for now
-
     b_req = List.duplicate(0, @num_buttons)
     req = List.replace_at(elevator.requests, elevator.floor, b_req)
-    # state = %{state | requests: req}
-    # maybe change this to only return requests?
     %Elevator{elevator | requests: req}
   end
 end
