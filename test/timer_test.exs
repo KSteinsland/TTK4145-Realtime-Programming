@@ -2,7 +2,7 @@ defmodule TimerTest do
   use ExUnit.Case
   doctest Timer
 
-  setup_all do
+  setup do
     {:ok, pid} = Timer.start_link([])
     %{pid: pid}
   end
