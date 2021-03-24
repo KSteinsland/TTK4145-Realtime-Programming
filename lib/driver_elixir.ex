@@ -4,6 +4,7 @@ defmodule Driver do
   @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
   @state_map %{:on => 1, :off => 0}
   @direction_map %{:dir_up => 1, :dir_down => 255, :dir_stop => 0}
+  @port_range Application.fetch_env!(:elevator_project, :port_range)
 
   def start_link([]) do
     start_link([{127, 0, 0, 1}, 15657])
@@ -19,8 +20,26 @@ defmodule Driver do
   end
 
   def init([address, port]) do
-    {:ok, socket} = :gen_tcp.connect(address, port, [{:active, false}])
+    # dev
+    # {:ok, socket} = :gen_tcp.connect(address, port, [{:active, false}])
+    {:ok, socket} = try_create_socket(address, port, port + @port_range)
     {:ok, socket}
+  end
+
+  # dev
+  defp try_create_socket(address, port, max_port) do
+    case :gen_tcp.connect(address, port, [{:active, false}], 1000) do
+      {:ok, socket} ->
+        {:ok, socket}
+
+      {:error, _} ->
+        if port < max_port do
+          IO.puts("trying port #{port}")
+          try_create_socket(address, port + 1, max_port)
+        else
+          {:error, :port_out_of_range}
+        end
+    end
   end
 
   # User API ----------------------------------------------

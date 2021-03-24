@@ -31,13 +31,14 @@ defmodule NodeConnectorTest do
   end
 
   test "starts the server" do
-    assert NodeConnector.get_all() == %{}
+    assert NodeConnector.get_all_slaves() == %{}
   end
 
-  # test "check for other nodes", %{pid: _pid} do
-  #   Process.sleep(2500)
-  #   #IO.inspect NodeConnector.get_all()
-  #   IO.inspect(Node.list)
-  #   assert True
-  # end
+  @tag :distributed
+  test "check for other nodes" do
+    #Process.sleep(20_000)
+    IO.inspect NodeConnector.get_all_slaves()
+    IO.inspect(Node.list)
+    assert True
+  end
 end

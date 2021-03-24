@@ -14,8 +14,8 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       Elevator.StateServer,
       Timer,
-      {Driver, [{127, 0, 0, 1}, @port_driver]},
-      ElevatorPoller,
+      # {Driver, [{127, 0, 0, 1}, @port_driver]},
+      # ElevatorPoller,
       {NodeConnector, [33333, Random.gen_rand_str(5)]},
       Network
     ]
