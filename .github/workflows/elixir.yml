@@ -37,7 +37,7 @@ jobs:
     - name: Check formatting
       run: mix format --check-formatted
     - name: Run tests
-      run: mix test --no-start # --no-start runs tests without starting the application
+      run: mix test_integration
     - name: Run tests with cover
       run: mix coveralls.github
       env:

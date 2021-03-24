@@ -20,11 +20,17 @@ defmodule NodeConnectorTest do
   setup do
     System.cmd("epmd", ["-daemon"])
     port = 33333
-    {:ok, pid} = NodeConnector.start_link([port, "test_udp"])
-    %{pid: pid, port: port}
+
+    case NodeConnector.start_link([port, "test_udp"]) do
+      {:ok, _pid} ->
+        :ok
+
+      {:error, _err_msg} ->
+        :ok
+    end
   end
 
-  test "starts the server", %{pid: _pid} do
+  test "starts the server" do
     assert NodeConnector.get_all() == %{}
   end
 
@@ -34,11 +40,4 @@ defmodule NodeConnectorTest do
   #   IO.inspect(Node.list)
   #   assert True
   # end
-
-  test "handles invalid commands correctly", %{pid: pid} do
-    # This test needs to be improved
-    msg = {:test, 3242}
-    send(pid, msg)
-    assert Process.alive?(pid)
-  end
 end

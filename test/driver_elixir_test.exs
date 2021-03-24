@@ -1,5 +1,6 @@
 defmodule DriverTest do
   use ExUnit.Case
+  @moduletag :external
   doctest Driver, async: false
 
   defp wait_for_floor(state) do
@@ -13,9 +14,8 @@ defmodule DriverTest do
   end
 
   setup_all do
-    port = 17777
-    # FIX this hardcoded variable
-    floors = 4
+    port = Application.fetch_env!(:elevator_project, :port_driver)
+    floors = Application.fetch_env!(:elevator_project, :num_floors)
     {:ok, pid} = Driver.start_link([{127, 0, 0, 1}, port])
     %{pid: pid, floors: floors}
   end
@@ -25,7 +25,6 @@ defmodule DriverTest do
     assert is_number(floor) || floor == :between_floors
     assert Driver.get_obstruction_switch_state() == :inactive
     assert Driver.get_stop_button_state() == :inactive
-    IO.puts("buttons tested")
 
     for floor <- 0..(floors - 1) do
       assert Driver.get_order_button_state(floor, :btn_hall_up) == 0

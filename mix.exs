@@ -7,10 +7,10 @@ defmodule ElevatorProject.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      # aliases: aliases(),
+      aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [coveralls: :test]
+      preferred_cli_env: [coveralls: :test, test_unit: :test, test_integration: :test]
     ]
   end
 
@@ -22,11 +22,12 @@ defmodule ElevatorProject.MixProject do
     ]
   end
 
-  # defp aliases do
-  #   [
-  #     test: "test --no-start" #(2)
-  #   ]
-  # end
+  defp aliases do
+    [
+      test_unit: "test --no-start",
+      test_integration: "test --no-start --include external:true"
+    ]
+  end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do

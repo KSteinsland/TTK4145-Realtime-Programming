@@ -5,6 +5,8 @@ defmodule ElevatorProject.Application do
 
   use Application
 
+  @port_driver Application.fetch_env!(:elevator_project, :port_driver)
+
   @impl true
   def start(_type, _args) do
     children = [
@@ -12,7 +14,7 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       Elevator.StateServer,
       Timer,
-      {Driver, [{127, 0, 0, 1}, 17777]},
+      {Driver, [{127, 0, 0, 1}, @port_driver]},
       ElevatorPoller,
       {NodeConnector, [33333, Random.gen_rand_str(5)]},
       Network

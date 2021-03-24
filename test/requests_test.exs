@@ -121,6 +121,6 @@ defmodule RequestsTest do
              | requests: Elevator.update_requests(elevator.requests, 1, :btn_hall_down, 0)
            }
 
-    elevator = %Elevator{elevator | floor: 3}
+    _elevator = %Elevator{elevator | floor: 3}
   end
 end
