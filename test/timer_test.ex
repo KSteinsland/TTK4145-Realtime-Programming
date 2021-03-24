@@ -1,8 +1,9 @@
-defmodule TimerTest do
+defmodule timerTest do
   use ExUnit.Case
-  doctest Timer
+  doctest timerTest
 
-  setup_all do
+
+  setup do
     {:ok, pid} = Timer.start_link([])
     %{pid: pid}
   end
@@ -10,19 +11,15 @@ defmodule TimerTest do
   test "timer" do
     assert Timer.timer_start(1_000) == :ok
     assert Timer.has_timed_out == false
-    Timer.timer_start(1_000)
-    :timer.sleep(1500)
+    :timer.sleep(1000)
     assert Timer.has_timed_out == true
   end
 
   test "stop" do
-    Timer.timer_start(1_000)
-    :timer.sleep(1500)
-    assert Timer.has_timed_out == true
-    assert Timer.timer_stop == :ok
-    Timer.timer_start(1_000)
-    Timer.timer_stop
+    assert Timer.timer_start(1_000) == :ok
     assert Timer.has_timed_out == false
+    assert Timer.timer_stop == :ok
+    assert Timer.has_timed_out == true
   end
 
 end
