@@ -56,7 +56,7 @@ defmodule RequestsTest do
 
     elevator = %Elevator{
       elevator
-      | requests: Elevator.update_requests(elevator.requests, 2, :btn_hall_down, 2)
+      | requests: Elevator.update_requests(elevator.requests, 2, :btn_hall_down, 1)
     }
 
     elevator = %Elevator{
