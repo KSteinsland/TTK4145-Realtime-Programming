@@ -1,4 +1,8 @@
 defmodule ElevatorPoller do
+  @moduledoc """
+  Polling `GenServer` responsible driving a single elevator.
+  """
+
   use GenServer
 
   alias Elevator.StateServer, as: ES
@@ -11,8 +15,10 @@ defmodule ElevatorPoller do
   @door_open_duration_ms 3_000
   @stop_duration_ms 5_000
 
+  @doc """
+  Starts to process and registers its name to `ElevatorPoller`
+  """
   def start_link([]) do
-    # , debug: [:trace]])
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
@@ -20,14 +26,16 @@ defmodule ElevatorPoller do
     IO.puts("Started!")
 
     if Driver.get_floor_sensor_state() == :between_floors do
-      IO.puts("Between floors!")
+      # IO.puts("Between floors!")
       Driver.set_motor_direction(:dir_down)
-      elevator = Elevator.new(ES.get_state(), %{direction: :dir_down, behaviour: :be_moving})
+
+      elevator =
+        Elevator.new(%Elevator{ES.get_state() | direction: :dir_down, behaviour: :be_moving})
+
       :ok = ES.set_state(elevator)
     end
 
     prev_floor = 0
-    # :between_floors
     prev_req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
     state = {prev_floor, prev_req_list}
 
@@ -44,13 +52,13 @@ defmodule ElevatorPoller do
     f = Driver.get_floor_sensor_state()
 
     if f != :between_floors && f != prev_floor do
-      IO.puts("Arrived at floor!")
+      # IO.puts("Arrived at floor!")
       {action, new_state} = FSM.on_floor_arrival(ES.get_state(), f)
 
       Driver.set_floor_indicator(new_state.floor)
 
       case action do
-        :should_stop ->
+        :stop ->
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
           Timer.timer_start(@door_open_duration_ms)
@@ -66,7 +74,7 @@ defmodule ElevatorPoller do
     prev_floor = f
 
     if(Timer.has_timed_out()) do
-      IO.puts("Door open timer has timed out!")
+      # IO.puts("Door open timer has timed out!")
       {actions, new_state} = FSM.on_door_timeout(ES.get_state())
 
       case actions do
@@ -98,7 +106,6 @@ defmodule ElevatorPoller do
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
         if v == 1 && v != prev_v do
-          # this needs cleanup by theo
           elevator = ES.get_state()
 
           {action, elevator} =
@@ -106,17 +113,16 @@ defmodule ElevatorPoller do
 
           case action do
             :start_timer ->
-              IO.puts("starting timer")
+              # IO.puts("starting timer")
               Timer.timer_start(@stop_duration_ms)
 
             :open_door ->
-              IO.puts("opening door!")
+              # IO.puts("opening door!")
               Driver.set_door_open_light(:on)
               Timer.timer_start(@stop_duration_ms)
 
             :move_elevator ->
-              IO.puts("setting motor direction")
-              IO.inspect(elevator.direction)
+              # IO.puts("setting motor direction")
               elevator.direction |> Driver.set_motor_direction()
 
             nil ->
