@@ -61,7 +61,7 @@ defmodule NodeConnector do
   end
 
   def handle_call(:get_all, _from, state) do
-    IO.puts("getting all nodes")
+    # IO.puts("getting all nodes")
     {:reply, state.nodes, state}
   end
 
