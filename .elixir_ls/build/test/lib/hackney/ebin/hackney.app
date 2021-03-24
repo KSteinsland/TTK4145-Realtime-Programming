@@ -1,6 +1,10 @@
 {application,hackney,
              [{description,"simple HTTP client"},
+<<<<<<< Updated upstream
               {vsn,"1.17.1"},
+=======
+              {vsn,"1.17.4"},
+>>>>>>> Stashed changes
               {registered,[hackney_pool]},
               {applications,[kernel,stdlib,crypto,asn1,public_key,ssl,idna,
                              mimerl,certifi,parse_trans,ssl_verify_fun,

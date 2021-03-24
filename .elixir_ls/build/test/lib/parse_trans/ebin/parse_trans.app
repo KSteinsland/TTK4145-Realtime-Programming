@@ -1,6 +1,10 @@
 {application,parse_trans,
              [{description,"Parse transform library"},
+<<<<<<< Updated upstream
               {vsn,"3.4.0"},
+=======
+              {vsn,"3.3.1"},
+>>>>>>> Stashed changes
               {registered,[]},
               {applications,[kernel,stdlib,syntax_tools]},
               {env,[]},
