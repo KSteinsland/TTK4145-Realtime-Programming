@@ -10,7 +10,12 @@ defmodule ElevatorProject.MixProject do
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [coveralls: :test, test_unit: :test, test_integration: :test]
+      preferred_cli_env: [
+        coveralls: :test,
+        test_unit: :test,
+        test_integration: :test,
+        test_distributed: :test
+      ]
     ]
   end
 
@@ -25,7 +30,8 @@ defmodule ElevatorProject.MixProject do
   defp aliases do
     [
       test_unit: "test --no-start",
-      test_integration: "test --no-start --include external:true"
+      test_integration: "test --no-start --only external:true",
+      test_distributed: "test --no-start --only external:true --only distributed:true"
     ]
   end
 

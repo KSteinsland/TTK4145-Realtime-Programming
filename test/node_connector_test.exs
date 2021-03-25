@@ -15,10 +15,10 @@ end
 
 defmodule NodeConnectorTest do
   use ExUnit.Case, async: false
+  @moduletag :distributed
   doctest NodeConnector
 
   setup do
-    System.cmd("epmd", ["-daemon"])
     port = 33333
 
     case NodeConnector.start_link([port, "test_udp"]) do
@@ -30,14 +30,46 @@ defmodule NodeConnectorTest do
     end
   end
 
-  test "starts the server" do
-    assert NodeConnector.get_all() == %{}
+  # We have to do this in one big test, as tests are done in random order!
+  # TODO this test needs fixing!
+  test "Check NodeConnector" do
+    # Check local role
+    Process.sleep(5_000)
+    assert NodeConnector.get_role() == :master
+
+    # Check for other nodes
+    Process.sleep(5_000)
+    # IO.inspect(NodeConnector.get_state())
+    assert length(Map.keys(NodeConnector.get_all_slaves())) ==
+             Application.fetch_env!(:elevator_project, :local_nodes) - 1
+
+    # Check that the slaves are behaving properly
+    Node.list()
+    |> Enum.map(fn node ->
+      assert Cluster.rpc(node, NodeConnector, :get_role, []) == :slave
+      state = Cluster.rpc(node, NodeConnector, :get_state, [])
+      assert state.master == Node.self()
+    end)
+
+    # Check that someone takes over when we die
+    Process.whereis(NodeConnector) |> Process.exit(:kill)
+    Process.sleep(5_000)
+    assert NodeConnector.get_role() == :slave
+
+    assert Node.list()
+           |> Enum.any?(fn node ->
+             Cluster.rpc(node, NodeConnector, :get_role, []) == :master
+           end)
   end
 
-  # test "check for other nodes", %{pid: _pid} do
-  #   Process.sleep(2500)
-  #   #IO.inspect NodeConnector.get_all()
-  #   IO.inspect(Node.list)
-  #   assert True
+  # test "kill slave" do
+  #   node = Enum.at(Node.list(),0)
+  #   Cluster.rpc(node, ElevatorProject.Application, :kill, [])
+  #   Process.sleep(10_000)
+  # end
+
+  # test "going down" do
+  #   Node.stop
+  #   Process.sleep(10_000)
   # end
 end
