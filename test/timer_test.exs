@@ -3,7 +3,6 @@ defmodule TimerTest do
   doctest Timer
 
   setup do
-
     case Timer.start_link([]) do
       {:ok, _pid} ->
         :ok
@@ -11,7 +10,6 @@ defmodule TimerTest do
       {:error, {:already_started, _}} ->
         :ok
     end
-
   end
 
   test "timer" do
