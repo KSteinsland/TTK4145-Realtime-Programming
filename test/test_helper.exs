@@ -47,6 +47,8 @@ end
 
 # check if we want to run distributed tests
 if conf[:include][:distributed] == "true" do
+  System.cmd("epmd", ["-daemon"])
+
   create_cluster = fn num ->
     # primary is 0
     Enum.map(1..(num - 1), fn num ->

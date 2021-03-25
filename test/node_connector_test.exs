@@ -19,7 +19,6 @@ defmodule NodeConnectorTest do
   doctest NodeConnector
 
   setup do
-    System.cmd("epmd", ["-daemon"])
     port = 33333
 
     case NodeConnector.start_link([port, "test_udp"]) do
