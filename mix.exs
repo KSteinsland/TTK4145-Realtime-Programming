@@ -30,8 +30,8 @@ defmodule ElevatorProject.MixProject do
   defp aliases do
     [
       test_unit: "test --no-start",
-      test_integration: "test --no-start --include external:true",
-      test_distributed: "test --no-start --include external:true --include distributed:true"
+      test_integration: "test --no-start --only external:true",
+      test_distributed: "test --no-start --only external:true --only distributed:true"
     ]
   end
 

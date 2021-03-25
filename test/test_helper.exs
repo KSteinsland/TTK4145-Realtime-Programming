@@ -26,7 +26,7 @@ num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
 
 # check if we want to run integration tests
 if conf[:include][:external] == "true" do
-  IO.puts("Running unit tests and integration tests")
+  IO.puts("Running integration tests")
 
   case :os.type() do
     {:unix, :linux} ->
@@ -47,6 +47,7 @@ end
 
 # check if we want to run distributed tests
 if conf[:include][:distributed] == "true" do
+  IO.puts("Running distributed tests")
   System.cmd("epmd", ["-daemon"])
 
   create_cluster = fn num ->
