@@ -39,6 +39,6 @@ jobs:
     - name: Run tests
       run: mix test_integration
     - name: Run tests with cover
-      run: mix coveralls.github
+      run: mix coveralls.github --no-start
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
