@@ -36,8 +36,12 @@ jobs:
 
     - name: Check formatting
       run: mix format --check-formatted
-    - name: Run tests
+    - name: Run unit tests
+      run: mix test_unit
+    - name: Run integration tests
       run: mix test_integration
+    - name: Run distributed tests
+      run: mix test_distributed
     - name: Run tests with cover
       run: mix coveralls.github
       env:

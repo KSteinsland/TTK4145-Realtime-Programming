@@ -54,7 +54,7 @@ defmodule NodeConnectorTest do
 
     # Check that someone takes over when we die
     Process.whereis(NodeConnector) |> Process.exit(:kill)
-    Process.sleep(10_000)
+    Process.sleep(5_000)
     assert NodeConnector.get_role() == :slave
 
     assert Node.list()
