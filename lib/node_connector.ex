@@ -5,7 +5,7 @@ defmodule NodeConnector do
   use GenServer
 
   @broadcast_ip {255, 255, 255, 255}
-  @port_range Application.fetch_env!(:elevator_project, :port_range)
+  @port_range Application.fetch_env!(:elevator_project, :local_nodes)
   @sleep_time 500
   @timeout_time 6000
 
@@ -105,7 +105,7 @@ defmodule NodeConnector do
 
       {:error, :eaddrinuse} ->
         if port < max_port do
-          IO.puts("trying port #{port}")
+          # IO.puts("trying port #{port}")
           try_create_socket(port + 1, max_port)
         else
           {:error, :port_out_of_range}
@@ -184,9 +184,7 @@ defmodule NodeConnector do
       master =
         if state.master == nil do
           IO.puts("Found master #{full_name}!")
-
           master = String.to_atom(full_name)
-          IO.inspect(master)
           Node.monitor(master, true)
           Node.connect(master)
           send({__MODULE__, master}, {:slave_connected, Node.self()})

@@ -18,11 +18,13 @@ floors = Application.fetch_env!(:elevator_project, :num_floors)
 # Supervisor.terminate_child(ElevatorProject.Supervisor, Driver)
 
 # Exclude all external tests from running
-ExUnit.configure(exclude: [external: true])
+ExUnit.configure(exclude: [external: true, distributed: true])
 
-# check if we want to run integration test
 conf = ExUnit.configuration()
 
+num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
+
+# check if we want to run integration tests
 if conf[:include][:external] == "true" do
   IO.puts("Running unit tests and integration tests")
 
@@ -33,7 +35,7 @@ if conf[:include][:external] == "true" do
 
     {:unix, :darwin} ->
       IO.puts("Starting mac sim")
-      Simulator.start_simulator("sim/mac/SimElevatorServer", port, floors, 2)
+      Simulator.start_simulator("sim/mac/SimElevatorServer", port, floors, num_local_nodes)
 
     _ ->
       IO.puts("You need to start the simulator yourself!")
@@ -43,5 +45,18 @@ else
   IO.puts("Running unit tests")
 end
 
-# TODO implement this somehow...
-# Cluster.spawn([:"node1@127.0.0.1", :"node2@127.0.0.1"])
+# check if we want to run distributed tests
+if conf[:include][:distributed] == "true" do
+  create_cluster = fn num ->
+    # primary is 0
+    Enum.map(1..(num - 1), fn num ->
+      String.to_atom("node" <> to_string(num) <> "@127.0.0.1")
+    end)
+  end
+
+  # This is bad and needs fixing!
+  ElevatorProject.Application.start(nil, nil)
+  Process.sleep(1_000)
+  Cluster.spawn(create_cluster.(num_local_nodes))
+  IO.puts("Started cluster")
+end

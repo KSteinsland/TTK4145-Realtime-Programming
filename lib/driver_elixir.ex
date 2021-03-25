@@ -4,7 +4,8 @@ defmodule Driver do
   @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}
   @state_map %{:on => 1, :off => 0}
   @direction_map %{:dir_up => 1, :dir_down => 255, :dir_stop => 0}
-  @port_range Application.fetch_env!(:elevator_project, :port_range)
+  # dev
+  @port_range Application.fetch_env!(:elevator_project, :local_nodes)
 
   def start_link([]) do
     start_link([{127, 0, 0, 1}, 15657])
@@ -30,11 +31,12 @@ defmodule Driver do
   defp try_create_socket(address, port, max_port) do
     case :gen_tcp.connect(address, port, [{:active, false}], 1000) do
       {:ok, socket} ->
+        # IO.puts("connected to port #{port}")
         {:ok, socket}
 
       {:error, _} ->
         if port < max_port do
-          IO.puts("trying port #{port}")
+          # IO.puts("trying port #{port}")
           try_create_socket(address, port + 1, max_port)
         else
           {:error, :port_out_of_range}

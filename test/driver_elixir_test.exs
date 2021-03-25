@@ -16,7 +16,16 @@ defmodule DriverTest do
   setup_all do
     port = Application.fetch_env!(:elevator_project, :port_driver)
     floors = Application.fetch_env!(:elevator_project, :num_floors)
-    {:ok, pid} = Driver.start_link([{127, 0, 0, 1}, port])
+
+    pid =
+      case Driver.start_link([{127, 0, 0, 1}, port]) do
+        {:ok, pid} ->
+          pid
+
+        {:error, {:already_started, pid}} ->
+          pid
+      end
+
     %{pid: pid, floors: floors}
   end
 
