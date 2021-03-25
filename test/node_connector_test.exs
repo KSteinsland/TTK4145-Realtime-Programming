@@ -58,9 +58,9 @@ defmodule NodeConnectorTest do
     assert NodeConnector.get_role() == :slave
 
     assert Node.list()
-    |> Enum.any?(fn node ->
-      Cluster.rpc(node, NodeConnector, :get_role, []) == :master
-    end)
+           |> Enum.any?(fn node ->
+             Cluster.rpc(node, NodeConnector, :get_role, []) == :master
+           end)
   end
 
   # test "kill slave" do
