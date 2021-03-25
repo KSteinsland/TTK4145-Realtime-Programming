@@ -40,8 +40,6 @@ jobs:
       run: mix test_unit
     - name: Run integration tests
       run: mix test_integration
-    - name: Run distributed tests
-      run: mix test_distributed
     - name: Run tests with cover
       run: mix coveralls.github --no-start
       env:
