@@ -1,4 +1,7 @@
 defmodule FSM do
+  @hall_btn_map Application.compile_env(:elevator_project, :button_map)
+  @hall_btn_types Map.keys(@hall_btn_map)
+
   # def on_init_between_floors(%Elevator{} = elevator) do
   #   {:dir_down, %Elevator{elevator |
   #   direction: :dir_down,
@@ -15,36 +18,52 @@ defmodule FSM do
         if(elevator.floor == btn_floor) do
           {:start_timer, elevator}
         else
-          {nil,
-           %Elevator{
-             elevator
-             | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-           }}
+          new_elevator = %Elevator{
+            elevator
+            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+          }
+
+          if(btn_type in @hall_btn_types) do
+            {:update_hall_requests, new_elevator}
+          else
+            {nil, new_elevator}
+          end
         end
 
       :be_moving ->
-        {nil,
-         %Elevator{
-           elevator
-           | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-         }}
+        new_elevator = %Elevator{
+          elevator
+          | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+        }
+
+        if(btn_type in @hall_btn_types) do
+          {:update_hall_requests, new_elevator}
+        else
+          {nil, new_elevator}
+        end
 
       :be_idle ->
         if(elevator.floor == btn_floor) do
           {:open_door, %Elevator{elevator | behaviour: :be_door_open}}
         else
-          elevator = %Elevator{
+          new_elevator = %Elevator{
             elevator
             | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
           }
 
-          elevator = %Elevator{
-            elevator
-            | direction: elevator |> Requests.choose_direction(),
-              behaviour: :be_moving
-          }
+          # TODO add this back once we have implemented state distribution!
+          if false do
+            # if(btn_type in @hall_btn_types) do
+            {:update_hall_requests, new_elevator}
+          else
+            new_elevator = %Elevator{
+              new_elevator
+              | direction: new_elevator |> Requests.choose_direction(),
+                behaviour: :be_moving
+            }
 
-          {:move_elevator, elevator}
+            {:move_elevator, new_elevator}
+          end
         end
 
       _ ->
@@ -59,7 +78,7 @@ defmodule FSM do
       :be_moving ->
         if(Requests.should_stop?(elevator)) do
           elevator = elevator |> Requests.clear_at_current_floor()
-          {:should_stop, %Elevator{elevator | behaviour: :be_door_open}}
+          {:stop, %Elevator{elevator | behaviour: :be_door_open}}
         else
           {nil, elevator}
         end

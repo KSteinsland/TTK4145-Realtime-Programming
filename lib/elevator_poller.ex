@@ -6,6 +6,8 @@ defmodule ElevatorPoller do
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @hall_btn_map Application.compile_env(:elevator_project, :button_map)
+  @hall_btn_types Map.keys(@hall_btn_map)
 
   @input_poll_rate_ms 25
   @door_open_duration_ms 3_000
@@ -39,18 +41,21 @@ defmodule ElevatorPoller do
   def handle_info(:loop_poller, state) do
     {prev_floor, prev_req_list} = state
 
+    # we do not need prev_req_list as a part of the state
     prev_req_list = check_requests(prev_req_list)
 
     f = Driver.get_floor_sensor_state()
 
     if f != :between_floors && f != prev_floor do
       IO.puts("Arrived at floor!")
-      {action, new_state} = FSM.on_floor_arrival(ES.get_state(), f)
+      state = ES.get_state()
+      {action, new_state} = FSM.on_floor_arrival(state, f)
 
       Driver.set_floor_indicator(new_state.floor)
 
       case action do
-        :should_stop ->
+        :stop ->
+          set_all_hall_requests(new_state.requests, state.requests, new_state.floor)
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
           Timer.timer_start(@door_open_duration_ms)
@@ -118,6 +123,12 @@ defmodule ElevatorPoller do
               IO.puts("setting motor direction")
               IO.inspect(elevator.direction)
               elevator.direction |> Driver.set_motor_direction()
+              # move elevator should only trigger on cab requests once we have state distribution fixed!
+              ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
+
+            :update_hall_requests ->
+              IO.puts("New hall request!")
+              ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
 
             nil ->
               :ok
@@ -143,4 +154,26 @@ defmodule ElevatorPoller do
       end)
     end)
   end
+
+
+  # defp hall_request_at_current_floor?(floor_ind, requests) do
+  #   requests
+  #   |> Enum.at(floor_ind)
+  #   |> Enum.any?(fn req -> req in @hall_btn_types end)
+  # end
+
+  defp set_all_hall_requests(req_list, prev_req_list, floor_ind) do
+
+    # Sets all hall requests which are executed in system state
+
+    Enum.zip(Enum.at(req_list, floor_ind), Enum.at(prev_req_list, floor_ind))
+    |> Enum.with_index()
+    |> Enum.map(fn {{btn, btn_old}, btn_ind} ->
+      btn_type = Enum.at(@btn_types, btn_ind)
+      if btn != btn_old and btn_type in @hall_btn_types do
+        ES.finished_hall_request(floor_ind, btn_type)
+      end
+    end)
+  end
+
 end

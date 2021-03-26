@@ -1,6 +1,28 @@
 defmodule StateServer do
   use GenServer
 
+  defmodule HallRequests do
+    @moduledoc """
+      Hall Requests
+    """
+
+    @num_floors Application.fetch_env!(:elevator_project, :num_floors)
+    # up down
+    @num_hall_req_types 2
+
+    new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
+
+    defstruct hall_orders: new_hall_orders
+  end
+
+  defmodule SystemState do
+    @moduledoc """
+      system state.
+    """
+
+    defstruct hall_requests: %HallRequests{}, elevators: %{}
+  end
+
   def init(_opts) do
     {:ok, %SystemState{}}
   end

@@ -7,6 +7,7 @@ config :elevator_project,
   behaviours: [:be_idle, :be_door_open, :be_moving],
   button_types: [:btn_hall_up, :btn_hall_down, :btn_cab],
   button_map: %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2},
+  hall_btn_map: %{:btn_hall_up => 0, :btn_hall_down => 1},
   port_range: 10
 
 # import_config "#{config_env()}.exs"
