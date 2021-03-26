@@ -8,15 +8,26 @@ defmodule Elevator do
   @directions Application.fetch_env!(:elevator_project, :directions)
   @behaviours Application.fetch_env!(:elevator_project, :behaviours)
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @btn_values [0, 1]
 
   req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
+  @type directions :: :dir_up | :dir_down | :dir_stop
+  @type btn_types :: :btn_hall_up | :btn_hall_down | :btn_cab
+  @type behaviours :: :be_idle | :be_door_open | :be_moving
+
   defstruct floor: 0, direction: :dir_stop, requests: req_list, behaviour: :be_idle
 
-  # no need to check if keys are valid, keyerror is thrown
+  @type t :: %__MODULE__{
+          floor: pos_integer(),
+          direction: directions(),
+          requests: list(),
+          behaviour: behaviours()
+        }
 
-  def new(%__MODULE__{} = elevator \\ %__MODULE__{}, map \\ %{}) do
-    elevator = struct(elevator, map)
+  def new(%__MODULE__{} = elevator \\ %__MODULE__{}) do
+    # elevator = struct(elevator, map)
 
     with {:ok, _floor} <- parse_floor(elevator.floor),
          {:ok, _direction} <- parse_direction(elevator.direction),
@@ -27,8 +38,6 @@ defmodule Elevator do
       err -> err
     end
   end
-
-  # could be nice to have set functions which uses guards...
 
   # guards-------------------------------------
   defp parse_floor(nil), do: {:error, "floor is required"}
@@ -52,13 +61,11 @@ defmodule Elevator do
   defp parse_requests(requests)
        when is_list(requests) and length(requests) == @num_floors and
               length(hd(requests)) == @num_buttons do
-    # TODO make this a config maybe?
-    valid_buttons = [0, 1]
-
+    # Checking if all requests are in the valid buttons set
     valid_requests? =
       Enum.concat(requests)
       |> Enum.all?(fn btn ->
-        btn in valid_buttons
+        btn in @btn_values
       end)
 
     if valid_requests? do
@@ -79,13 +86,15 @@ defmodule Elevator do
   defp parse_behaviour(_invalid), do: {:error, "behaviour must be a valid atom"}
 
   # util----------------------------------------
-  def update_requests(req, floor, btn_type, value) do
-    # TODO make this a config maybe?
-    # valid_buttons = [0, 1]
-    # also check floor and btn_type beforehand!
-
+  def update_requests(req, floor, btn_type, value)
+      when is_integer(floor) and floor >= 0 and btn_type in @btn_types and is_list(req) and
+             value in @btn_values do
     {req_at_floor, _list} = List.pop_at(req, floor)
     updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
     List.replace_at(req, floor, updated_req_at_floor)
+  end
+
+  def update_requests(_req, _floor, _btn_type, _value) do
+    {:error, "value is not valid"}
   end
 end

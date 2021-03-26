@@ -12,7 +12,7 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       StateServer,
       Timer,
-      {Driver, [{127, 0, 0, 1}, 17777]},
+      {Driver, [{127, 0, 0, 1}, Application.fetch_env!(:elevator_project, :port_driver)]},
       ElevatorPoller,
       {NodeConnector, [33333, Random.gen_rand_str(5)]},
       Network
@@ -23,4 +23,9 @@ defmodule ElevatorProject.Application do
     opts = [strategy: :one_for_one, name: ElevatorProject.Supervisor]
     Supervisor.start_link(children, opts)
   end
+
+  # dev
+  # def kill() do
+  #   Process.exit(self(), :kill)
+  # end
 end

@@ -1,33 +1,47 @@
 defmodule Cluster do
   def spawn(nodes) do
     # Turn node into a distributed node with the given long name
-    :net_kernel.start([:"primary@127.0.0.1"])
+
+    main_node =
+      if Node.self() == :nonode@nohost do
+        Node.start(:"primary@127.0.0.1")
+        :"primary@127.0.0.1"
+      else
+        Node.self()
+      end
+
+    :net_kernel.start([main_node])
+
+    {:ok, ip_tup} = Network.Util.get_local_ip()
+    ip = :inet.ntoa(ip_tup)
 
     # Allow spawned nodes to fetch all code from this node
     :erl_boot_server.start([])
-    allow_boot(to_charlist("127.0.0.1"))
+    allow_boot(to_charlist(ip))
 
     nodes
-    |> Enum.map(&Task.async(fn -> spawn_node(&1) end))
+    |> Enum.with_index()
+    |> Enum.map(&Task.async(fn -> spawn_node(&1, ip) end))
     |> Enum.map(&Task.await(&1, 30_000))
   end
 
-  defp spawn_node(node_host) do
-    {:ok, node} = :slave.start(to_charlist("127.0.0.1"), node_name(node_host), inet_loader_args())
+  defp spawn_node({node_host, ind}, ip) do
+    {:ok, node} = :slave.start(to_charlist(ip), node_name(node_host), inet_loader_args(ip))
+    Process.sleep(100)
     add_code_paths(node)
-    transfer_configuration(node)
+    transfer_configuration(node, ind)
     ensure_applications_started(node)
     # start_pubsub(node)
     # rpc lets you start function at remote node!
     {:ok, node}
   end
 
-  defp rpc(node, module, function, args) do
+  def rpc(node, module, function, args) do
     :rpc.block_call(node, module, function, args)
   end
 
-  defp inet_loader_args do
-    to_charlist("-loader inet -hosts 127.0.0.1 -setcookie #{:erlang.get_cookie()}")
+  defp inet_loader_args(ip) do
+    to_charlist("-loader inet -hosts #{ip} -setcookie #{:erlang.get_cookie()}")
   end
 
   defp allow_boot(host) do
@@ -39,11 +53,17 @@ defmodule Cluster do
     rpc(node, :code, :add_paths, [:code.get_path()])
   end
 
-  defp transfer_configuration(node) do
+  defp transfer_configuration(node, ind) do
     for {app_name, _, _} <- Application.loaded_applications() do
+      # IO.inspect(app_name)
       for {key, val} <- Application.get_all_env(app_name) do
-        # IO.inspect(key)
-        # IO.inspect(val)
+        val = if key == :port_driver, do: val + 1 + ind
+
+        if val != nil do
+          # IO.inspect(key)
+          # IO.inspect(val)
+        end
+
         rpc(node, Application, :put_env, [app_name, key, val])
       end
     end

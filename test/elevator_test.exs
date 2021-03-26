@@ -2,39 +2,61 @@ defmodule ElevatorTest do
   use ExUnit.Case
   doctest Elevator
 
-  # TODO fix tests...
-
-  setup do
-    :ok
-  end
-
   test "floor" do
-    el = Elevator.new()
-    # assert Elevator.set_floor(2) == :ok
-    # assert Elevator.get_floor() == 2
+    el = %Elevator{floor: 0}
+    assert Elevator.new(el) == el
+
+    el = %Elevator{floor: -2}
+    new_el = Elevator.new(el)
+    assert :error == Enum.at(Tuple.to_list(new_el), 0)
+
+    el = %Elevator{floor: 1000}
+    new_el = Elevator.new(el)
+    assert :error == Enum.at(Tuple.to_list(new_el), 0)
   end
 
   test "direction" do
-    # assert Elevator.set_direction(:dir_up) == :ok
-    # assert Elevator.get_direction() == :dir_up
+    el = %Elevator{direction: :dir_stop}
+    assert Elevator.new(el) == el
+
+    el = %Elevator{direction: 42}
+    new_el = Elevator.new(el)
+    assert :error == Enum.at(Tuple.to_list(new_el), 0)
+
+    el = %Elevator{direction: "test"}
+    new_el = Elevator.new(el)
+    assert :error == Enum.at(Tuple.to_list(new_el), 0)
   end
 
   test "requests" do
-    # assert Elevator.get_requests() == [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
-    # assert Elevator.set_request(1, :btn_hall_down) == :ok
-    # assert Elevator.get_requests() == [[0, 0, 0], [0, 1, 0], [0, 0, 0], [0, 0, 0]]
-    # assert Elevator.clear_request(1, :btn_hall_down) == :ok
-    # assert Elevator.get_requests() == [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    el = %Elevator{}
+    reqs = el.requests
 
-    # assert Elevator.set_request(0, :btn_hall_up) == :ok
-    # assert Elevator.set_request(1, :btn_hall_up) == :ok
-    # assert Elevator.set_request(1, :btn_hall_down) == :ok
-    # assert Elevator.clear_all_requests_at_floor(1) == :ok
-    # assert Elevator.get_requests() == [[1, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    new_reqs = Elevator.update_requests(reqs, 2, :btn_cab, 1)
+    new_el = %Elevator{el | requests: new_reqs}
+    assert Elevator.new(new_el) == new_el
+
+    new_reqs = Elevator.update_requests(reqs, -2, :btn_cab, 1)
+    assert :error == Enum.at(Tuple.to_list(new_reqs), 0)
+
+    new_reqs = Elevator.update_requests(reqs, 0, :btn_cab, -1)
+    assert :error == Enum.at(Tuple.to_list(new_reqs), 0)
+
+    new_reqs = Elevator.update_requests(reqs, 0, :btn_wrong, 1)
+    assert :error == Enum.at(Tuple.to_list(new_reqs), 0)
   end
 
   test "behaviour" do
-    # assert Elevator.set_behaviour(:be_idle) == :ok
-    # assert Elevator.get_behaviour() == :be_idle
+    el = %Elevator{behaviour: :be_idle}
+    new_el = Elevator.new(el)
+    assert new_el == el
+
+    el = %Elevator{behaviour: 42}
+    new_el = Elevator.new(el)
+    assert :error == Enum.at(Tuple.to_list(new_el), 0)
+
+    el = %Elevator{behaviour: "test"}
+    new_el = Elevator.new(el)
+    assert :error == Enum.at(Tuple.to_list(new_el), 0)
   end
 end
