@@ -1,4 +1,4 @@
-defmodule Elevator.StateServer do
+defmodule StateServer do
   use GenServer
 
   def init(_opts) do
@@ -26,12 +26,19 @@ defmodule Elevator.StateServer do
   end
 
   def handle_call({:set_state, new_state}, _from, state) do
-    case Elevator.new(new_state.elevators[:el1]) do #TODO make general
-      {:error, msg} ->
-        {:reply, {:error, msg}, state}
+    # Checks that all elevator states are valid before accecpting the new state
+    # Could use some fixing
+    valid =
+      new_state.elevators
+      |> Map.values()
+      |> Enum.all?(fn elevator ->
+        elevator == Elevator.new(elevator)
+      end)
 
-      _ ->
-        {:reply, :ok, new_state}
+    if valid do
+      {:reply, :ok, new_state}
+    else
+      {:reply, :error, state}
     end
   end
 end
