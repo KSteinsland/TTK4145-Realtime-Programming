@@ -8,7 +8,7 @@ defmodule Elevator do
   @directions Application.fetch_env!(:elevator_project, :directions)
   @behaviours Application.fetch_env!(:elevator_project, :behaviours)
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
-  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @btn_types Map.keys(@btn_types_map)
   @btn_values [0, 1]
 
   req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)

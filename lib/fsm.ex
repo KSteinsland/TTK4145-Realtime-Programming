@@ -3,7 +3,7 @@ defmodule FSM do
   `FSM` is a pure module implementing the logic of an elevator as a finite state machine.
   """
 
-  @hall_btn_map Application.compile_env(:elevator_project, :button_map)
+  @hall_btn_map Application.compile_env(:elevator_project, :hall_button_map)
   @hall_btn_types Map.keys(@hall_btn_map)
 
   # def on_init_between_floors(%Elevator{} = elevator) do

@@ -9,8 +9,8 @@ defmodule ElevatorPoller do
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-  @btn_types Application.fetch_env!(:elevator_project, :button_types)
-  @hall_btn_map Application.compile_env(:elevator_project, :button_map)
+  @btn_types Map.keys(Application.fetch_env!(:elevator_project, :button_map))
+  @hall_btn_map Application.compile_env(:elevator_project, :hall_button_map)
   @hall_btn_types Map.keys(@hall_btn_map)
 
   @input_poll_rate_ms 25

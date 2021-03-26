@@ -3,10 +3,7 @@ defmodule StateInterface do
     Operates on the local elevator state
   """
 
-  @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-  @hall_btn_map Application.compile_env(:elevator_project, :button_map)
-  @hall_btn_types Map.keys(@hall_btn_map)
+  @hall_btn_map Application.compile_env(:elevator_project, :hall_button_map)
   @valid_hall_request_states [:new, :done]
 
   alias StateServer, as: SS

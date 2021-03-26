@@ -5,8 +5,6 @@ defmodule Requests do
 
   @button_map Application.fetch_env!(:elevator_project, :button_map)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-  @hall_btn_map Application.compile_env(:elevator_project, :button_map)
-  @hall_btn_types Map.keys(@hall_btn_map)
 
   @doc """
   Returns bool ':true' if there is a request above current floor. 'false' if not.
