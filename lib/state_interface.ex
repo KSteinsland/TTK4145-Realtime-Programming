@@ -78,7 +78,7 @@ defmodule StateInterface do
     end
   end
 
-  defp update_hall_requests(req , floor, btn_type, state) do
+  defp update_hall_requests(req, floor, btn_type, state) do
     # TODO make this a config maybe?
     # valid_buttons = [0, 1]
     # also check floor and btn_type beforehand!

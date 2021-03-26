@@ -38,7 +38,7 @@ defmodule FSMTest do
     new_floor = 0
     {action, elevator} = FSM.on_floor_arrival(elevator, new_floor)
 
-    assert {action, elevator} == {:should_stop, %Elevator{elevator | floor: new_floor}}
+    assert {action, elevator} == {:stop, %Elevator{elevator | floor: new_floor}}
     assert elevator.behaviour == :be_door_open
 
     elevator = %Elevator{

@@ -84,5 +84,4 @@ defmodule Requests do
     req = List.replace_at(elevator.requests, elevator.floor, b_req)
     %Elevator{elevator | requests: req}
   end
-
 end

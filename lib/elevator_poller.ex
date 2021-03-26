@@ -41,7 +41,6 @@ defmodule ElevatorPoller do
   def handle_info(:loop_poller, state) do
     {prev_floor, prev_req_list} = state
 
-    # we do not need prev_req_list as a part of the state
     prev_req_list = check_requests(prev_req_list)
 
     f = Driver.get_floor_sensor_state()
@@ -123,6 +122,7 @@ defmodule ElevatorPoller do
               IO.puts("setting motor direction")
               IO.inspect(elevator.direction)
               elevator.direction |> Driver.set_motor_direction()
+
               # move elevator should only trigger on cab requests once we have state distribution fixed!
               ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
 
@@ -155,7 +155,6 @@ defmodule ElevatorPoller do
     end)
   end
 
-
   # defp hall_request_at_current_floor?(floor_ind, requests) do
   #   requests
   #   |> Enum.at(floor_ind)
@@ -163,17 +162,16 @@ defmodule ElevatorPoller do
   # end
 
   defp set_all_hall_requests(req_list, prev_req_list, floor_ind) do
-
     # Sets all hall requests which are executed in system state
 
     Enum.zip(Enum.at(req_list, floor_ind), Enum.at(prev_req_list, floor_ind))
     |> Enum.with_index()
     |> Enum.map(fn {{btn, btn_old}, btn_ind} ->
       btn_type = Enum.at(@btn_types, btn_ind)
+
       if btn != btn_old and btn_type in @hall_btn_types do
         ES.finished_hall_request(floor_ind, btn_type)
       end
     end)
   end
-
 end
