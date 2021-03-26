@@ -77,7 +77,6 @@ defmodule FSMTest do
 
     new_floor = 0
 
-
     {action, new_elevator} = FSM.on_floor_arrival(elevator, new_floor)
 
     assert action == :stop

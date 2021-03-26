@@ -14,5 +14,4 @@ config :elevator_project,
   local_nodes: 3,
   port_driver: 17777
 
-
 # import_config "#{config_env()}.exs"
