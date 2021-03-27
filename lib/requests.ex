@@ -1,6 +1,6 @@
 defmodule Requests do
   @moduledoc """
-  Pure functions that operate on elevator struct 
+  Pure functions that operate on elevator struct
   """
 
   @button_map Application.fetch_env!(:elevator_project, :button_map)
@@ -24,7 +24,7 @@ defmodule Requests do
 
   @doc """
   Returns direction ':dir_up', ':dir_down' or ':dir_stop' based on current
-  traveling direction and whether or not there are orders above or below. 
+  traveling direction and whether or not there are orders above or below.
   Will continue in same direction when possible.
   """
   def choose_direction(%Elevator{} = elevator) do
@@ -49,9 +49,9 @@ defmodule Requests do
   end
 
   @doc """
-  Returns bool ':true' or ':false' on wheter the elevator should stop. 
-  Stops if there is an hall order that matches direction, a cab order or no more 
-  orders in direction of travel. 
+  Returns bool ':true' or ':false' on wheter the elevator should stop.
+  Stops if there is an hall order that matches direction, a cab order or no more
+  orders in direction of travel.
   """
   def should_stop?(%Elevator{} = elevator) do
     req = elevator.requests
@@ -74,8 +74,8 @@ defmodule Requests do
   end
 
   @doc """
-  Returns a new elevator struct with a orders at current floor set to zero. 
-  Uses the clear all variant of order behaviour. 
+  Returns a new elevator struct with a orders at current floor set to zero.
+  Uses the clear all variant of order behaviour.
   """
   def clear_at_current_floor(%Elevator{} = elevator) do
     b_req = List.duplicate(0, @num_buttons)
