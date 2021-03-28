@@ -28,7 +28,7 @@ if config_env() == :test do
     door_open_duration_ms: 750,
     sim_opts: [
       travelTimeBetweenFloors_ms: 500,
-      travelTimePassingFloor_ms: 125,
+      travelTimePassingFloor_ms: 250,
       btnDepressedTime_ms: 40
     ]
   )
