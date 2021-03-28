@@ -14,11 +14,12 @@ defmodule FSM do
 
   # TODO use Elevator.new function to check for errors!
 
-  @spec on_request_button_press(Elevator.t(), pos_integer(), Elevator.btn_types()) ::
+  @spec on_request_button_press(Elevator.t(), any, any) ::
           {:move_elevator, Elevator.t()}
           | {nil, Elevator.t()}
           | {:open_door, Elevator.t()}
           | {:start_timer, Elevator.t()}
+          | {:update_hall_requests, Elevator.t()}
   @doc """
   Logic returning the required action to be done when a button is pressed
   and a new `Elevator` state.

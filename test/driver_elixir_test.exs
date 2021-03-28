@@ -1,7 +1,7 @@
 defmodule DriverTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
   @moduletag :external
-  doctest Driver, async: false
+  doctest Driver
 
   defp wait_for_floor(state) do
     case Driver.get_floor_sensor_state() do
@@ -43,9 +43,16 @@ defmodule DriverTest do
   end
 
   test "testing motor", %{floors: _floors} do
-    assert Driver.set_motor_direction(:dir_down) == :ok
-    assert wait_for_floor(Driver.get_floor_sensor_state()) != :between_floors
-    assert Driver.set_motor_direction(:idle) == :ok
-    assert Driver.get_floor_sensor_state() != :between_floors
+    if Driver.get_floor_sensor_state() != 0 do
+      assert Driver.set_motor_direction(:dir_down) == :ok
+      assert wait_for_floor(Driver.get_floor_sensor_state()) != :between_floors
+      assert Driver.set_motor_direction(:idle) == :ok
+      assert Driver.get_floor_sensor_state() != :between_floors
+    else
+      assert Driver.set_motor_direction(:dir_up) == :ok
+      assert wait_for_floor(Driver.get_floor_sensor_state()) != :between_floors
+      assert Driver.set_motor_direction(:idle) == :ok
+      assert Driver.get_floor_sensor_state() != :between_floors
+    end
   end
 end

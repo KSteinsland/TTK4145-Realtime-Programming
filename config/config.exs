@@ -10,7 +10,7 @@ config :elevator_project,
   # dev
   # local nodes is primary node + # of slaves
   # when testing on a single computer
-  local_nodes: 3,
+  local_nodes: 2,
   port_driver: 17777
 
 # import_config "#{config_env()}.exs"
