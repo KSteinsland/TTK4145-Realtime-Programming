@@ -12,9 +12,8 @@ defmodule ElevatorPoller do
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
-  @input_poll_rate_ms 25
-  @door_open_duration_ms 3_000
-  @stop_duration_ms 5_000
+  @input_poll_rate_ms Application.compile_env!(:elevator_project, :input_poll_rate_ms)
+  @door_open_duration_ms Application.compile_env!(:elevator_project, :door_open_duration_ms)
 
   @doc """
   Starts to process and registers its name to `ElevatorPoller`
@@ -117,12 +116,12 @@ defmodule ElevatorPoller do
           case action do
             :start_timer ->
               # IO.puts("starting timer")
-              Timer.timer_start(@stop_duration_ms)
+              Timer.timer_start(@door_open_duration_ms)
 
             :open_door ->
               # IO.puts("opening door!")
               Driver.set_door_open_light(:on)
-              Timer.timer_start(@stop_duration_ms)
+              Timer.timer_start(@door_open_duration_ms)
 
             :move_elevator ->
               # IO.puts("setting motor direction")

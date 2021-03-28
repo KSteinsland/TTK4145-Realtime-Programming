@@ -5,6 +5,17 @@ SIM_PORT=$2
 SIM_FLOORS=$3
 NUM_SIMS=$4
 
+SIM_OPTS=""
+# shift x 4 moves out the first 4 args
+shift
+shift
+shift
+shift
+for var in $@
+do
+    SIM_OPTS=$SIM_OPTS" Space "$var
+done
+
 # Set Session Name
 SESSION="SimTest"
 SESSIONEXISTS=$(tmux list-sessions | grep $SESSION)
@@ -29,13 +40,13 @@ tmux new-session -d -s $SESSION
 
 # Name first winow and start first simulator
 tmux rename-window -t 0 'Main'
-tmux send-keys -t 'Main' $SIM_PATH ' --port ' $SIM_PORT ' --numfloors ' $SIM_FLOORS C-m
+tmux send-keys -t 'Main' $SIM_PATH ' --port ' $SIM_PORT ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
 
 # Create NUM_SIMS-1 more panes and simulators
 for ((i=1;i<$NUM_SIMS;i++))
 do
     tmux split-window -v
-    tmux send-keys -t 'Main' $SIM_PATH ' --port ' $((SIM_PORT + i)) ' --numfloors ' $SIM_FLOORS C-m
+    tmux send-keys -t 'Main' $SIM_PATH ' --port ' $((SIM_PORT + i)) ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
     tmux select-layout -t $SESSION tiled
 done
 
