@@ -24,7 +24,15 @@ defmodule StateServer do
   end
 
   def init(_opts) do
-    {:ok, %SystemState{}}
+    wait_for_node_startup()
+
+    if NodeConnector.get_master == Node.self do
+      {:ok, %SystemState{}}
+    else
+      IO.puts("Received state from master")
+      sys_state = GenServer.call({StateServer, NodeConnector.get_master}, :get_state)
+      {:ok, sys_state}
+    end
   end
 
   # client----------------------------------------
@@ -63,4 +71,12 @@ defmodule StateServer do
       {:reply, :error, state}
     end
   end
+
+  defp wait_for_node_startup() do
+    if NodeConnector.get_master == nil do
+      Process.sleep(10)
+      wait_for_node_startup()
+    end
+  end
+
 end

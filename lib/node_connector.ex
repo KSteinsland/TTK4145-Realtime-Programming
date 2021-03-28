@@ -42,6 +42,10 @@ defmodule NodeConnector do
     GenServer.call(__MODULE__, :get_role)
   end
 
+  def get_master do
+    GenServer.call(__MODULE__, :get_master)
+  end
+
   # debug
   def get_state do
     GenServer.call(__MODULE__, :get_state)
@@ -122,6 +126,11 @@ defmodule NodeConnector do
   def handle_call(:get_role, _from, state) do
     {:reply, state.role, state}
   end
+
+  def handle_call(:get_master, _from, state) do
+    {:reply, state.master, state}
+  end
+
 
   def handle_call(:get_state, _from, state) do
     {:reply, state, state}

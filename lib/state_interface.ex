@@ -49,7 +49,10 @@ defmodule StateInterface do
 
         elevators_new = Map.put(sys_state.elevators, Node.self(), elevator)
 
-        SS.set_state(%{sys_state | elevators: elevators_new})
+        #SS.set_state(%{sys_state | elevators: elevators_new})
+
+        GenServer.multi_call(SS, {:set_state, %{sys_state | elevators: elevators_new}})
+        :ok
     end
   end
 
