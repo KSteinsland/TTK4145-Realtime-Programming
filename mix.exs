@@ -15,7 +15,7 @@ defmodule ElevatorProject.MixProject do
         test_unit: :test,
         test_integration: :test,
         test_distributed: :test,
-        start_sim: :test,
+        start_sim: :test
       ]
     ]
   end

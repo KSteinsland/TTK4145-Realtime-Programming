@@ -18,7 +18,8 @@ config(:elevator_project,
   port_driver: 17777
 )
 
-if config_env() == :test do
+# config_env()
+if Mix.env() == :test do
   IO.puts("Test config loaded!")
 
   config(:elevator_project,
