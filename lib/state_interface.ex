@@ -3,7 +3,10 @@ defmodule StateInterface do
     Operates on the local elevator state
   """
 
-  @hall_btn_map Application.compile_env(:elevator_project, :hall_button_map)
+  @btn_map Application.fetch_env!(:elevator_project, :button_map)
+  @hall_btn_map Map.drop(@btn_map, [:btn_cab])
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @hall_btn_types List.delete(@btn_types, :btn_cab)
   @valid_hall_request_states [:new, :done]
 
   alias StateServer, as: SS
@@ -82,7 +85,7 @@ defmodule StateInterface do
 
     req_list = req.hall_orders
 
-    if state in @valid_hall_request_states do
+    if state in @valid_hall_request_states and btn_type in @hall_btn_types do
       {req_at_floor, _list} = List.pop_at(req_list, floor)
       updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], state)
       new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
