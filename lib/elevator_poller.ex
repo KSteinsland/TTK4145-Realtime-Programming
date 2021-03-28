@@ -9,9 +9,8 @@ defmodule ElevatorPoller do
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-  @btn_types Map.keys(Application.fetch_env!(:elevator_project, :button_map))
-  @hall_btn_map Application.compile_env(:elevator_project, :hall_button_map)
-  @hall_btn_types Map.keys(@hall_btn_map)
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   @input_poll_rate_ms 25
   @door_open_duration_ms 3_000
@@ -130,11 +129,14 @@ defmodule ElevatorPoller do
               elevator.direction |> Driver.set_motor_direction()
 
               # move elevator should only trigger on cab requests once we have state distribution fixed!
-              ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
+              # TODO remove this when state distributor is finished
+              if btn_ind < 2 do
+                ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
+              end
 
             :update_hall_requests ->
               IO.puts("New hall request!")
-              ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
+              ES.new_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind))
 
             nil ->
               :ok
