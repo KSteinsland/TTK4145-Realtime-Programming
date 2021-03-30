@@ -96,15 +96,14 @@ defmodule NodeConnector do
       full_name = name <> "@" <> to_string(addr_str)
       IO.puts("New node name: " <> full_name)
 
-
       Node.start(String.to_atom(full_name), :longnames)
       Node.set_cookie(:choc)
 
       String.to_atom(full_name)
     else
       IO.puts("Node already named: " <> to_string(Node.self()))
-      #String.split(to_string(Node.self()), "@") |> Enum.at(0)
-      Node.self
+      # String.split(to_string(Node.self()), "@") |> Enum.at(0)
+      Node.self()
     end
   end
 
@@ -132,8 +131,8 @@ defmodule NodeConnector do
   end
 
   def dev_disconnect(_node) do
-    #To simulate a network failure
-    #do this so we can stop broadcasting master hb
+    # To simulate a network failure
+    # do this so we can stop broadcasting master hb
     Node.stop()
     # Node.disconnect(node)
     set_state(%{get_state() | test_disconnected: true})
@@ -142,7 +141,6 @@ defmodule NodeConnector do
   def dev_reconnect(node) do
     GenServer.call(__MODULE__, {:dev_reconnect, node})
   end
-
 
   # calls ------------------------------------------
 
@@ -158,17 +156,15 @@ defmodule NodeConnector do
     {:reply, state.master, state}
   end
 
-
   def handle_call(:get_state, _from, state) do
     {:reply, state, state}
   end
 
-  def handle_call({:set_state, new_state}, _from, state)  do
+  def handle_call({:set_state, new_state}, _from, state) do
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:dev_reconnect, _node}, _from, state)  do
-
+  def handle_call({:dev_reconnect, _node}, _from, state) do
     # Node.connect(node)
     Node.start(state.name, :longnames)
     Node.set_cookie(:choc)
@@ -200,7 +196,6 @@ defmodule NodeConnector do
   # def handle_info(:loop_master, state) do
   def handle_info({:loop_master, start_port, end_port}, state) do
     if state.role == :master and not state.test_disconnected do
-
       :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
 
       # dev
@@ -212,6 +207,7 @@ defmodule NodeConnector do
           start_port + 1
         end
       end
+
       Process.send_after(
         self(),
         # dev
@@ -291,11 +287,12 @@ defmodule NodeConnector do
     name = node |> to_string() |> String.split("@") |> Enum.at(0)
 
     # delete master if master disconnected
-    master = if (node == state.master) do
-      nil
-    else
-      state.master
-    end
+    master =
+      if node == state.master do
+        nil
+      else
+        state.master
+      end
 
     {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, name)}}
   end

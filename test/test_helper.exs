@@ -1,10 +1,8 @@
-
 # Setup cleanup function, runs after all tests
 ExUnit.after_suite(fn _ ->
   # Stops the cluster unless someone is attached
   System.cmd("bash", ["./test/scripts/stop_cluster.sh"])
 end)
-
 
 ExUnit.start()
 
@@ -84,6 +82,12 @@ if conf[:include][:distributed] == "true" do
   ElevatorProject.Application.start(nil, nil)
   Process.sleep(5_00)
   # Cluster.spawn(create_cluster.(num_local_nodes))
-  System.cmd("bash", ["./test/scripts/start_cluster.sh", "$PWD", to_string(port+1), to_string(num_local_nodes-1)])
+  System.cmd("bash", [
+    "./test/scripts/start_cluster.sh",
+    "$PWD",
+    to_string(port + 1),
+    to_string(num_local_nodes - 1)
+  ])
+
   IO.puts("Started cluster")
 end
