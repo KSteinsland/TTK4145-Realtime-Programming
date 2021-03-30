@@ -17,9 +17,9 @@ defmodule StateInterface do
   def get_state do
     wait_for_node_startup()
 
-    if Map.has_key?(SS.get_state().elevators, Node.self()) do
+    if Map.has_key?(SS.get_state().elevators, NodeConnector.get_state.name()) do
       SS.get_state().elevators
-      |> Map.get(Node.self())
+      |> Map.get(NodeConnector.get_state.name())
     else
       set_state(%Elevator{})
 
@@ -35,7 +35,7 @@ defmodule StateInterface do
 
     # alternative to wait_for_node_startup
 
-    # if (Node.self() == :nonode@nohost) do
+    # if (NodeConnector.get_state.name() == :nonode@nohost) do
     #   IO.puts("Node is not started yet!")
     # else
     # end
@@ -47,11 +47,13 @@ defmodule StateInterface do
       ^elevator ->
         sys_state = SS.get_state()
 
-        elevators_new = Map.put(sys_state.elevators, Node.self(), elevator)
+        elevators_new = Map.put(sys_state.elevators, NodeConnector.get_state.name(), elevator)
+        sys_state = %{sys_state | elevators: elevators_new}
 
-        #SS.set_state(%{sys_state | elevators: elevators_new})
+        sys_state = %{sys_state | count: sys_state.count + 1}
+        
 
-        GenServer.multi_call(SS, {:set_state, %{sys_state | elevators: elevators_new}})
+        GenServer.multi_call(SS, {:set_state, sys_state})
         :ok
     end
   end
@@ -75,7 +77,7 @@ defmodule StateInterface do
   defp wait_for_node_startup() do
     # is this ok?
     # Ensures that we do not register :nonode@nohost in the elevator map
-    if Node.self() == :nonode@nohost do
+    if NodeConnector.get_state.name() == :nonode@nohost do
       Process.sleep(10)
       wait_for_node_startup()
     end

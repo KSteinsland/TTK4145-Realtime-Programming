@@ -20,13 +20,13 @@ defmodule StateServer do
       system state.
     """
 
-    defstruct hall_requests: %HallRequests{}, elevators: %{}
+    defstruct hall_requests: %HallRequests{}, elevators: %{}, count: 0
   end
 
   def init(_opts) do
     wait_for_node_startup()
 
-    if NodeConnector.get_master == Node.self do
+    if NodeConnector.get_master == NodeConnector.get_state.name do
       {:ok, %SystemState{}}
     else
       IO.puts("Received state from master")

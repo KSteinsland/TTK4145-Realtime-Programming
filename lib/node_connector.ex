@@ -14,12 +14,13 @@ defmodule NodeConnector do
               port: nil,
               # dev
               start_port: nil,
-              # name: nil,
+              name: :nonode@nohost,
               role: :slave,
               up_since: nil,
               watchdog: nil,
               master: nil,
-              slaves: %{}
+              slaves: %{},
+              test_disconnected: false
   end
 
   alias NodeConnector.State
@@ -51,6 +52,10 @@ defmodule NodeConnector do
     GenServer.call(__MODULE__, :get_state)
   end
 
+  def set_state(new_state) do
+    GenServer.call(__MODULE__, {:set_state, new_state})
+  end
+
   ## server ------------------------------------------
 
   def init([start_port, name]) do
@@ -58,14 +63,14 @@ defmodule NodeConnector do
     # port = start_port
     # {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     {:ok, socket, port} = try_create_socket(start_port, start_port + @port_range)
-    _name = register_node(name)
+    name = register_node(name)
 
     {:ok,
      %State{
        socket: socket,
        port: port,
        start_port: start_port,
-       # name: name,
+       name: name,
        up_since: System.os_time(:millisecond),
        watchdog: start_watchdog()
      }}
@@ -91,13 +96,15 @@ defmodule NodeConnector do
       full_name = name <> "@" <> to_string(addr_str)
       IO.puts("New node name: " <> full_name)
 
+
       Node.start(String.to_atom(full_name), :longnames)
       Node.set_cookie(:choc)
 
-      name
+      String.to_atom(full_name)
     else
       IO.puts("Node already named: " <> to_string(Node.self()))
-      String.split(to_string(Node.self()), "@") |> Enum.at(0)
+      #String.split(to_string(Node.self()), "@") |> Enum.at(0)
+      Node.self
     end
   end
 
@@ -116,6 +123,26 @@ defmodule NodeConnector do
         end
     end
   end
+
+  def dev_disconnect() do
+    #To simulate a network failure
+    #do this so we can stop broadcasting master hb 
+    state = get_state()
+    Node.stop()
+    set_state(%{state | test_disconnected: true})
+  end
+
+  def dev_reconnect() do
+    state = get_state()
+    Node.start(state.name)
+    Node.set_cookie(:choc)
+    set_state(%{state | test_disconnected: false})
+
+    if state.role == :master do 
+      send(self(), {:loop_master, state.start_port, state.start_port + @port_range}) #hvorfor fungerer ikke dette?!?!?!? 😠😠😠😠😠
+    end
+  end
+
 
   # calls ------------------------------------------
 
@@ -136,6 +163,10 @@ defmodule NodeConnector do
     {:reply, state, state}
   end
 
+  def handle_call({:set_state, new_state}, _from, state)  do
+    {:reply, :ok, new_state}
+  end
+
   # info ------------------------------------------
 
   def handle_info(:timed_out, state) do
@@ -151,11 +182,9 @@ defmodule NodeConnector do
   # dev
   # def handle_info(:loop_master, state) do
   def handle_info({:loop_master, start_port, end_port}, state) do
-    if state.role == :master do
+    if state.role == :master and not state.test_disconnected do
       :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
-
       # if Integer.mod(start_port, end_port) == 0, do: IO.puts("sending udp")
-
       # dev
       new_port = fn start_port, end_port ->
         if start_port == end_port do
@@ -164,7 +193,6 @@ defmodule NodeConnector do
           start_port + 1
         end
       end
-
       Process.send_after(
         self(),
         # dev

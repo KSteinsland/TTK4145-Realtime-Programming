@@ -15,7 +15,7 @@ end
 
 defmodule NodeConnectorTest do
   use ExUnit.Case, async: false
-  @moduletag :distributed
+  #@moduletag :distributed
   doctest NodeConnector
 
   setup do

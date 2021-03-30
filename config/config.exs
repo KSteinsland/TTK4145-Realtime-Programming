@@ -15,7 +15,7 @@ config(:elevator_project,
   # local nodes is primary node + # of slaves
   # when testing on a single computer
   local_nodes: 3,
-  port_driver: 17777
+  port_driver: 17779
 )
 
 # config_env()
