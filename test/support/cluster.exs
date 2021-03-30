@@ -55,14 +55,9 @@ defmodule Cluster do
 
   defp transfer_configuration(node, ind) do
     for {app_name, _, _} <- Application.loaded_applications() do
-      # IO.inspect(app_name)
       for {key, val} <- Application.get_all_env(app_name) do
-        val = if key == :port_driver, do: val + 1 + ind
 
-        if val != nil do
-          # IO.inspect(key)
-          # IO.inspect(val)
-        end
+        val = if key == :port_driver, do: val + 1 + ind
 
         rpc(node, Application, :put_env, [app_name, key, val])
       end

@@ -23,14 +23,14 @@ if Mix.env() == :test do
   IO.puts("Test config loaded!")
 
   config(:elevator_project,
-    # Normal speed divided by four
+    # Normal speed divided by ca. 2
     # input_poll_rate_ms is lower because of all IO
-    input_poll_rate_ms: 3,
+    input_poll_rate_ms: 8,
     door_open_duration_ms: 750,
     sim_opts: [
-      travelTimeBetweenFloors_ms: 500,
-      travelTimePassingFloor_ms: 250,
-      btnDepressedTime_ms: 40
+      travelTimeBetweenFloors_ms: 1000,
+      travelTimePassingFloor_ms: 350,
+      btnDepressedTime_ms: 100
     ]
   )
 end

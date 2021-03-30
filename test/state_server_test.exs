@@ -18,15 +18,15 @@ defmodule StateServerTest do
     #     assert Cluster.rpc(el1, StateInterface, :get_state, []).floor == 0
     #     assert Cluster.rpc(el2, StateInterface, :get_state, []).floor == 0
 
-    #     #give orders on two elevators at the same time 
+    #     #give orders on two elevators at the same time
     #     #Task.async(fn -> Simulator.send_key('c', 1) end)
     #     Simulator.send_key('c', 1)
     #     Simulator.send_key('v', 2)
     #     Process.sleep(500)
 
     #     #assert that both orders where received
-    #     sys_state = Cluster.rpc(el1, StateServer, :get_state, []) 
-    #     sys_state_el2 = Cluster.rpc(el2, StateServer, :get_state, []) 
+    #     sys_state = Cluster.rpc(el1, StateServer, :get_state, [])
+    #     sys_state_el2 = Cluster.rpc(el2, StateServer, :get_state, [])
     #     #sys_state |> IO.inspect
 
     #     assert sys_state == sys_state_el2
@@ -47,15 +47,20 @@ defmodule StateServerTest do
         Simulator.send_key('v', 1)
 
         IO.inspect Node.list
-        Node.stop
+        NodeConnector.dev_disconnect(nil)
+        # Cluster.rpc(node, NodeConnector, :dev_network_loss, [Node.self(), 3_000])
         IO.inspect Node.list
 
         Simulator.send_key('x', 0)
         Simulator.send_key('c', 0)
         Simulator.send_key('v', 0)
 
-        Process.sleep(5_000)
+        NodeConnector.dev_reconnect(nil)
+        Process.sleep(1_000)
+        IO.inspect Node.list
+
+
+        # assert SystemState osv.
 
     end
 end
-  

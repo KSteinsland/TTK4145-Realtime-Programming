@@ -6,8 +6,8 @@ defmodule NodeConnector do
 
   @broadcast_ip {255, 255, 255, 255}
   @port_range Application.fetch_env!(:elevator_project, :local_nodes)
-  @sleep_time 500
-  @timeout_time 6000
+  @sleep_time 300
+  @timeout_time 4000
 
   defmodule NodeConnector.State do
     defstruct socket: nil,
@@ -124,23 +124,23 @@ defmodule NodeConnector do
     end
   end
 
-  def dev_disconnect() do
-    #To simulate a network failure
-    #do this so we can stop broadcasting master hb 
-    state = get_state()
-    Node.stop()
-    set_state(%{state | test_disconnected: true})
+  def dev_network_loss(node, timeout) do
+    IO.puts("simulating network loss")
+    dev_disconnect(node)
+    Process.sleep(timeout)
+    dev_reconnect(node)
   end
 
-  def dev_reconnect() do
-    state = get_state()
-    Node.start(state.name)
-    Node.set_cookie(:choc)
-    set_state(%{state | test_disconnected: false})
+  def dev_disconnect(_node) do
+    #To simulate a network failure
+    #do this so we can stop broadcasting master hb
+    Node.stop()
+    # Node.disconnect(node)
+    set_state(%{get_state() | test_disconnected: true})
+  end
 
-    if state.role == :master do 
-      send(self(), {:loop_master, state.start_port, state.start_port + @port_range}) #hvorfor fungerer ikke dette?!?!?!? 😠😠😠😠😠
-    end
+  def dev_reconnect(node) do
+    GenServer.call(__MODULE__, {:dev_reconnect, node})
   end
 
 
@@ -167,6 +167,23 @@ defmodule NodeConnector do
     {:reply, :ok, new_state}
   end
 
+  def handle_call({:dev_reconnect, _node}, _from, state)  do
+
+    # Node.connect(node)
+    Node.start(state.name, :longnames)
+    Node.set_cookie(:choc)
+
+    state = %State{state | test_disconnected: false}
+
+    if state.role == :master do
+      send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
+    else
+      restart_watchdog(state.watchdog)
+    end
+
+    {:reply, :ok, state}
+  end
+
   # info ------------------------------------------
 
   def handle_info(:timed_out, state) do
@@ -183,9 +200,11 @@ defmodule NodeConnector do
   # def handle_info(:loop_master, state) do
   def handle_info({:loop_master, start_port, end_port}, state) do
     if state.role == :master and not state.test_disconnected do
+
       :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
-      # if Integer.mod(start_port, end_port) == 0, do: IO.puts("sending udp")
+
       # dev
+      # if Integer.mod(start_port, end_port) == 0, do: IO.puts("sending udp")
       new_port = fn start_port, end_port ->
         if start_port == end_port do
           start_port - @port_range
@@ -268,8 +287,17 @@ defmodule NodeConnector do
     IO.puts("Lost connection to node #{node}!")
 
     # do something useful here...
+
     name = node |> to_string() |> String.split("@") |> Enum.at(0)
-    {:noreply, %{state | slaves: Map.delete(state.slaves, name)}}
+
+    # delete master if master disconnected
+    master = if (node == state.master) do
+      nil
+    else
+      state.master
+    end
+
+    {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, name)}}
   end
 
   def handle_info(:shutdown, state) do

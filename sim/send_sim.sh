@@ -19,7 +19,7 @@ then
     then
         # Send key to elevator
         tmux select-pane -t $NUM_SIM  
-        tmux send-keys -t 'Main' $KEY
+        tmux send-keys -t $SESSION:'Main' $KEY
     else
         echo "Elevator number exceeds number of simulators!"
     fi

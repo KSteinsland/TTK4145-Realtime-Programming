@@ -19,34 +19,38 @@ done
 # Set Session Name
 SESSION="SimTest"
 SESSIONEXISTS=$(tmux list-sessions | grep $SESSION)
-SESSIONCONNECTED=$(tmux list-sessions | grep $SESSION | grep "attached")
+SESSIONCONNECTED=$(tmux list-sessions | grep $SESSION | grep 'attached')
 
 # Only create tmux session if it doesn't already exist
 if [ "$SESSIONEXISTS" != "" ]
 then
     # If someone is connected to the session, don't close it, but just kill the processes
-    if ["$SESSIONCONNECTED" == ""]
+    if [ -z "$SESSIONCONNECTED" ]
     then
         tmux kill-session -t $SESSION
     else
-        kill -9 `pgrep SimElevatorServer`
-        tmux select-window -t $SESSION
-        tmux kill-pane -a -t 0
+        tmux new-window -t $SESSION:1
+        tmux select-window -t $SESSION:'Main'
+        tmux kill-window -t $SESSION:'Main'
+        tmux new-window -t $SESSION
     fi
 fi
+tmux kill-window -t $SESSION:1
 
 # Start new session with specified name
 tmux new-session -d -s $SESSION
 
 # Name first winow and start first simulator
-tmux rename-window -t 0 'Main'
-tmux send-keys -t 'Main' $SIM_PATH ' --port ' $SIM_PORT ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
+tmux rename-window -t $SESSION:0 'Main'
+tmux select-pane -t 0
+tmux send-keys -t $SESSION:'Main' $SIM_PATH ' --port ' $SIM_PORT ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
+
 
 # Create NUM_SIMS-1 more panes and simulators
 for ((i=1;i<$NUM_SIMS;i++))
 do
-    tmux split-window -v
-    tmux send-keys -t 'Main' $SIM_PATH ' --port ' $((SIM_PORT + i)) ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
+    tmux split-window -t $SESSION -v
+    tmux send-keys -t $SESSION:'Main' $SIM_PATH ' --port ' $((SIM_PORT + i)) ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
     tmux select-layout -t $SESSION tiled
 done
 

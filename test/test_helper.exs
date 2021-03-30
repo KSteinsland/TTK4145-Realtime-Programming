@@ -1,3 +1,11 @@
+
+# Setup cleanup function, runs after all tests
+ExUnit.after_suite(fn _ ->
+  # Stops the cluster unless someone is attached
+  System.cmd("bash", ["./test/scripts/stop_cluster.sh"])
+end)
+
+
 ExUnit.start()
 
 # Loads support modules
@@ -10,6 +18,7 @@ end)
 # Get config
 port = Application.fetch_env!(:elevator_project, :port_driver)
 floors = Application.fetch_env!(:elevator_project, :num_floors)
+num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
 
 # If we want to stop all processes before running tests
 # Supervisor.stop(ElevatorProject.Supervisor, :normal)
@@ -21,8 +30,6 @@ floors = Application.fetch_env!(:elevator_project, :num_floors)
 ExUnit.configure(exclude: [external: true, distributed: true])
 
 conf = ExUnit.configuration()
-
-num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
 
 # check if we want to run integration tests
 if conf[:include][:external] == "true" or conf[:include][:start_sim] do
@@ -66,16 +73,17 @@ if conf[:include][:distributed] == "true" do
   IO.puts("Running distributed tests")
   System.cmd("epmd", ["-daemon"])
 
-  create_cluster = fn num ->
-    # primary is 0
-    Enum.map(1..(num - 1), fn num ->
-      String.to_atom("node" <> to_string(num) <> "@127.0.0.1")
-    end)
-  end
+  # create_cluster = fn num ->
+  #   # primary is 0
+  #   Enum.map(1..(num - 1), fn num ->
+  #     String.to_atom("node" <> to_string(num) <> "@127.0.0.1")
+  #   end)
+  # end
 
   # This is bad and needs fixing!
   ElevatorProject.Application.start(nil, nil)
-  Process.sleep(1_000)
-  Cluster.spawn(create_cluster.(num_local_nodes))
+  Process.sleep(5_00)
+  # Cluster.spawn(create_cluster.(num_local_nodes))
+  System.cmd("bash", ["./test/scripts/start_cluster.sh", "$PWD", to_string(port+1), to_string(num_local_nodes-1)])
   IO.puts("Started cluster")
 end
