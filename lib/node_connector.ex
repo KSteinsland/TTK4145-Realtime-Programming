@@ -209,7 +209,8 @@ defmodule NodeConnector do
            state
            | role: :slave,
              watchdog: restart_watchdog(state.watchdog),
-             master: String.to_atom(full_name)
+             master: String.to_atom(full_name),
+             slaves: %{}
          }}
       else
         # do nothing, we are the "first" master and the other node should downgrade
