@@ -25,17 +25,33 @@ conf = ExUnit.configuration()
 num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
 
 # check if we want to run integration tests
-if conf[:include][:external] == "true" do
+if conf[:include][:external] == "true" or conf[:include][:start_sim] do
   IO.puts("Running integration tests")
+
+  opts =
+    if conf[:include][:external] do
+      # if we want integration tests to run fast
+      Application.fetch_env!(:elevator_project, :sim_opts)
+    else
+      # just starting a normal simulator
+      []
+    end
 
   case :os.type() do
     {:unix, :linux} ->
       IO.puts("Starting linux sim")
-      Simulator.start_simulator("sim/linux/SimElevatorServer", port, floors)
+
+      Simulator.start_simulator(
+        "sim/linux/SimElevatorServer",
+        port,
+        floors,
+        num_local_nodes,
+        opts
+      )
 
     {:unix, :darwin} ->
       IO.puts("Starting mac sim")
-      Simulator.start_simulator("sim/mac/SimElevatorServer", port, floors, num_local_nodes)
+      Simulator.start_simulator("sim/mac/SimElevatorServer", port, floors, num_local_nodes, opts)
 
     _ ->
       IO.puts("You need to start the simulator yourself!")

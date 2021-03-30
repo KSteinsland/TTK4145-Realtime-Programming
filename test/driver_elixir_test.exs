@@ -3,10 +3,10 @@ defmodule DriverTest do
   @moduletag :external
   doctest Driver, async: false
 
-  defp wait_for_floor(state) do
+  defp wait_for_a_floor() do
     case Driver.get_floor_sensor_state() do
       :between_floors ->
-        wait_for_floor(state)
+        wait_for_a_floor()
 
       floor ->
         floor
@@ -44,7 +44,7 @@ defmodule DriverTest do
 
   test "testing motor", %{floors: _floors} do
     assert Driver.set_motor_direction(:dir_down) == :ok
-    assert wait_for_floor(Driver.get_floor_sensor_state()) != :between_floors
+    assert wait_for_a_floor() != :between_floors
     assert Driver.set_motor_direction(:idle) == :ok
     assert Driver.get_floor_sensor_state() != :between_floors
   end

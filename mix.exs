@@ -14,7 +14,8 @@ defmodule ElevatorProject.MixProject do
         coveralls: :test,
         test_unit: :test,
         test_integration: :test,
-        test_distributed: :test
+        test_distributed: :test,
+        start_sim: :test
       ]
     ]
   end
@@ -31,7 +32,8 @@ defmodule ElevatorProject.MixProject do
     [
       test_unit: "test --no-start",
       test_integration: "test --no-start --only external:true",
-      test_distributed: "test --no-start --only external:true --only distributed:true"
+      test_distributed: "test --no-start --only external:true --only distributed:true",
+      start_sim: "test --no-start --only start_sim:true"
     ]
   end
 
