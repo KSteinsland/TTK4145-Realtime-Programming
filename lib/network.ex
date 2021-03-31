@@ -83,19 +83,24 @@ defmodule Network.Util do
   @port 33332
 
   def get_local_ip() do
-    {:ok, socket} = :gen_udp.open(@port, [{:broadcast, true}, {:reuseaddr, true}])
-    key = Random.gen_rand_str(5) |> String.to_charlist()
-    # packet gets converted to charlist!
-    :gen_udp.send(socket, @broadcast_ip, @port, key)
+    if Application.fetch_env!(:elevator_project, :env) == :test do
+      # for ease of testing
+      {:ok, {127, 0, 0, 1}}
+    else
+      {:ok, socket} = :gen_udp.open(@port, [{:broadcast, true}, {:reuseaddr, true}])
+      key = Random.gen_rand_str(5) |> String.to_charlist()
+      # packet gets converted to charlist!
+      :gen_udp.send(socket, @broadcast_ip, @port, key)
 
-    receive do
-      {:udp, _port, localip, @port, ^key} ->
-        :gen_udp.close(socket)
-        {:ok, localip}
-    after
-      1000 ->
-        :gen_udp.close(socket)
-        {:error, "could not retreive local ip"}
+      receive do
+        {:udp, _port, localip, @port, ^key} ->
+          :gen_udp.close(socket)
+          {:ok, localip}
+      after
+        1000 ->
+          :gen_udp.close(socket)
+          {:error, "could not retreive local ip"}
+      end
     end
   end
 end

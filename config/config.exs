@@ -15,7 +15,9 @@ config(:elevator_project,
   # local nodes is primary node + # of slaves
   # when testing on a single computer
   local_nodes: 3,
-  port_driver: 17779
+  port_driver: 17779,
+  env: Mix.env()
+  # to enable :test or :dev specific behaviour of functions
 )
 
 # config_env()

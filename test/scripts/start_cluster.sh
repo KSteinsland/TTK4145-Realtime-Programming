@@ -34,7 +34,7 @@ tmux rename-window -t $SESSION:0 'Main'
 tmux select-pane -t 0
 tmux send-keys -t $SESSION:'Main' 'cd ' $REPO_PATH ' ' C-m
 tmux send-keys -t $SESSION:'Main' 'export ' 'EL_DRIVER_PORT='$DRIVER_PORT Enter
-tmux send-keys -t $SESSION:'Main' 'iex -S mix' ' ' C-m
+tmux send-keys -t $SESSION:'Main' 'iex --name node1@127.0.0.1 -S mix' ' ' C-m
 
 
 # Create NUM_NODES-1 more panes and nodes
@@ -45,7 +45,7 @@ do
 
     tmux send-keys -t $SESSION:'Main' 'cd ' $REPO_PATH ' ' Enter
     tmux send-keys -t $SESSION:'Main' 'export ' 'EL_DRIVER_PORT=' $((DRIVER_PORT + i)) Enter
-    tmux send-keys -t $SESSION:'Main' 'iex -S mix' ' ' C-m
+    tmux send-keys -t $SESSION:'Main' 'iex --name node'$((1 + i))'@127.0.0.1 -S mix' ' ' C-m
 
     tmux select-layout -t $SESSION tiled
     

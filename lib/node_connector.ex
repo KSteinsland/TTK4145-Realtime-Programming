@@ -102,6 +102,7 @@ defmodule NodeConnector do
       String.to_atom(full_name)
     else
       IO.puts("Node already named: " <> to_string(Node.self()))
+      Node.set_cookie(:choc)
       # String.split(to_string(Node.self()), "@") |> Enum.at(0)
       Node.self()
     end
@@ -123,23 +124,22 @@ defmodule NodeConnector do
     end
   end
 
-  def dev_network_loss(node, timeout) do
+  def dev_network_loss(timeout) do
     IO.puts("simulating network loss")
-    dev_disconnect(node)
+    dev_disconnect()
     Process.sleep(timeout)
-    dev_reconnect(node)
+    dev_reconnect()
   end
 
-  def dev_disconnect(_node) do
+  def dev_disconnect() do
     # To simulate a network failure
     # do this so we can stop broadcasting master hb
     Node.stop()
-    # Node.disconnect(node)
     set_state(%{get_state() | test_disconnected: true})
   end
 
-  def dev_reconnect(node) do
-    GenServer.call(__MODULE__, {:dev_reconnect, node})
+  def dev_reconnect() do
+    GenServer.call(__MODULE__, :dev_reconnect)
   end
 
   # calls ------------------------------------------
@@ -160,12 +160,11 @@ defmodule NodeConnector do
     {:reply, state, state}
   end
 
-  def handle_call({:set_state, new_state}, _from, state) do
+  def handle_call({:set_state, new_state}, _from, _state) do
     {:reply, :ok, new_state}
   end
 
-  def handle_call({:dev_reconnect, _node}, _from, state) do
-    # Node.connect(node)
+  def handle_call(:dev_reconnect, _from, state) do
     Node.start(state.name, :longnames)
     Node.set_cookie(:choc)
 
@@ -173,8 +172,6 @@ defmodule NodeConnector do
 
     if state.role == :master do
       send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
-    else
-      restart_watchdog(state.watchdog)
     end
 
     {:reply, :ok, state}
@@ -224,28 +221,24 @@ defmodule NodeConnector do
     end
   end
 
-  def handle_info({:udp, _socket, host, _port, packet}, state) do
-    host_adr_str = :inet.ntoa(host)
-    [host_info | [up_since | _]] = String.split(to_string(packet), "_")
+  def handle_info({:udp, _socket, _host, _port, packet}, state) do
+    [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
-
-    [host_name | _] = String.split(to_string(host_info), "@")
-    full_name = host_name <> "@" <> to_string(host_adr_str)
 
     if state.role == :slave do
       master =
-        if state.master == nil do
-          IO.puts("Found master #{full_name}!")
-          master = String.to_atom(full_name)
-          Node.monitor(master, true)
-          Node.connect(master)
-          send({__MODULE__, master}, {:slave_connected, Node.self()})
-          # NB do NOT write send({NodeConnector, master}, msg)
-          # NodeConnector expands to NodeConnector.NodeConnector somehow...
+        case state.master do
+          nil ->
+            IO.puts("Found master #{full_name}!")
+            master = String.to_atom(full_name)
+            Node.monitor(master, true)
+            Node.connect(master)
+            send({__MODULE__, master}, {:slave_connected, Node.self()})
 
-          master
-        else
-          state.master
+            master
+
+          _ ->
+            state.master
         end
 
       {:noreply, %State{state | watchdog: restart_watchdog(state.watchdog), master: master}}
@@ -260,6 +253,7 @@ defmodule NodeConnector do
          %State{
            state
            | role: :slave,
+             slaves: %{},
              watchdog: restart_watchdog(state.watchdog),
              master: String.to_atom(full_name)
          }}
@@ -287,12 +281,7 @@ defmodule NodeConnector do
     name = node |> to_string() |> String.split("@") |> Enum.at(0)
 
     # delete master if master disconnected
-    master =
-      if node == state.master do
-        nil
-      else
-        state.master
-      end
+    master = if node == state.master, do: nil, else: state.master
 
     {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, name)}}
   end
@@ -303,14 +292,8 @@ defmodule NodeConnector do
     {:noreply, state}
   end
 
-  # DEBUG FUNCTION FOR NETWORK MODULE
-  def handle_info({:testing, data}, state) do
-    IO.inspect("Message: ")
-    IO.inspect(data)
-    {:noreply, state}
-  end
-
   def handle_info(msg, state) do
+    # Catches all invalid messages
     IO.inspect("Invalid Message: ")
     IO.inspect(msg)
     {:noreply, state}
