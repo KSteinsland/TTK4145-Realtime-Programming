@@ -10,6 +10,8 @@ defmodule Cluster do
       to_string(port),
       to_string(num)
     ])
+
+    Process.sleep(6_000)
   end
 
   def cleanup() do

@@ -5,9 +5,11 @@ defmodule NodeConnector do
   use GenServer
 
   @broadcast_ip {255, 255, 255, 255}
-  @port_range Application.fetch_env!(:elevator_project, :local_nodes)
-  @sleep_time 300
-  @timeout_time 4000
+  # dev
+  # need port_range to run multiple nodes on a computer
+  @port_range Application.compile_env!(:elevator_project, :local_nodes)
+  @sleep_time trunc(Application.compile_env!(:elevator_project, :broadcast_ms) / @port_range)
+  @timeout_time Application.compile_env!(:elevator_project, :master_timeout_ms)
 
   defmodule NodeConnector.State do
     defstruct socket: nil,
@@ -265,7 +267,7 @@ defmodule NodeConnector do
   end
 
   def handle_info({:slave_connected, node_name}, state) do
-    IO.puts("Slave #{node_name} conncected!")
+    IO.puts("Slave #{node_name} connected!")
 
     # do something useful here...
     Node.monitor(node_name, true)

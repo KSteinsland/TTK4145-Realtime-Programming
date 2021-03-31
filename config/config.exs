@@ -10,6 +10,8 @@ config(:elevator_project,
   behaviours: [:be_idle, :be_door_open, :be_moving],
   button_map: %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2},
   button_types: [:btn_hall_up, :btn_hall_down, :btn_cab],
+  broadcast_ms: 900,
+  master_timeout_ms: 4000,
 
   # dev
   # local nodes is primary node + # of slaves

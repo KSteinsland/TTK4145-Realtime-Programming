@@ -29,6 +29,7 @@ defmodule NodeConnectorTest do
         :ok
     end
 
+    # Ensures that the cluster is in a known state before next distributed test
     on_exit(fn ->
       Cluster.spawn(
         Application.fetch_env!(:elevator_project, :port_driver) + 1,

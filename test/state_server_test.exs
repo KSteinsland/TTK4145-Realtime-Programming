@@ -12,7 +12,6 @@ defmodule StateServerTest do
     Process.sleep(7_000)
 
     slaves = NodeConnector.get_all_slaves()
-    IO.inspect(slaves)
     el1 = String.to_atom("node1@" <> Enum.at(slaves["node1"], 0))
     el2 = String.to_atom("node2@" <> Enum.at(slaves["node2"], 0))
 

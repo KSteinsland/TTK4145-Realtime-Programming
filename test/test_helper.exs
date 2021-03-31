@@ -65,7 +65,6 @@ if conf[:include][:distributed] == "true" do
 
   # Is this bad and needs fixing?
   ElevatorProject.Application.start(nil, nil)
-  Process.sleep(5_00)
 
   # Cluster.spawn(create_cluster.(num_local_nodes))
   Cluster.spawn(port + 1, num_local_nodes - 1)
