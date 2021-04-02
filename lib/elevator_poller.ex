@@ -75,7 +75,7 @@ defmodule ElevatorPoller do
 
     prev_floor = f
 
-    if(Timer.has_timed_out()) and Driver.get_obstruction_switch_state == :inactive do
+    if Timer.has_timed_out() and Driver.get_obstruction_switch_state == :inactive do
       # IO.puts("Door open timer has timed out!")
       {actions, new_state} = FSM.on_door_timeout(ES.get_state())
 
