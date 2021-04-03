@@ -137,7 +137,9 @@ defmodule NodeConnector do
     # To simulate a network failure
     # do this so we can stop broadcasting master hb
     Node.stop()
-    set_state(%{get_state() | test_disconnected: true})
+    state = get_state()
+    set_state(%{state | test_disconnected: true})
+    Node.start(state.name, :longnames) #do this to avoid having no name
   end
 
   def dev_reconnect() do
@@ -167,7 +169,6 @@ defmodule NodeConnector do
   end
 
   def handle_call(:dev_reconnect, _from, state) do
-    Node.start(state.name, :longnames)
     Node.set_cookie(:choc)
 
     state = %State{state | test_disconnected: false}
@@ -251,13 +252,17 @@ defmodule NodeConnector do
         IO.puts("Downgrading to slave")
         IO.puts("#{full_name} is the master")
 
+        #Needs to ping master here to be added back to Node.list
+        mastr = String.to_atom(full_name)
+        :pong = Node.ping(mastr)
+
         {:noreply,
          %State{
            state
            | role: :slave,
              slaves: %{},
              watchdog: restart_watchdog(state.watchdog),
-             master: String.to_atom(full_name)
+             master: mastr
          }}
       else
         # do nothing, we are the "first" master and the other node should downgrade

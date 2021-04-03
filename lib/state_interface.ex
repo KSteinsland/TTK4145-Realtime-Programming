@@ -40,19 +40,28 @@ defmodule StateInterface do
     # else
     # end
 
+    #elevator = %{elevator | count: elevator.count + 1}
+
     case Elevator.new(elevator) do
       {:error, msg} ->
         {:error, msg}
 
       ^elevator ->
-        sys_state = SS.get_state()
+        # sys_state = SS.get_state()
+        # elevators_new = Map.put(sys_state.elevators, NodeConnector.get_state().name(), elevator)
+        # sys_state = %{sys_state | elevators: elevators_new}
+        # GenServer.multi_call(SS, {:set_state, sys_state}) # push
 
-        elevators_new = Map.put(sys_state.elevators, NodeConnector.get_state().name(), elevator)
-        sys_state = %{sys_state | elevators: elevators_new}
+        {m, _bs} = GenServer.multi_call(StateServer, :get_state) #pull everyones state
+        sys_state =  Map.get(Map.new(m), NodeConnector.get_state().name() ) #extract my system state
+        elevators_old = sys_state.elevators 
+        elevators_new = Enum.map(m, fn {k, v} -> {k, v.elevators[k]} end)#update my state with everyone elses, need to do for each put map
+          |> Enum.reduce(elevators_old, fn {k, v}, els -> Map.put(els, k, v) end)
+          |> Map.put(NodeConnector.get_state().name(), elevator) #add new elevator
+        sys_state = %{sys_state | elevators: elevators_new} #add to system state 
+        GenServer.multi_call(SS, {:set_state, sys_state}) # push
 
-        sys_state = %{sys_state | count: sys_state.count + 1}
 
-        GenServer.multi_call(SS, {:set_state, sys_state})
         :ok
     end
   end

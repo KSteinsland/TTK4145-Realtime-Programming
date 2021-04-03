@@ -20,7 +20,7 @@ defmodule StateServer do
       system state.
     """
 
-    defstruct hall_requests: %HallRequests{}, elevators: %{}, count: 0
+    defstruct hall_requests: %HallRequests{}, elevators: %{}
   end
 
   def init(_opts) do
