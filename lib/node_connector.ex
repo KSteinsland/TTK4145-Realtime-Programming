@@ -228,47 +228,55 @@ defmodule NodeConnector do
     [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
 
-    if state.role == :slave do
-      master =
-        case state.master do
-          nil ->
-            IO.puts("Found master #{full_name}!")
-            master = String.to_atom(full_name)
-            Node.monitor(master, true)
-            Node.connect(master)
-            send({__MODULE__, master}, {:slave_connected, Node.self()})
+    if not state.test_disconnected do
+      if state.role == :slave do
+        master =
+          case state.master do
+            nil ->
+              IO.puts("Found master #{full_name}!")
+              master = String.to_atom(full_name)
+              Node.monitor(master, true)
+              Node.connect(master)
+              send({__MODULE__, master}, {:slave_connected, Node.self()})
 
-            master
+              master
 
-          _ ->
-            state.master
-        end
+            _ ->
+              state.master
+          end
 
-      {:noreply, %State{state | watchdog: restart_watchdog(state.watchdog), master: master}}
-    else
-      # handles case when there are multiple masters
-      if up_since < state.up_since do
-        # downgrade to slave
-        IO.puts("Downgrading to slave")
-        IO.puts("#{full_name} is the master")
-
-        #Needs to ping master here to be added back to Node.list
-        mastr = String.to_atom(full_name)
-        :pong = Node.ping(mastr)
-
-        {:noreply,
-         %State{
-           state
-           | role: :slave,
-             slaves: %{},
-             watchdog: restart_watchdog(state.watchdog),
-             master: mastr
-         }}
+        {:noreply, %State{state | watchdog: restart_watchdog(state.watchdog), master: master}}
       else
-        # do nothing, we are the "first" master and the other node should downgrade
-        {:noreply, state}
+        # handles case when there are multiple masters
+        if up_since < state.up_since do
+          # downgrade to slave
+          IO.puts("Downgrading to slave")
+          IO.puts("#{full_name} is the master")
+
+          #need to ping master 
+          master = String.to_atom(full_name)
+          Node.monitor(master, true)
+          Node.connect(master)
+          send({__MODULE__, master}, {:slave_connected, Node.self()})
+          #:pong = Node.ping(mastr)
+
+          {:noreply,
+          %State{
+            state
+            | role: :slave,
+              slaves: %{},
+              watchdog: restart_watchdog(state.watchdog),
+              master: master
+          }}
+        else
+          # do nothing, we are the "first" master and the other node should downgrade
+          {:noreply, state}
+        end
       end
+    else
+      {:noreply, state}
     end
+    
   end
 
   def handle_info({:slave_connected, node_name}, state) do
