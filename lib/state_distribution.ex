@@ -23,18 +23,9 @@ defmodule StateDistribution do
     {:ok, %{}}
   end
 
-  # TODO make this a call...
   def get_state() do
     NodeConnector.wait_for_node_startup()
-
-    elevator_state = SS.get_elevator(NodeConnector.get_self())
-
-    if elevator_state != nil do
-      elevator_state
-    else
-      # set_state(%Elevator{})
-      %Elevator{}
-    end
+    GenServer.call(__MODULE__, :get_state)
   end
 
   def set_state(%Elevator{} = elevator) do
@@ -48,11 +39,13 @@ defmodule StateDistribution do
         elevator = %Elevator{elevator | counter: elevator.counter + 1}
 
         # sends new elevator state to master
-        # master checks if state is distributes it
-        # TODO MAKE THIS A CAST!!!!!
-        # Also call local state server first...
-        # SS.set_elevator(NodeConnector.get_self(), elevator)
-        GenServer.call(
+        # master checks if state is ok and distributes it
+
+        # set local state to ensure proper elevator_poller behaviour
+        SS.set_elevator(NodeConnector.get_self(), elevator)
+
+        # async call to master to update everybody
+        GenServer.cast(
           {__MODULE__, NodeConnector.get_master()},
           {:new_state, NodeConnector.get_self(), elevator}
         )
@@ -70,42 +63,19 @@ defmodule StateDistribution do
     )
   end
 
-  def handle_call({:new_state, node_name, elevator}, _from, state) do
-    if NodeConnector.get_role() == :master do
-      # check if we have a local copy, if not, make one
-      local_copy =
-        case SS.get_elevator(node_name) do
-          nil ->
-            %Elevator{}
+  # calls ----------------------------------------
 
-          local_copy ->
-            local_copy
-        end
+  def handle_call(:get_state, _from, state) do
+    elevator_state =
+      case SS.get_elevator(NodeConnector.get_self()) do
+        nil ->
+          %Elevator{}
 
-      elevator =
-        cond do
-          elevator.counter <= local_copy.counter ->
-            IO.puts("Old counter!")
+        elevator_state ->
+          elevator_state
+      end
 
-            %Elevator{
-              elevator
-              | requests: update_cab_requests(elevator, local_copy),
-                counter: local_copy.counter + 1
-            }
-
-          true ->
-            elevator
-        end
-
-      # send new elevator to all slaves
-      # NB! should we send every elevator state here? or just the elevator that has been changed?
-      {_m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
-
-      {:reply, :ok, state}
-    else
-      # currently not in use
-      {:reply, :error, state}
-    end
+    {:reply, elevator_state, state}
   end
 
   def handle_call({:update_hall_requests, floor_ind, btn_type, hall_state}, _from, state) do
@@ -125,6 +95,50 @@ defmodule StateDistribution do
       {:reply, :error, state}
     end
   end
+
+  # casts ----------------------------------------
+
+  def handle_cast({:new_state, node_name, elevator}, state) do
+    if NodeConnector.get_role() == :master do
+      # check if we have a local copy, if not, make one
+      local_copy =
+        case SS.get_elevator(node_name) do
+          nil ->
+            %Elevator{}
+
+          local_copy ->
+            local_copy
+        end
+
+      # check if elevatorstate is outdated, probably not needed...
+      elevator =
+        cond do
+          elevator.counter <= local_copy.counter and node_name != NodeConnector.get_self() ->
+            IO.puts("Old counter!")
+
+            %Elevator{
+              elevator
+              | requests: update_cab_requests(elevator, local_copy),
+                counter: local_copy.counter + 1
+            }
+
+          true ->
+            elevator
+        end
+
+      # send new elevator to all slaves
+      # NB! should we send every elevator state here? or just the elevator that has been changed?
+      {_m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
+
+      {:noreply, state}
+    else
+      # currently not in use
+      IO.puts("something wrong with dist")
+      {:noreply, state}
+    end
+  end
+
+  # utils ----------------------------------------
 
   defp update_cab_requests(elevator, latest_elevator) do
     # Adds all cab requests from latest_elevator to elevators requests
