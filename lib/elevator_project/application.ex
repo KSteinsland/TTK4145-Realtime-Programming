@@ -16,6 +16,7 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       {NodeConnector, [33333, Random.gen_rand_str(5)]},
       StateServer,
+      StateDistribution,
       Timer,
       {Driver, [{127, 0, 0, 1}, Application.fetch_env!(:elevator_project, :port_driver)]},
       ElevatorPoller,

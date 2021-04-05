@@ -49,7 +49,7 @@ defmodule StateServer do
     GenServer.call(__MODULE__, {:get_elevator, node_name})
   end
 
-  def set_hall_requests() do
+  def get_hall_requests() do
     GenServer.call(__MODULE__, :get_hall_requests)
   end
 
@@ -98,7 +98,7 @@ defmodule StateServer do
 
   def handle_call(:get_hall_requests, _from, state) do
     # TODO this needs fxing
-    {:reply, state.hall_requests.hall_orders, state}
+    {:reply, state.hall_requests, state}
   end
 
   def handle_call({:set_elevator, node_name, elevator, counter}, _from, state) do
@@ -117,7 +117,7 @@ defmodule StateServer do
 
   def handle_call({:set_hall_requests, requests}, _from, state) do
     # TODO this needs fixing
-    new_state = %SystemState{state | hall_requests: %HallRequests{hall_orders: requests}}
+    new_state = %SystemState{state | hall_requests: requests}
     {:reply, :ok, new_state}
   end
 

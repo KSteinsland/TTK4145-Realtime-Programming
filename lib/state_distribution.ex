@@ -37,7 +37,8 @@ defmodule StateDistribution do
 
         case status do
           :ok ->
-            SS.set_elevator(NodeConnector.get_self(), elevator)
+            # SS.set_elevator(NodeConnector.get_self(), elevator)
+            :ok
 
           {:old_counter, latest_elevator} ->
             # TODO update counter
@@ -82,23 +83,37 @@ defmodule StateDistribution do
   end
 
   def set_hall_request(state, floor_ind, btn_type) do
-    sys_state = SS.get_state()
+    # TODO distribute this change!
+    hall_requests = SS.get_hall_requests()
+    new_hall_requests = update_hall_requests(hall_requests, floor_ind, btn_type, state)
+    SS.set_hall_requests(new_hall_requests)
 
-    # :done, :new
-    new_hall_requests = update_hall_requests(sys_state.hall_requests, floor_ind, btn_type, state)
-
-    SS.set_state(%{sys_state | hall_requests: new_hall_requests})
+    # sys_state = SS.get_state()
+    # new_hall_requests = update_hall_requests(sys_state.hall_requests, floor_ind, btn_type, state)
+    # SS.set_state(%{sys_state | hall_requests: new_hall_requests})
   end
 
-  def handle_call({:new_state, node, elevator}, _from, state) do
+  def handle_call({:new_state, node_name, elevator}, _from, state) do
     # just to be sure
     if NodeConnector.get_role() == :master do
-      # put elevator in state if counter is good
-      # send new elevator to all slaves
-      # reply :ok
+      local_copy = SS.get_elevator(node_name)
 
-      # if counter not good,
-      # reply {:old_counter, new_elevator}
+      if elevator.counter > local_copy.counter do
+        # if counter good
+
+        # SS.set_elevator(elevator)
+        {m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
+        # not sure if we should call StateDistribution on all nodes which again calls stateserver
+        # or call stateserver directly on all nodes
+
+        # put elevator in state if counter is good
+        # send new elevator to all slaves
+        # reply :ok
+        {:reply, :ok, state}
+      else
+        # if counter not good,
+        {:reply, {:old_counter, local_copy}, state}
+      end
     else
       # should not happen
       {:reply, :error, state}

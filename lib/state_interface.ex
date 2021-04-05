@@ -33,20 +33,13 @@ defmodule StateInterface do
   def set_state(%Elevator{} = elevator) do
     wait_for_node_startup()
 
-    # alternative to wait_for_node_startup
-
-    # if (NodeConnector.get_state.name() == :nonode@nohost) do
-    #   IO.puts("Node is not started yet!")
-    # else
-    # end
-
-    # elevator = %{elevator | count: elevator.count + 1}
-
     case Elevator.new(elevator) do
       {:error, msg} ->
         {:error, msg}
 
       ^elevator ->
+        elevator = %Elevator{elevator | counter: elevator.counter + 1}
+
         # sys_state = SS.get_state()
         # elevators_new = Map.put(sys_state.elevators, NodeConnector.get_state().name(), elevator)
         # sys_state = %{sys_state | elevators: elevators_new}
@@ -64,7 +57,7 @@ defmodule StateInterface do
           # add new elevator
           |> Map.put(NodeConnector.get_state().name(), elevator)
 
-        # add to system state 
+        # add to system state
         sys_state = %{sys_state | elevators: elevators_new}
         # push
         GenServer.multi_call(SS, {:set_state, sys_state})
@@ -74,19 +67,19 @@ defmodule StateInterface do
   end
 
   def finished_hall_request(floor_ind, btn_type) do
-    sys_state = SS.get_state()
+    StateDistribution.set_hall_request(:done, floor_ind, btn_type)
 
-    new_hall_requests = update_hall_requests(sys_state.hall_requests, floor_ind, btn_type, :done)
-
-    SS.set_state(%{sys_state | hall_requests: new_hall_requests})
+    # sys_state = SS.get_state()
+    # new_hall_requests = update_hall_requests(sys_state.hall_requests, floor_ind, btn_type, :done)
+    # SS.set_state(%{sys_state | hall_requests: new_hall_requests})
   end
 
   def new_hall_request(floor_ind, btn_type) do
-    sys_state = SS.get_state()
+    StateDistribution.set_hall_request(:new, floor_ind, btn_type)
 
-    new_hall_requests = update_hall_requests(sys_state.hall_requests, floor_ind, btn_type, :new)
-
-    SS.set_state(%{sys_state | hall_requests: new_hall_requests})
+    # sys_state = SS.get_state()
+    # new_hall_requests = update_hall_requests(sys_state.hall_requests, floor_ind, btn_type, :new)
+    # SS.set_state(%{sys_state | hall_requests: new_hall_requests})
   end
 
   defp wait_for_node_startup() do
@@ -98,20 +91,20 @@ defmodule StateInterface do
     end
   end
 
-  defp update_hall_requests(req, floor, btn_type, state) do
-    # TODO make this a config maybe?
-    # valid_buttons = [0, 1]
-    # also check floor and btn_type beforehand!
+  # defp update_hall_requests(req, floor, btn_type, state) do
+  #   # TODO make this a config maybe?
+  #   # valid_buttons = [0, 1]
+  #   # also check floor and btn_type beforehand!
 
-    req_list = req.hall_orders
+  #   req_list = req.hall_orders
 
-    if state in @valid_hall_request_states and btn_type in @hall_btn_types do
-      {req_at_floor, _list} = List.pop_at(req_list, floor)
-      updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], state)
-      new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
-      %StateServer.HallRequests{req | hall_orders: new_req_list}
-    else
-      {:error, "not valid hall request state!"}
-    end
-  end
+  #   if state in @valid_hall_request_states and btn_type in @hall_btn_types do
+  #     {req_at_floor, _list} = List.pop_at(req_list, floor)
+  #     updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], state)
+  #     new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
+  #     %StateServer.HallRequests{req | hall_orders: new_req_list}
+  #   else
+  #     {:error, "not valid hall request state!"}
+  #   end
+  # end
 end
