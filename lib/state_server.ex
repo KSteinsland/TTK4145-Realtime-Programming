@@ -81,7 +81,6 @@ defmodule StateServer do
       new_state.elevators
       |> Map.values()
       |> Enum.all?(fn elevator ->
-        # |> Enum.all?(fn {elevator, _counter} ->
         elevator == Elevator.new(elevator)
       end)
 
@@ -101,19 +100,14 @@ defmodule StateServer do
     {:reply, state.hall_requests, state}
   end
 
-  def handle_call({:set_elevator, node_name, elevator, counter}, _from, state) do
+  def handle_call({:set_elevator, node_name, elevator}, _from, state) do
     new_state = %SystemState{
       state
-      | elevators: Map.put(state.elevators, node_name, {elevator, counter})
+      | elevators: Map.put(state.elevators, node_name, elevator)
     }
 
     {:reply, :ok, new_state}
   end
-
-  # def handle_call({:set_elevator, node_name, elevator, counter}, _from, state) do
-  #   new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, {elevator, counter})}
-  #   {:reply, :ok, new_state}
-  # end
 
   def handle_call({:set_hall_requests, requests}, _from, state) do
     # TODO this needs fixing
