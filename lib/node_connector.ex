@@ -37,6 +37,14 @@ defmodule NodeConnector do
 
   ## client ------------------------------------------
 
+  def wait_for_node_startup() do
+    # Ensures that we do not register :nonode@nohost in the elevator map
+    if get_self() == :nonode@nohost do
+      Process.sleep(10)
+      wait_for_node_startup()
+    end
+  end
+
   def get_all_slaves() do
     GenServer.call(__MODULE__, :get_all_slaves)
   end

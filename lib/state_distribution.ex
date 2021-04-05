@@ -23,35 +23,47 @@ defmodule StateDistribution do
     {:ok, %{}}
   end
 
-  def get_state(node_name) do
-    # TODO make this a call...
-    elevator_state = SS.get_elevator(node_name)
+  # TODO make this a call...
+  def get_state() do
+    NodeConnector.wait_for_node_startup()
+
+    elevator_state = SS.get_elevator(NodeConnector.get_self())
 
     if elevator_state != nil do
       elevator_state
     else
       # set_state(%Elevator{})
-
       %Elevator{}
     end
   end
 
   def set_state(%Elevator{} = elevator) do
-    # do Elevator.new check first?
+    NodeConnector.wait_for_node_startup()
 
-    # sends new elevator state to master
-    # master checks if state is distributes it
-    GenServer.call(
-      {__MODULE__, NodeConnector.get_master()},
-      {:new_state, NodeConnector.get_self(), elevator}
-    )
+    case Elevator.new(elevator) do
+      {:error, msg} ->
+        {:error, msg}
+
+      ^elevator ->
+        elevator = %Elevator{elevator | counter: elevator.counter + 1}
+
+        # sends new elevator state to master
+        # master checks if state is distributes it
+        # TODO MAKE THIS A CAST!!!!!
+        # Also call local state server first...
+        # SS.set_elevator(NodeConnector.get_self(), elevator)
+        GenServer.call(
+          {__MODULE__, NodeConnector.get_master()},
+          {:new_state, NodeConnector.get_self(), elevator}
+        )
+
+        :ok
+    end
   end
 
-  def set_hall_request(hall_state, floor_ind, btn_type) do
-    # hall_requests = SS.get_hall_requests()
-    # new_hall_requests = update_hall_requests(hall_requests, floor_ind, btn_type, state)
-    # SS.set_hall_requests(new_hall_requests)
-
+  def set_hall_request(floor_ind, btn_type, hall_state) do
+    # check if state is :done or :new
+    # :assigned is not valid
     GenServer.call(
       {__MODULE__, NodeConnector.get_master()},
       {:update_hall_requests, floor_ind, btn_type, hall_state}
@@ -59,17 +71,14 @@ defmodule StateDistribution do
   end
 
   def handle_call({:new_state, node_name, elevator}, _from, state) do
-    # just to be sure
     if NodeConnector.get_role() == :master do
       # check if we have a local copy, if not, make one
-      local_copy = SS.get_elevator(node_name)
-
       local_copy =
-        case local_copy do
+        case SS.get_elevator(node_name) do
           nil ->
             %Elevator{}
 
-          _ ->
+          local_copy ->
             local_copy
         end
 
@@ -88,30 +97,18 @@ defmodule StateDistribution do
             elevator
         end
 
-      # IO.inspect(elevator)
-
       # send new elevator to all slaves
       # NB! should we send every elevator state here? or just the elevator that has been changed?
-
-      {m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
-      # IO.puts("distributing state")
-      # not sure if we should call StateDistribution on all nodes which again calls stateserver
-      # or call stateserver directly on all nodes
+      {_m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
 
       {:reply, :ok, state}
     else
-      # possible solution
-      # SS.set_elevator(elevator)
-
       # currently not in use
       {:reply, :error, state}
     end
   end
 
   def handle_call({:update_hall_requests, floor_ind, btn_type, hall_state}, _from, state) do
-    # either drop role check and multicall StateServer as we currently do
-    # or use role check and multicall THIS call and then call stateserver
-
     if NodeConnector.get_role() == :master do
       hall_requests = SS.get_hall_requests()
       new_hall_requests = update_hall_requests(hall_requests, floor_ind, btn_type, hall_state)
@@ -120,23 +117,21 @@ defmodule StateDistribution do
       # if state == :new do something
       # else if state == :done do something else
 
-      {m, _bs} = GenServer.multi_call(StateServer, {:set_hall_requests, new_hall_requests})
-      # not sure if we should call StateDistribution on all nodes which again calls stateserver
-      # or call stateserver directly on all nodes
+      {_m, _bs} = GenServer.multi_call(StateServer, {:set_hall_requests, new_hall_requests})
 
       {:reply, :ok, state}
     else
-      # possible solution?
-      # SS.set_hall_requests(new_hall_requests)
-      #
-
       # currently not in use
       {:reply, :error, state}
     end
   end
 
   defp update_cab_requests(elevator, latest_elevator) do
-    ## Adds all cab requests from latest_elevator to elevators requests
+    # Adds all cab requests from latest_elevator to elevators requests
+    # Probably not needed...
+
+    IO.puts("updating cab requests!!")
+
     new_requests =
       latest_elevator.requests
       |> Enum.with_index()

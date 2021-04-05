@@ -26,7 +26,7 @@ defmodule StateServer do
   def init(_opts) do
     wait_for_node_startup()
 
-    if NodeConnector.get_master() == NodeConnector.get_state().name do
+    if NodeConnector.get_master() == NodeConnector.get_self() do
       {:ok, %SystemState{}}
     else
       IO.puts("Received state from master")
