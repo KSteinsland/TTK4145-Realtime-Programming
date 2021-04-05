@@ -14,17 +14,21 @@ defmodule StateInterface do
   @doc """
   returns elevator state on this node in system state
   """
+  # def get_state do
+  #   wait_for_node_startup()
+
+  #   if Map.has_key?(SS.get_state().elevators, NodeConnector.get_state().name()) do
+  #     SS.get_state().elevators
+  #     |> Map.get(NodeConnector.get_state().name())
+  #   else
+  #     set_state(%Elevator{})
+
+  #     %Elevator{}
+  #   end
+  # end
   def get_state do
     wait_for_node_startup()
-
-    if Map.has_key?(SS.get_state().elevators, NodeConnector.get_state().name()) do
-      SS.get_state().elevators
-      |> Map.get(NodeConnector.get_state().name())
-    else
-      set_state(%Elevator{})
-
-      %Elevator{}
-    end
+    StateDistribution.get_state(NodeConnector.get_self())
   end
 
   @doc """

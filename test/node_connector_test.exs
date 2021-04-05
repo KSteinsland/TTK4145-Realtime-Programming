@@ -68,6 +68,8 @@ defmodule NodeConnectorTest do
            |> Enum.any?(fn node ->
              Cluster.rpc(node, NodeConnector, :get_role, []) == :master
            end)
+
+    Process.sleep(2_000)
   end
 
   # test "kill slave" do

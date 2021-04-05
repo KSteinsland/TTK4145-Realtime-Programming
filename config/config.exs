@@ -16,7 +16,7 @@ config(:elevator_project,
   # dev
   # local nodes is primary node + # of slaves
   # when testing on a single computer
-  local_nodes: 3,
+  local_nodes: 4,
   port_driver: 17779,
   env: Mix.env()
   # to enable :test or :dev specific behaviour of functions
@@ -27,6 +27,10 @@ if Mix.env() == :test do
   IO.puts("Test config loaded!")
 
   config(:elevator_project,
+  # broadcast_ms: 450,
+  # master_timeout_ms: 2000,
+  # TODO make sleep times in test depent on master_timeout!
+
     # Normal speed divided by ca. 2
     # input_poll_rate_ms is lower because of all IO
     input_poll_rate_ms: 8,

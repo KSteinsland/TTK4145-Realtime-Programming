@@ -144,7 +144,7 @@ defmodule NodeConnector do
     state = get_state()
     set_state(%{state | test_disconnected: true})
     # do this to avoid having no name
-    Node.start(state.name, :longnames)
+    # Node.start(state.name, :longnames)
   end
 
   def dev_reconnect() do
@@ -178,6 +178,7 @@ defmodule NodeConnector do
   end
 
   def handle_call(:dev_reconnect, _from, state) do
+    Node.start(state.name, :longnames)
     Node.set_cookie(:choc)
 
     state = %State{state | test_disconnected: false}
@@ -237,26 +238,36 @@ defmodule NodeConnector do
     [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
 
+    latest_master = String.to_atom(full_name)
+
     if not state.test_disconnected do
       if state.role == :slave do
         master =
           case state.master do
-            nil ->
-              IO.puts("Found master #{full_name}!")
-              master = String.to_atom(full_name)
-              Node.monitor(master, true)
-              Node.connect(master)
-              send({__MODULE__, master}, {:slave_connected, Node.self()})
-
-              master
+            ^latest_master ->
+              state.master
 
             _ ->
-              state.master
+              # catches both when state.master = nil
+              # and when state.master is outdated
+              IO.puts("Found master #{full_name}!")
+
+              Node.monitor(latest_master, true)
+              Node.connect(latest_master)
+              send({__MODULE__, latest_master}, {:slave_connected, Node.self()})
+
+              latest_master
           end
 
         {:noreply, %State{state | watchdog: restart_watchdog(state.watchdog), master: master}}
       else
         # handles case when there are multiple masters
+
+        # if a master loses internet connection and comes back, it should not be the master anymore
+        # as it has outdated info!
+        # or can we just update the masters state?
+        # not sure how to handle this...
+
         if up_since < state.up_since do
           # downgrade to slave
           IO.puts("Downgrading to slave")
