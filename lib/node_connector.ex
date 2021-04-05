@@ -41,6 +41,10 @@ defmodule NodeConnector do
     GenServer.call(__MODULE__, :get_all_slaves)
   end
 
+  def get_self() do
+    GenServer.call(__MODULE__, :get_self)
+  end
+
   def get_role do
     GenServer.call(__MODULE__, :get_role)
   end
@@ -139,7 +143,8 @@ defmodule NodeConnector do
     Node.stop()
     state = get_state()
     set_state(%{state | test_disconnected: true})
-    Node.start(state.name, :longnames) #do this to avoid having no name
+    # do this to avoid having no name
+    Node.start(state.name, :longnames)
   end
 
   def dev_reconnect() do
@@ -150,6 +155,10 @@ defmodule NodeConnector do
 
   def handle_call(:get_all_slaves, _from, state) do
     {:reply, state.slaves, state}
+  end
+
+  def handle_call(:get_self, _from, state) do
+    {:reply, state.name, state}
   end
 
   def handle_call(:get_role, _from, state) do
@@ -253,21 +262,21 @@ defmodule NodeConnector do
           IO.puts("Downgrading to slave")
           IO.puts("#{full_name} is the master")
 
-          #need to ping master 
+          # need to ping master
           master = String.to_atom(full_name)
           Node.monitor(master, true)
           Node.connect(master)
           send({__MODULE__, master}, {:slave_connected, Node.self()})
-          #:pong = Node.ping(mastr)
+          # :pong = Node.ping(mastr)
 
           {:noreply,
-          %State{
-            state
-            | role: :slave,
-              slaves: %{},
-              watchdog: restart_watchdog(state.watchdog),
-              master: master
-          }}
+           %State{
+             state
+             | role: :slave,
+               slaves: %{},
+               watchdog: restart_watchdog(state.watchdog),
+               master: master
+           }}
         else
           # do nothing, we are the "first" master and the other node should downgrade
           {:noreply, state}
@@ -276,7 +285,6 @@ defmodule NodeConnector do
     else
       {:noreply, state}
     end
-    
   end
 
   def handle_info({:slave_connected, node_name}, state) do

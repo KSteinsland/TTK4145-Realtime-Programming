@@ -45,8 +45,24 @@ defmodule StateServer do
     GenServer.call(__MODULE__, :get_state)
   end
 
+  def get_elevator(node_name) do
+    GenServer.call(__MODULE__, {:get_elevator, node_name})
+  end
+
+  def set_hall_requests() do
+    GenServer.call(__MODULE__, :get_hall_requests)
+  end
+
   def set_state(new_state) do
     GenServer.call(__MODULE__, {:set_state, new_state})
+  end
+
+  def set_elevator(node_name, elevator) do
+    GenServer.call(__MODULE__, {:set_elevator, node_name, elevator})
+  end
+
+  def set_hall_requests(requests) do
+    GenServer.call(__MODULE__, {:set_hall_requests, requests})
   end
 
   # calls----------------------------------------
@@ -70,6 +86,26 @@ defmodule StateServer do
     else
       {:reply, :error, state}
     end
+  end
+
+  def handle_call({:get_elevator, node_name}, _from, state) do
+    {:reply, Map.get(state.elevators, node_name), state}
+  end
+
+  def handle_call(:get_hall_requests, _from, state) do
+    # TODO this needs fxing
+    {:reply, state.hall_requests.hall_orders, state}
+  end
+
+  def handle_call({:set_elevator, node_name, elevator}, _from, state) do
+    new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, elevator)}
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call({:set_hall_requests, requests}, _from, state) do
+    # TODO this needs fixing
+    new_state = %SystemState{state | hall_requests: %HallRequests{hall_orders: requests}}
+    {:reply, :ok, new_state}
   end
 
   defp wait_for_node_startup() do
