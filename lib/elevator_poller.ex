@@ -131,13 +131,11 @@ defmodule ElevatorPoller do
               # move elevator should only trigger on cab requests once we have state distribution fixed!
               # TODO remove this when state distributor is finished
               if btn_ind < 2 do
-                # SI.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
                 SD.set_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
               end
 
             :update_hall_requests ->
               IO.puts("New hall request!")
-              # SI.new_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind))
               SD.set_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
 
             nil ->
@@ -165,12 +163,6 @@ defmodule ElevatorPoller do
     end)
   end
 
-  # defp hall_request_at_current_floor?(floor_ind, requests) do
-  #   requests
-  #   |> Enum.at(floor_ind)
-  #   |> Enum.any?(fn req -> req in @hall_btn_types end)
-  # end
-
   defp set_all_hall_requests(req_list, prev_req_list, floor_ind) do
     # Sets all hall requests which are executed in system state
 
@@ -180,7 +172,6 @@ defmodule ElevatorPoller do
       btn_type = Enum.at(@btn_types, btn_ind)
 
       if btn != btn_old and btn_type in @hall_btn_types do
-        # SI.finished_hall_request(floor_ind, btn_type)
         SD.set_hall_request(floor_ind, btn_type, :done)
       end
     end)
