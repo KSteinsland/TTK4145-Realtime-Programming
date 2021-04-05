@@ -28,7 +28,7 @@ defmodule StateDistribution do
 
     case NodeConnector.get_role() do
       :slave ->
-        # send({__MODULE__, NodeConnector.get_master()}, {:new_state, NodeConnector.get_self(), elevator})
+        # state = send({__MODULE__, NodeConnector.get_master()}, {:new_state, NodeConnector.get_self(), elevator})
         status =
           GenServer.call(
             {__MODULE__, NodeConnector.get_master()},
@@ -40,14 +40,20 @@ defmodule StateDistribution do
             SS.set_elevator(NodeConnector.get_self(), elevator)
 
           {:old_counter, latest_elevator} ->
-            # todo merge latest elevator with new elevator in function call!
-            new_elevator = %Elevator{elevator | requests: update_cab_requests(elevator, latest_elevator)}
-            set_state(new_elevator)
+            # TODO update counter
+            new_elevator = %Elevator{
+              elevator
+              | requests: update_cab_requests(elevator, latest_elevator)
+            }
 
+            set_state(new_elevator)
+            # try again
         end
 
       :master ->
         nil
+        # maybe drop NodeConnector.get_role() check?
+        # we can do the same thing no matter what role we have
         # is no master part
     end
   end
@@ -87,13 +93,14 @@ defmodule StateDistribution do
   def handle_call({:new_state, node, elevator}, _from, state) do
     # just to be sure
     if NodeConnector.get_role() == :master do
-      state = SS.get_state()
       # put elevator in state if counter is good
+      # send new elevator to all slaves
       # reply :ok
 
       # if counter not good,
       # reply {:old_counter, new_elevator}
     else
+      # should not happen
       {:reply, :error, state}
     end
   end

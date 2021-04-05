@@ -74,10 +74,14 @@ defmodule StateServer do
   def handle_call({:set_state, new_state}, _from, state) do
     # Checks that all elevator states are valid before accecpting the new state
     # Could use some fixing
+
+    # TODO check that every counter is larger than in the state.elevators?
+
     valid =
       new_state.elevators
       |> Map.values()
       |> Enum.all?(fn elevator ->
+        # |> Enum.all?(fn {elevator, _counter} ->
         elevator == Elevator.new(elevator)
       end)
 
@@ -97,10 +101,19 @@ defmodule StateServer do
     {:reply, state.hall_requests.hall_orders, state}
   end
 
-  def handle_call({:set_elevator, node_name, elevator}, _from, state) do
-    new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, elevator)}
+  def handle_call({:set_elevator, node_name, elevator, counter}, _from, state) do
+    new_state = %SystemState{
+      state
+      | elevators: Map.put(state.elevators, node_name, {elevator, counter})
+    }
+
     {:reply, :ok, new_state}
   end
+
+  # def handle_call({:set_elevator, node_name, elevator, counter}, _from, state) do
+  #   new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, {elevator, counter})}
+  #   {:reply, :ok, new_state}
+  # end
 
   def handle_call({:set_hall_requests, requests}, _from, state) do
     # TODO this needs fixing
