@@ -1,27 +1,41 @@
 defmodule LightHandler do
   @moduledoc """
-  Puts on/off the light when a change in hall request occurs in state_server.
+  Puts on/off the light on the hall buttons when a change in hall request occurs in state_server.
   """
 
-  @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
+
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
+  @doc """
+  hall_btn_types = {:btn_hall_up, :btn_hall_down}
+  """
 
-  alias StateInterface, as: SI
+
   alias StateServer, as: SS
 
-
-  def get_hall_requests do
-    hall_requests = SS.get_state.hall_requests    # Get the hall_requests struct from the StateServer.
+  @doc """
+  1: Checks if there is a state change in hall_orders.
+  2: If state change -> turn light on or off.
+  3: If no state change -> loop back to 1.
+  """
+  def light_controller do
+    hall_orders = light_check(nil)    # Checks if hall_orders have changed, returns hall_orders
     i = 0
-    for hall_order <- hall_requests.hall_orders do
-      lightController(hall_order, i)
+    for hall_order <- hall_orders do  # Iterates through hall_orders, [[:done, :done][:done, :done][:done, :done]], and returns hall_order [:done, :done].
+      light_logic(hall_order, i)      # Turns the light on or off
       i = i + 1
     end
   end
 
-  def light_controller(hall_order, floor) do
+  @doc """
+  Takes in  hall_order, ex.: [:new, :done],
+    where hall_order[0] = :btn_hall_up,
+          hall_order[1] = :btn_hall_down.
+  If hall_order[0] = :done, turn off light.
+  If hall_order[0] = :new, turn on light.
+  Same logic for hall_order[1].
+  """
+  def light_logic(hall_order, floor) do
     btn_state_Up = Enum.at(hall_order, 0)
     btn_state_Down = Enum.at(hall_order, 1)
 
@@ -42,9 +56,18 @@ defmodule LightHandler do
 
   end
 
-  def light_check do
-    #Check if lights are already turned on/off before running light_controller.
 
+  @doc """
+  Checks if hall_orders have changed by comparing prevoius and current hall_orders state.
+  If no state change -> do nothing (by running in an ifinite loop).
+  If state change -> continue and return hall_orders (the new state).
+  """
+  def light_check(previousState) do
+    currentState = SS.get_state.hall_requests.hall_orders
+    if previousState == currentState || previousState == nil do
+      light_check(currentState)
+    end
+    currentState
   end
 
 end
