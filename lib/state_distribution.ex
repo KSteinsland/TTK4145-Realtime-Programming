@@ -100,35 +100,57 @@ defmodule StateDistribution do
 
   def handle_cast({:new_state, node_name, elevator}, state) do
     if NodeConnector.get_role() == :master do
-      # check if we have a local copy, if not, make one
-      local_copy =
-        case SS.get_elevator(node_name) do
-          nil ->
-            %Elevator{}
+      # # check if we have a local copy, if not, make one
+      # local_copy =
+      #   case SS.get_elevator(node_name) do
+      #     nil ->
+      #       %Elevator{}
 
-          local_copy ->
-            local_copy
-        end
+      #     local_copy ->
+      #       local_copy
+      #   end
 
-      # check if elevatorstate is outdated, probably not needed...
-      elevator =
-        cond do
-          elevator.counter <= local_copy.counter and node_name != NodeConnector.get_self() ->
-            IO.puts("Old counter!")
+      # # check if elevatorstate is outdated, probably not needed...
+      # elevator =
+      #   cond do
+      #     elevator.counter <= local_copy.counter and node_name != NodeConnector.get_self() ->
+      #       IO.puts("Old counter!")
 
-            %Elevator{
-              elevator
-              | requests: update_cab_requests(elevator, local_copy),
-                counter: local_copy.counter + 1
-            }
+      #       %Elevator{
+      #         elevator
+      #         | requests: update_cab_requests(elevator, local_copy),
+      #           counter: local_copy.counter + 1
+      #       }
 
-          true ->
-            elevator
-        end
+      #     true ->
+      #       elevator
+      #   end
 
       # send new elevator to all slaves
-      # NB! should we send every elevator state here? or just the elevator that has been changed?
-      {_m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
+      # {_m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
+
+      # pull everyones elevator state
+      {el_states_map, _bs} = GenServer.multi_call(Node.list(), StateDistribution, :get_state, 100)
+
+      # get my system state
+      master_sys_state = SS.get_state()
+
+      elevators_old = master_sys_state.elevators
+      # update my state with everyone elses, need to do for each put map
+      elevators_new =
+        el_states_map
+        |> Enum.reduce(
+          elevators_old,
+          # probably not needed but check counter before put? :)
+          fn {node_name, el_state}, els -> Map.put(els, node_name, el_state) end
+        )
+        # add new elevator
+        |> Map.put(node_name, elevator)
+
+      # add to system state
+      master_sys_state = %{master_sys_state | elevators: elevators_new}
+      # push
+      GenServer.multi_call(SS, {:set_state, master_sys_state})
 
       {:noreply, state}
     else
