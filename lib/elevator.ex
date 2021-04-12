@@ -17,7 +17,8 @@ defmodule Elevator do
   @type btn_types :: :btn_hall_up | :btn_hall_down | :btn_cab
   @type behaviours :: :be_idle | :be_door_open | :be_moving
 
-  defstruct floor: 0, direction: :dir_stop, requests: req_list, behaviour: :be_idle
+  # Feels bad to have counter here, but is the easiest solution
+  defstruct floor: 0, direction: :dir_stop, requests: req_list, behaviour: :be_idle, counter: 0
 
   @type t :: %__MODULE__{
           floor: pos_integer(),

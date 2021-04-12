@@ -18,7 +18,7 @@ defmodule NodeConnectorTest do
   @moduletag :distributed
   doctest NodeConnector
 
-  setup do
+  setup_all do
     port = 33333
 
     case NodeConnector.start_link([port, "test_udp"]) do
@@ -28,6 +28,14 @@ defmodule NodeConnectorTest do
       {:error, _err_msg} ->
         :ok
     end
+
+    # Ensures that the cluster is in a known state before next distributed test
+    on_exit(fn ->
+      Cluster.spawn(
+        Application.fetch_env!(:elevator_project, :port_driver) + 1,
+        Application.fetch_env!(:elevator_project, :local_nodes) - 1
+      )
+    end)
   end
 
   # We have to do this in one big test, as tests are done in random order!
@@ -60,6 +68,8 @@ defmodule NodeConnectorTest do
            |> Enum.any?(fn node ->
              Cluster.rpc(node, NodeConnector, :get_role, []) == :master
            end)
+
+    Process.sleep(2_000)
   end
 
   # test "kill slave" do

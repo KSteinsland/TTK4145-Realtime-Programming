@@ -5,7 +5,8 @@ defmodule ElevatorPoller do
 
   use GenServer
 
-  alias StateInterface, as: ES
+  # alias StateInterface, as: SI
+  alias StateDistribution, as: SD
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
@@ -30,9 +31,9 @@ defmodule ElevatorPoller do
       Driver.set_motor_direction(:dir_down)
 
       elevator =
-        Elevator.new(%Elevator{ES.get_state() | direction: :dir_down, behaviour: :be_moving})
+        Elevator.new(%Elevator{SD.get_state() | direction: :dir_down, behaviour: :be_moving})
 
-      :ok = ES.set_state(elevator)
+      :ok = SD.set_state(elevator)
     end
 
     prev_floor = 0
@@ -53,7 +54,7 @@ defmodule ElevatorPoller do
 
     if f != :between_floors && f != prev_floor do
       IO.puts("Arrived at floor!")
-      state = ES.get_state()
+      state = SD.get_state()
       {action, new_state} = FSM.on_floor_arrival(state, f)
 
       Driver.set_floor_indicator(new_state.floor)
@@ -70,14 +71,14 @@ defmodule ElevatorPoller do
           :ok
       end
 
-      :ok = ES.set_state(new_state)
+      :ok = SD.set_state(new_state)
     end
 
     prev_floor = f
 
-    if(Timer.has_timed_out()) do
+    if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
       # IO.puts("Door open timer has timed out!")
-      {actions, new_state} = FSM.on_door_timeout(ES.get_state())
+      {actions, new_state} = FSM.on_door_timeout(SD.get_state())
 
       case actions do
         :close_doors ->
@@ -89,7 +90,7 @@ defmodule ElevatorPoller do
       end
 
       Timer.timer_stop()
-      :ok = ES.set_state(new_state)
+      :ok = SD.set_state(new_state)
     end
 
     Process.send_after(self(), :loop_poller, @input_poll_rate_ms)
@@ -108,7 +109,7 @@ defmodule ElevatorPoller do
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
         if v == 1 && v != prev_v do
-          elevator = ES.get_state()
+          elevator = SD.get_state()
 
           {action, elevator} =
             FSM.on_request_button_press(elevator, floor_ind, Enum.at(@btn_types, btn_ind))
@@ -130,19 +131,19 @@ defmodule ElevatorPoller do
               # move elevator should only trigger on cab requests once we have state distribution fixed!
               # TODO remove this when state distributor is finished
               if btn_ind < 2 do
-                ES.new_hall_request(floor_ind, Enum.at(@btn_types, btn_ind))
+                SD.set_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
               end
 
             :update_hall_requests ->
               IO.puts("New hall request!")
-              ES.new_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind))
+              SD.set_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
 
             nil ->
               :ok
           end
 
           set_all_lights(elevator)
-          :ok = ES.set_state(elevator)
+          :ok = SD.set_state(elevator)
         end
 
         v
@@ -162,12 +163,6 @@ defmodule ElevatorPoller do
     end)
   end
 
-  # defp hall_request_at_current_floor?(floor_ind, requests) do
-  #   requests
-  #   |> Enum.at(floor_ind)
-  #   |> Enum.any?(fn req -> req in @hall_btn_types end)
-  # end
-
   defp set_all_hall_requests(req_list, prev_req_list, floor_ind) do
     # Sets all hall requests which are executed in system state
 
@@ -177,7 +172,7 @@ defmodule ElevatorPoller do
       btn_type = Enum.at(@btn_types, btn_ind)
 
       if btn != btn_old and btn_type in @hall_btn_types do
-        ES.finished_hall_request(floor_ind, btn_type)
+        SD.set_hall_request(floor_ind, btn_type, :done)
       end
     end)
   end
