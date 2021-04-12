@@ -23,82 +23,75 @@ defmodule StateDistribution do
     {:ok, %{}}
   end
 
-  def get_state() do
+  defp get_state() do
     NodeConnector.wait_for_node_startup()
     GenServer.call(__MODULE__, :get_state)
   end
 
-  def set_state(%Elevator{} = elevator) do
-    NodeConnector.wait_for_node_startup()
+  # def set_state(%Elevator{} = elevator) do
+  #   NodeConnector.wait_for_node_startup()
 
-    case Elevator.new(elevator) do
-      {:error, msg} ->
-        {:error, msg}
+  #   case Elevator.new(elevator) do
+  #     {:error, msg} ->
+  #       {:error, msg}
 
-      ^elevator ->
-        elevator = %Elevator{elevator | counter: elevator.counter + 1}
+  #     ^elevator ->
+  #       elevator = %Elevator{elevator | counter: elevator.counter + 1}
 
-        # sends new elevator state to master
-        # master checks if state is ok and distributes it
+  #       # sends new elevator state to master
+  #       # master checks if state is ok and distributes it
 
-        # set local state to ensure proper elevator_poller behaviour
-        SS.set_elevator(NodeConnector.get_self(), elevator)
+  #       # set local state to ensure proper elevator_poller behaviour
+  #       SS.set_elevator(NodeConnector.get_self(), elevator)
 
-        # async call to master to update everybody
-        GenServer.cast(
-          {__MODULE__, NodeConnector.get_master()},
-          {:new_state, NodeConnector.get_self(), elevator}
-        )
+  #       # async call to master to update everybody
+  #       GenServer.cast(
+  #         {__MODULE__, NodeConnector.get_master()},
+  #         {:new_state, NodeConnector.get_self(), elevator}
+  #       )
 
-        :ok
-    end
-  end
+  #       :ok
+  #   end
+  # end
 
-  def set_hall_request(floor_ind, btn_type, hall_state) do
-    # check if state is :done or :new
-    # :assigned is not valid
-    GenServer.call(
-      {__MODULE__, NodeConnector.get_master()},
-      {:update_hall_requests, floor_ind, btn_type, hall_state}
-    )
-  end
+  # def set_hall_request(floor_ind, btn_type, hall_state) do
+  #   # check if state is :done or :new
+  #   # :assigned is not valid
+  #   GenServer.call(
+  #     {__MODULE__, NodeConnector.get_master()},
+  #     {:update_hall_requests, floor_ind, btn_type, hall_state}
+  #   )
+  # end
 
   # calls ----------------------------------------
 
   def handle_call(:get_state, _from, state) do
-    elevator_state =
-      case SS.get_elevator(NodeConnector.get_self()) do
-        nil ->
-          %Elevator{}
-
-        elevator_state ->
-          elevator_state
-      end
-
+    elevator_state = SS.get_elevator(NodeConnector.get_self())
     {:reply, elevator_state, state}
   end
 
-  def handle_call({:update_hall_requests, floor_ind, btn_type, hall_state}, _from, state) do
+
+  def handle_cast({:update_hall_requests, new_hall_requests}, state) do
     if NodeConnector.get_role() == :master do
-      hall_requests = SS.get_hall_requests()
-      new_hall_requests = update_hall_requests(hall_requests, floor_ind, btn_type, hall_state)
 
       # TODO check state!
       # if state == :new do something
       # else if state == :done do something else
 
-      {_m, _bs} = GenServer.multi_call(StateServer, {:set_hall_requests, new_hall_requests})
+      IO.puts("here!")
 
-      {:reply, :ok, state}
+      {_m, _bs} = GenServer.multi_call(Node.list(), StateServer, {:set_hall_requests, new_hall_requests}, 400)
+
+      {:noreply, state}
     else
       # currently not in use
-      {:reply, :error, state}
+      {:noreply, state}
     end
   end
 
   # casts ----------------------------------------
 
-  def handle_cast({:new_state, node_name, elevator}, state) do
+  def handle_cast(:new_state, state) do
     if NodeConnector.get_role() == :master do
       # # check if we have a local copy, if not, make one
       # local_copy =
@@ -130,7 +123,7 @@ defmodule StateDistribution do
       # {_m, _bs} = GenServer.multi_call(StateServer, {:set_elevator, node_name, elevator})
 
       # pull everyones elevator state
-      {el_states_map, _bs} = GenServer.multi_call(Node.list(), StateDistribution, :get_state, 100)
+      {el_states_map, _bs} = GenServer.multi_call([NodeConnector.get_self() | Node.list()], StateDistribution, :get_state)
 
       # get my system state
       master_sys_state = SS.get_state()
@@ -144,8 +137,8 @@ defmodule StateDistribution do
           # probably not needed but check counter before put? :)
           fn {node_name, el_state}, els -> Map.put(els, node_name, el_state) end
         )
-        # add new elevator
-        |> Map.put(node_name, elevator)
+        ## add new elevator
+        #|> Map.put(node_name, elevator)
 
       # add to system state
       master_sys_state = %{master_sys_state | elevators: elevators_new}
@@ -189,20 +182,20 @@ defmodule StateDistribution do
     new_requests
   end
 
-  defp update_hall_requests(req, floor, btn_type, state) do
-    # TODO make this a config maybe?
-    # valid_buttons = [0, 1]
-    # also check floor and btn_type beforehand!
+  # defp update_hall_requests(req, floor, btn_type, state) do
+  #   # TODO make this a config maybe?
+  #   # valid_buttons = [0, 1]
+  #   # also check floor and btn_type beforehand!
 
-    req_list = req.hall_orders
+  #   req_list = req.hall_orders
 
-    if state in @valid_hall_request_states and btn_type in @hall_btn_types do
-      {req_at_floor, _list} = List.pop_at(req_list, floor)
-      updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], state)
-      new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
-      %StateServer.HallRequests{req | hall_orders: new_req_list}
-    else
-      {:error, "not valid hall request state!"}
-    end
-  end
+  #   if state in @valid_hall_request_states and btn_type in @hall_btn_types do
+  #     {req_at_floor, _list} = List.pop_at(req_list, floor)
+  #     updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], state)
+  #     new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
+  #     %StateServer.HallRequests{req | hall_orders: new_req_list}
+  #   else
+  #     {:error, "not valid hall request state!"}
+  #   end
+  # end
 end
