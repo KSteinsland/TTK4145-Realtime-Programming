@@ -18,12 +18,12 @@ defmodule LightHandler do
   2: If state change -> turn light on or off.
   3: If no state change -> loop back to 1.
   """
-  def light_controller do
-    hall_orders = light_check(nil)    # Checks if hall_orders have changed, returns hall_orders
-    i = 0
-    for hall_order <- hall_orders do  # Iterates through hall_orders, [[:done, :done][:done, :done][:done, :done]], and returns hall_order [:done, :done].
+  def light_controller(hall_orders) do
+    # hall_orders = light_check(nil)    # Checks if hall_orders have changed, returns hall_orders
+
+    for {hall_order, i} <- Enum.with_index(hall_orders) do  # Iterates through hall_orders, [[:done, :done][:done, :done][:done, :done]], and returns hall_order [:done, :done].
       light_logic(hall_order, i)      # Turns the light on or off
-      i = i + 1
+
     end
   end
 
@@ -41,17 +41,17 @@ defmodule LightHandler do
 
     case btn_state_Up do
       :done ->
-        Driver.set_order_button_light(Enum.at(hall_btn_types, 0), floor, :off)
+        Driver.set_order_button_light(Enum.at(@hall_btn_types, 0), floor, :off)
       :new ->
-        Driver.set_order_button_light(Enum.at(hall_btn_types, 0), floor, :on)
+        Driver.set_order_button_light(Enum.at(@hall_btn_types, 0), floor, :on)
     end
 
 
     case btn_state_Down do
       :done ->
-        Driver.set_order_button_light(Enum.at(hall_btn_types, 1), floor, :off)
+        Driver.set_order_button_light(Enum.at(@hall_btn_types, 1), floor, :off)
       :new ->
-        Driver.set_order_button_light(Enum.at(hall_btn_types, 1), floor, :on)
+        Driver.set_order_button_light(Enum.at(@hall_btn_types, 1), floor, :on)
     end
 
   end
@@ -62,12 +62,11 @@ defmodule LightHandler do
   If no state change -> do nothing (by running in an ifinite loop).
   If state change -> continue and return hall_orders (the new state).
   """
-  def light_check(previousState) do
-    currentState = SS.get_state.hall_requests.hall_orders
-    if previousState == currentState || previousState == nil do
-      light_check(currentState)
+  def light_check(current_state, previous_state) do
+    # currentState = SS.get_state.hall_requests.hall_orders
+    if previous_state != current_state || previous_state == nil do
+      light_controller(current_state.hall_orders)
     end
-    currentState
   end
 
 end

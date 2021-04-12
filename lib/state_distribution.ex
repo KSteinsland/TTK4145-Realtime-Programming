@@ -20,7 +20,7 @@ defmodule StateDistribution do
   end
 
   def init(_opts) do
-    {:ok, %{}}
+    {:ok, %{previous_hall_requests: nil}}
   end
 
   def get_state() do
@@ -57,7 +57,8 @@ defmodule StateDistribution do
   def set_hall_request(floor_ind, btn_type, hall_state) do
     # check if state is :done or :new
     # :assigned is not valid
-    GenServer.call(
+    # GenServer.call(
+    GenServer.cast(
       {__MODULE__, NodeConnector.get_master()},
       {:update_hall_requests, floor_ind, btn_type, hall_state}
     )
@@ -78,7 +79,8 @@ defmodule StateDistribution do
     {:reply, elevator_state, state}
   end
 
-  def handle_call({:update_hall_requests, floor_ind, btn_type, hall_state}, _from, state) do
+  # def handle_call({:update_hall_requests, floor_ind, btn_type, hall_state}, _from, state) do
+  def handle_cast({:update_hall_requests, floor_ind, btn_type, hall_state}, state) do
     if NodeConnector.get_role() == :master do
       hall_requests = SS.get_hall_requests()
       new_hall_requests = update_hall_requests(hall_requests, floor_ind, btn_type, hall_state)
@@ -87,13 +89,24 @@ defmodule StateDistribution do
       # if state == :new do something
       # else if state == :done do something else
 
-      {_m, _bs} = GenServer.multi_call(StateServer, {:set_hall_requests, new_hall_requests})
+      {_m, _bs} = GenServer.multi_call([node() | Node.list()], StateDistribution, {:set_hall_requests, new_hall_requests}, 500)
 
-      {:reply, :ok, state}
+      # {:reply, :ok, state}
+      {:noreply, state}
     else
       # currently not in use
-      {:reply, :error, state}
+      # {:reply, :error, state}
+      {:noreply, state}
     end
+  end
+
+  def handle_call({:set_hall_requests, new_hall_requests}, _from, state) do
+
+    StateServer.set_hall_requests(new_hall_requests)
+    LightHandler.light_check(new_hall_requests, state.previous_hall_requests)
+
+    state = %{state | previous_hall_requests: new_hall_requests}
+    {:reply, :ok, state}
   end
 
   # casts ----------------------------------------
