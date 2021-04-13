@@ -4,27 +4,27 @@ defmodule ElevatorTest do
 
   test "floor" do
     el = %Elevator{floor: 0}
-    assert Elevator.new(el) == el
+    assert Elevator.check(el) == el
 
     el = %Elevator{floor: -2}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert :error == Enum.at(Tuple.to_list(new_el), 0)
 
     el = %Elevator{floor: 1000}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert :error == Enum.at(Tuple.to_list(new_el), 0)
   end
 
   test "direction" do
     el = %Elevator{direction: :dir_stop}
-    assert Elevator.new(el) == el
+    assert Elevator.check(el) == el
 
     el = %Elevator{direction: 42}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert :error == Enum.at(Tuple.to_list(new_el), 0)
 
     el = %Elevator{direction: "test"}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert :error == Enum.at(Tuple.to_list(new_el), 0)
   end
 
@@ -34,7 +34,7 @@ defmodule ElevatorTest do
 
     new_reqs = Elevator.update_requests(reqs, 2, :btn_cab, 1)
     new_el = %Elevator{el | requests: new_reqs}
-    assert Elevator.new(new_el) == new_el
+    assert Elevator.check(new_el) == new_el
 
     new_reqs = Elevator.update_requests(reqs, -2, :btn_cab, 1)
     assert :error == Enum.at(Tuple.to_list(new_reqs), 0)
@@ -48,15 +48,15 @@ defmodule ElevatorTest do
 
   test "behaviour" do
     el = %Elevator{behaviour: :be_idle}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert new_el == el
 
     el = %Elevator{behaviour: 42}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert :error == Enum.at(Tuple.to_list(new_el), 0)
 
     el = %Elevator{behaviour: "test"}
-    new_el = Elevator.new(el)
+    new_el = Elevator.check(el)
     assert :error == Enum.at(Tuple.to_list(new_el), 0)
   end
 end
