@@ -15,10 +15,17 @@ defmodule StateDistribution do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def update_hall_requests(master, floor_ind, btn_type, hall_state) do
+  def update_hall_requests(master, node_name, floor_ind, btn_type, hall_state) do
     GenServer.cast(
       {StateDistribution, master},
-      {:update_hall_requests, floor_ind, btn_type, hall_state}
+      {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
+    )
+  end
+
+  def new_elevator_state(master, node_name, elevator) do
+    GenServer.cast(
+      {StateDistribution, master},
+      {:new_elevator_state, node_name, elevator}
     )
   end
 
@@ -48,24 +55,35 @@ defmodule StateDistribution do
   end
 
   def get_state() do
+    SS.get_state()
+  end
+
+  def get_elevator_state() do
     NodeConnector.wait_for_node_startup()
     GenServer.call(__MODULE__, :get_state)
   end
 
   # calls ----------------------------------------
 
-  def handle_call(:get_state, _from, state) do
+  def handle_call(:get_elevator_state, _from, state) do
     elevator_state = SS.get_elevator(NodeConnector.get_self())
     {:reply, elevator_state, state}
   end
 
   # casts ----------------------------------------
 
-  def handle_cast({:update_hall_requests, floor_ind, btn_type, hall_state}, state) do
+  def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     if NodeConnector.get_role() == :master do
-      # TODO check state!
-      # if state == :new do something
-      # else if state == :done do something else
+      case hall_state do
+        :new ->
+          :ok
+
+        :done ->
+          :ok
+
+        :assigned ->
+          SS.set_elevator_hall_request(node_name, floor_ind, btn_type)
+      end
 
       hall_requests = SS.get_hall_requests()
 
@@ -87,12 +105,12 @@ defmodule StateDistribution do
     end
   end
 
-  def handle_cast({:new_state, node_name, elevator}, state) do
+  def handle_cast({:new_elevator_state, node_name, elevator}, state) do
     if NodeConnector.get_role() == :master do
       # pull everyones elevator state
       nodes = List.delete([NodeConnector.get_self() | Node.list()], node_name)
 
-      # {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_state, 500)
+      # {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_elevator_state, 500)
 
       # get my system state
       master_sys_state = SS.get_state()
@@ -171,10 +189,8 @@ defmodule StateDistribution do
 
         # everything else
         hall_state ->
-          GenServer.cast(
-            {StateDistribution, Node.self()},
-            {:update_hall_requests, floor_ind, :btn_hall_up, hall_state}
-          )
+          StateDistribution.update_hall_requests(Node.self(), node_name, floor_ind, :btn_hall_up, hall_state)
+
       end
 
       case Enum.at(floor, 1) do
@@ -183,10 +199,8 @@ defmodule StateDistribution do
 
         # everything else
         hall_state ->
-          GenServer.cast(
-            {StateDistribution, Node.self()},
-            {:update_hall_requests, floor_ind, :btn_hall_down, hall_state}
-          )
+          StateDistribution.update_hall_requests(Node.self(), node_name, floor_ind, :btn_hall_down, hall_state)
+
       end
     end)
 
