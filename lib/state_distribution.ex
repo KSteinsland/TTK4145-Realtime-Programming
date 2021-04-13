@@ -5,13 +5,6 @@ defmodule StateDistribution do
     Handles distribution of state in the case of both master and slave status
   """
 
-  @btn_map Application.fetch_env!(:elevator_project, :button_map)
-  @hall_btn_map Map.drop(@btn_map, [:btn_cab])
-
-  @btn_types Application.fetch_env!(:elevator_project, :button_types)
-  @hall_btn_types List.delete(@btn_types, :btn_cab)
-
-  @valid_hall_request_states [:new, :done]
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
 
   alias StateServer, as: SS
@@ -98,7 +91,8 @@ defmodule StateDistribution do
     if NodeConnector.get_role() == :master do
       # pull everyones elevator state
       nodes = List.delete([NodeConnector.get_self() | Node.list()], node_name)
-      {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_state, 500)
+
+      # {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_state, 500)
 
       # get my system state
       master_sys_state = SS.get_state()
@@ -107,34 +101,34 @@ defmodule StateDistribution do
       # broadcast the new elevator change
       case Map.get(elevators_old, node_name) do
         nil ->
-          GenServer.multi_call(nodes, SS, {:set_elevator, node_name, elevator})
+          GenServer.abcast(nodes, StateServer, {:set_elevator, node_name, elevator})
 
         el_old ->
           if elevator.counter >= el_old.counter do
-            GenServer.multi_call(nodes, SS, {:set_elevator, node_name, elevator})
+            GenServer.abcast(nodes, StateServer, {:set_elevator, node_name, elevator})
           else
             # update cab requests?
-            IO.puts("counter bad for new !")
+            IO.puts("counter bad for #{node_name}!")
           end
       end
 
-      # broadcast all other elevator states
-      el_states_map
-      |> Enum.map(fn {node_name, el_state} ->
-        case Map.get(elevators_old, node_name) do
-          nil ->
-            GenServer.multi_call(SS, {:set_elevator, node_name, el_state})
+      # # broadcast all other elevator states
+      # el_states_map
+      # |> Enum.map(fn {node_name, el_state} ->
+      #   case Map.get(elevators_old, node_name) do
+      #     nil ->
+      #       GenServer.abcast(StateServer, {:set_elevator, node_name, el_state})
 
-          el_old ->
-            if el_state.counter >= el_old.counter do
-              GenServer.multi_call(SS, {:set_elevator, node_name, el_state})
-            else
-              # update cab requests?
-              IO.puts("counter bad!")
-              GenServer.multi_call(SS, {:set_elevator, node_name, el_old})
-            end
-        end
-      end)
+      #     el_old ->
+      #       if el_state.counter >= el_old.counter do
+      #         GenServer.abcast(StateServer, {:set_elevator, node_name, el_state})
+      #       else
+      #         # update cab requests?
+      #         IO.puts("counter bad!")
+      #         GenServer.abcast(StateServer, {:set_elevator, node_name, el_old})
+      #       end
+      #   end
+      # end)
 
       {:noreply, state}
     else
@@ -156,7 +150,7 @@ defmodule StateDistribution do
     node_elevator =
       cond do
         node_elevator.counter <= local_copy.counter and node_name != Node.self() ->
-          IO.puts("Old counter!")
+          IO.puts("Node outdated!")
 
           %Elevator{
             node_elevator

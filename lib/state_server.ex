@@ -141,6 +141,19 @@ defmodule StateServer do
 
   # casts----------------------------------------
 
+  def handle_cast({:set_elevator, node_name, elevator}, state) do
+    if elevator.counter > get_elevator_init(node_name, state.elevators).counter do
+      new_state = %SystemState{
+        state
+        | elevators: Map.put(state.elevators, node_name, elevator)
+      }
+
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
+  end
+
   def handle_cast({:set_state, new_state}, _state) do
     {:noreply, new_state}
   end

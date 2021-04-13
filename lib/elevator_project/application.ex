@@ -14,7 +14,7 @@ defmodule ElevatorProject.Application do
     children = [
       # Starts a worker by calling: ElevatorProject.Worker.start_link(arg)
       # {ElevatorProject.Worker, arg}
-      {NodeConnector, [33333, UtilsRandom.gen_rand_str(5)]},
+      {NodeConnector, [33333, Utils.Random.gen_rand_str(5)]},
       StateServer,
       StateDistribution,
       Timer,

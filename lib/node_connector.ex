@@ -317,7 +317,7 @@ defmodule NodeConnector do
 
   defp dev_register_node(name) do
     if Node.self() == :nonode@nohost do
-      {:ok, addr} = UtilsNetwork.get_local_ip()
+      {:ok, addr} = Utils.Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
       full_name = name <> "@" <> to_string(addr_str)
       IO.puts("New node name: " <> full_name)
