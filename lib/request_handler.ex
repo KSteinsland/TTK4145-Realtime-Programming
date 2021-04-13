@@ -32,6 +32,7 @@ defmodule RequestHandler do
         wd_list = handle_done_hall_requests(done_reqs, wd_list)
         
         new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
+        #todo filter out inactive 
         wd_list = handle_new_hall_requests(new_reqs, wd_list)
 
         {:ok, wd_list}
@@ -41,10 +42,9 @@ defmodule RequestHandler do
     For all new requests: assign and start watchdog. Returns a new watchdog list 
     """
     def handle_new_hall_requests(new_requests, wd_list) do
-        
         Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list -> 
             assignee = Assignment.get_assignee(sys_state)
-            StateDist.update_hall_requests(assignee, floor, btn_type, :exec)
+            StateDist.update_hall_requests(assignee, floor, btn_type, :assigned)
 
             pid = spawn(__MODULE__, :watchdog, assignee, floor, btn_type)
             wd_list = List.update_at(Enum.at(wd_list, floor),  @btn_types_map(btn_type), pid) 
@@ -65,7 +65,6 @@ defmodule RequestHandler do
 
     @doc """
     Takes in hall_requests, returns a list of tuples of finds {floor, btn_type} that contain new/done orders
-    [[:done, :done], [:done, :done], [:done, :done], [:done, :done]]
     """
     def find_hall_requests(hall_requests, type) do
         r = Enum.with_index(List.flatten(hall_requests))
@@ -86,7 +85,7 @@ defmodule RequestHandler do
         after 
             @timeout_ms -> 
                 StateDist.update_hall_requests(assignee, floor, btn_type, :new)
-                StateDist.node_active(assignee, :inactive)
+                StateDist.node_active(assignee, false)
         end
     end
 end
