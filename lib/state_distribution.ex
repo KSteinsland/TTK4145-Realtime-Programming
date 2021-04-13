@@ -112,24 +112,6 @@ defmodule StateDistribution do
           end
       end
 
-      # # broadcast all other elevator states
-      # el_states_map
-      # |> Enum.map(fn {node_name, el_state} ->
-      #   case Map.get(elevators_old, node_name) do
-      #     nil ->
-      #       GenServer.abcast(StateServer, {:set_elevator, node_name, el_state})
-
-      #     el_old ->
-      #       if el_state.counter >= el_old.counter do
-      #         GenServer.abcast(StateServer, {:set_elevator, node_name, el_state})
-      #       else
-      #         # update cab requests?
-      #         IO.puts("counter bad!")
-      #         GenServer.abcast(StateServer, {:set_elevator, node_name, el_old})
-      #       end
-      #   end
-      # end)
-
       {:noreply, state}
     else
       # currently not in use
@@ -168,7 +150,9 @@ defmodule StateDistribution do
     }
 
     GenServer.cast({StateServer, node_name}, {:set_state, updated_sys_state})
-    SS.set_state(updated_sys_state)
+
+    nodes = List.delete([Node.self() | Node.list()], node_name)
+    GenServer.abcast(nodes, StateServer, {:set_elevator, node_name, node_elevator})
 
     {:noreply, state}
   end
