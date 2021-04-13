@@ -12,7 +12,7 @@ defmodule FSM do
   #   behaviour: :be_moving}}
   # end
 
-  # TODO use Elevator.new function to check for errors!
+  # TODO use Elevator.check function to check for errors!
 
   @spec on_request_button_press(Elevator.t(), pos_integer(), Elevator.btn_types()) ::
           {:move_elevator, Elevator.t()}

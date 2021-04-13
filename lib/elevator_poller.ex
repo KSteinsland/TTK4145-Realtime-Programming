@@ -5,8 +5,6 @@ defmodule ElevatorPoller do
 
   use GenServer
 
-  # alias StateInterface, as: SI
-  alias StateDistribution, as: SD
   alias StateServer, as: SS
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
@@ -31,11 +29,15 @@ defmodule ElevatorPoller do
       # IO.puts("Between floors!")
 
       elevator =
-        Elevator.new(%Elevator{SS.get_elevator(NodeConnector.get_self()) | direction: :dir_down, behaviour: :be_moving})
+        Elevator.check(%Elevator{
+          SS.get_elevator(NodeConnector.get_self())
+          | direction: :dir_down,
+            behaviour: :be_moving
+        })
 
-        :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+      :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
 
-        Driver.set_motor_direction(:dir_down)
+      Driver.set_motor_direction(:dir_down)
     end
 
     prev_floor = 0
@@ -79,10 +81,10 @@ defmodule ElevatorPoller do
     prev_floor = f
 
     if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
-      IO.puts("Door open timer has timed out!")
+      # IO.puts("Door open timer has timed out!")
       {actions, new_state} = FSM.on_door_timeout(SS.get_elevator(NodeConnector.get_self()))
-      IO.inspect(new_state)
-      IO.inspect(actions)
+      # IO.inspect(new_state)
+      # IO.inspect(actions)
 
       case actions do
         :close_doors ->
@@ -95,7 +97,6 @@ defmodule ElevatorPoller do
 
       Timer.timer_stop()
       :ok = SS.set_elevator(NodeConnector.get_self(), new_state)
-      IO.puts("settting state")
     end
 
     Process.send_after(self(), :loop_poller, @input_poll_rate_ms)
@@ -137,13 +138,11 @@ defmodule ElevatorPoller do
               # TODO remove this when state distributor is finished
               if btn_ind < 2 do
                 SS.update_hall_requests(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
-                #SD.set_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
               end
 
             :update_hall_requests ->
               IO.puts("New hall request!")
               SS.update_hall_requests(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
-              #SD.set_hall_request(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
 
             nil ->
               :ok
@@ -179,8 +178,8 @@ defmodule ElevatorPoller do
       btn_type = Enum.at(@btn_types, btn_ind)
 
       if btn != btn_old and btn_type in @hall_btn_types do
+        # IO.puts("updating hall requests!")
         SS.update_hall_requests(floor_ind, btn_type, :done)
-        #SD.set_hall_request(floor_ind, btn_type, :done)
       end
     end)
   end
