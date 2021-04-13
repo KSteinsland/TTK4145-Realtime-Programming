@@ -22,14 +22,32 @@ defmodule StateDistribution do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def update_hall_requests(floor_ind, btn_type, hall_state) do
+  def update_hall_requests(master, floor_ind, btn_type, hall_state) do
     GenServer.cast(
-      {StateDistribution, NodeConnector.get_master()},
+      {StateDistribution, master},
       {:update_hall_requests, floor_ind, btn_type, hall_state}
     )
   end
 
-  def node_active(node_name, active_state) do
+  def node_active(master, node_name, active_state) do
+    GenServer.cast(
+      {StateDistribution, master},
+      {:node_active, node_name, active_state}
+    )
+  end
+
+  def update_node(master, node_name) do
+    GenServer.cast(
+      {StateDistribution, master},
+      {:update_node, node_name}
+    )
+  end
+
+  def update_requests(master, node_name) do
+    GenServer.cast(
+      {StateDistribution, master},
+      {:update_requests, node_name}
+    )
   end
 
   def init(_opts) do
@@ -59,15 +77,15 @@ defmodule StateDistribution do
       hall_requests = SS.get_hall_requests()
 
       new_hall_requests =
-        update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
+        SS.HallRequests.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
-      {_m, _bs} =
-        GenServer.multi_call(
-          [Node.self() | Node.list()],
-          StateServer,
-          {:set_hall_requests, new_hall_requests},
-          400
-        )
+      nodes = [NodeConnector.get_self() | Node.list()]
+
+      GenServer.abcast(
+        nodes,
+        StateServer,
+        {:set_hall_requests, new_hall_requests}
+      )
 
       {:noreply, state}
     else
@@ -78,22 +96,6 @@ defmodule StateDistribution do
 
   def handle_cast({:new_state, node_name, elevator}, state) do
     if NodeConnector.get_role() == :master do
-      # # check if elevatorstate is outdated, probably not needed...
-      # elevator =
-      #   cond do
-      #     elevator.counter <= local_copy.counter and node_name != NodeConnector.get_self() ->
-      #       IO.puts("Old counter!")
-
-      #       %Elevator{
-      #         elevator
-      #         | requests: update_cab_requests(elevator, local_copy),
-      #           counter: local_copy.counter + 1
-      #       }
-
-      #     true ->
-      #       elevator
-      #   end
-
       # pull everyones elevator state
       nodes = List.delete([NodeConnector.get_self() | Node.list()], node_name)
       {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_state, 500)
@@ -142,41 +144,42 @@ defmodule StateDistribution do
     end
   end
 
-  def update_node(node_name) do
+  def handle_cast({:update_node, node_name}, state) do
     # update a node that has just connected
-    if NodeConnector.get_role() == :master do
-      node_elevator = GenServer.call({StateServer, node_name}, :get_elevator)
 
-      master_sys_state = SS.get_state()
-      local_copy = SS.get_elevator(node_name)
+    node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
 
-      # check if elevatorstate is outdated, probably not needed...
-      node_elevator =
-        cond do
-          node_elevator.counter <= local_copy.counter and node_name != NodeConnector.get_self() ->
-            IO.puts("Old counter!")
+    master_sys_state = SS.get_state()
+    local_copy = SS.get_elevator(node_name)
 
-            %Elevator{
-              node_elevator
-              | requests: update_cab_requests(node_elevator, local_copy),
-                counter: local_copy.counter + 1
-            }
+    # check if elevatorstate is outdated, probably not needed...
+    node_elevator =
+      cond do
+        node_elevator.counter <= local_copy.counter and node_name != Node.self() ->
+          IO.puts("Old counter!")
 
-          true ->
+          %Elevator{
             node_elevator
-        end
+            | requests: update_cab_requests(node_elevator, local_copy),
+              counter: local_copy.counter + 1
+          }
 
-      updated_sys_state = %StateServer.SystemState{
-        master_sys_state
-        | elevators: Map.put(master_sys_state.elevators, node_name, node_elevator)
-      }
+        true ->
+          node_elevator
+      end
 
-      GenServer.call({StateServer, node_name}, {:set_state, updated_sys_state})
-      SS.set_state(updated_sys_state)
-    end
+    updated_sys_state = %StateServer.SystemState{
+      master_sys_state
+      | elevators: Map.put(master_sys_state.elevators, node_name, node_elevator)
+    }
+
+    GenServer.cast({StateServer, node_name}, {:set_state, updated_sys_state})
+    SS.set_state(updated_sys_state)
+
+    {:noreply, state}
   end
 
-  def update_requests(node_name) do
+  def handle_cast({:update_requests, node_name}, state) do
     node_state = GenServer.call({StateServer, node_name}, :get_state)
 
     node_hall_orders = node_state.hall_requests.hall_orders
@@ -191,7 +194,7 @@ defmodule StateDistribution do
         # everything else
         hall_state ->
           GenServer.cast(
-            {StateDistribution, NodeConnector.get_master()},
+            {StateDistribution, Node.self()},
             {:update_hall_requests, floor_ind, :btn_hall_up, hall_state}
           )
       end
@@ -203,11 +206,25 @@ defmodule StateDistribution do
         # everything else
         hall_state ->
           GenServer.cast(
-            {StateDistribution, NodeConnector.get_master()},
+            {StateDistribution, Node.self()},
             {:update_hall_requests, floor_ind, :btn_hall_down, hall_state}
           )
       end
     end)
+
+    {:noreply, state}
+  end
+
+  def handle_cast({:node_active, node, active_state}, state) do
+    if NodeConnector.get_role() == :master do
+      GenServer.abcast(Node.list(), __MODULE__, {:node_active, node, active_state})
+    end
+
+    el_state = SS.get_elevator(node)
+    el_state = %Elevator{el_state | active: active_state}
+    SS.set_elevator(node, el_state)
+
+    {:noreply, state}
   end
 
   # utils ----------------------------------------
@@ -237,22 +254,5 @@ defmodule StateDistribution do
       end)
 
     new_requests
-  end
-
-  defp update_hall_requests_logic(req, floor, btn_type, hall_state) do
-    # TODO make this a config maybe?
-    # valid_buttons = [0, 1]
-    # also check floor and btn_type beforehand!
-
-    req_list = req.hall_orders
-
-    if hall_state in @valid_hall_request_states and btn_type in @hall_btn_types do
-      {req_at_floor, _list} = List.pop_at(req_list, floor)
-      updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], hall_state)
-      new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
-      %StateServer.HallRequests{req | hall_orders: new_req_list}
-    else
-      {:error, "not valid hall request state!"}
-    end
   end
 end
