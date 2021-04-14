@@ -120,7 +120,6 @@ defmodule StateDistribution do
 
       # {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_elevator_state, 500)
 
-
       # get my system state
       master_sys_state = SS.get_state()
       elevators_old = master_sys_state.elevators

@@ -129,7 +129,7 @@ defmodule ElevatorPoller do
     IO.puts("setting motor direction")
     elevator.direction |> Driver.set_motor_direction()
 
-    set_all_lights(elevator)
+    set_all_cab_lights(elevator)
     # SS.update_hall_requests(floor_ind, btn_type, :assigned)
     :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
 
@@ -173,7 +173,7 @@ defmodule ElevatorPoller do
               :ok
           end
 
-          set_all_lights(elevator)
+          set_all_cab_lights(elevator)
           :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
         end
 
