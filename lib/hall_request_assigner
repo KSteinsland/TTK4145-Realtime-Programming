@@ -1,31 +1,48 @@
 defmodule Tester do
   @moduledoc """
     Handles the calculation of the hall_requests.
+    Need to add:
+
+      def deps do
+      [{:jason, "~> 1.2"}]
+      end
+      
+    into mix.exs
   """
 
+  @doc """
+  Currently using:
+
+  "{\"hallRequests\" : [[false,false],[true,false],[false,false],[false,true]],\"states\" : {\"one\" :{\"behaviour\":\"moving\",\"floor\":2,\"direction\":\"up\",\"cabRequests\":[false,false,true,true]},\"two\" : {\"behaviour\":\"idle\",\"floor\":0,\"direction\":\"stop\",\"cabRequests\":[false,false,false,false]}}}}}"
+
+  as input_args.
+
+  You run the executable by using the "run.sh" file in the "hall_request_assigner" folder. The "run.sh" file is not in
+  the origional git-files, I've made it myself to use "System.cmd("bash", ["./run.sh", input_args])"
+  it's apparently not possible to run the executable directly from "System.cmd".
+  It will end up like this:
+    System.cmd "bash", ["./hall_request_assigner"]
+    ./hall_request_assigner: ./hall_request_assigner: cannot execute binary file
+
+  """
 
   def exc(input_args) do
-    @doc """
-    Currently using:
-
-    "{\"hallRequests\" : [[false,false],[true,false],[false,false],[false,true]],\"states\" : {\"one\" :{\"behaviour\":\"moving\",\"floor\":2,\"direction\":\"up\",\"cabRequests\":[false,false,true,true]},\"two\" : {\"behaviour\":\"idle\",\"floor\":0,\"direction\":\"stop\",\"cabRequests\":[false,false,false,false]}}}}}"
-
-    as input_args.
-
-    You run the executable by using the "run.sh" file in the "hall_request_assigner" folder. The "run.sh" file is not in
-    the origional git-files, I've made it myself to use "System.cmd("bash", ["./run.sh", input_args])"
-    it's apparently not possible to run the executable directly from "System.cmd".
-    It will end up like this:
-      System.cmd "bash", ["./hall_request_assigner"]
-      ./hall_request_assigner: ./hall_request_assigner: cannot execute binary file
-
-    """
     {:ok, dir_path} = File.cwd()
     script_path = Path.join(dir_path, "hall_request_assigner/run.sh")
     System.cmd "bash", [script_path, input_args]
   end
 
+
+  @doc """
+  Converts the json output:
+
+    {"{\"one\":[[false,false],[true,false],[false,false],[false,true]]}\n", 0}
+
+  into elixir.
+  """
+
   def test_decoding do
+
     Jason.decode! "{\"one\":[[false,false],[true,false],[false,false],[false,true]]}"
   end
 
