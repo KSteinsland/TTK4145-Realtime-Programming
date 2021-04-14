@@ -11,17 +11,9 @@ defmodule RequestHandler do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
-  # defp wait_for_node_startup() do
-  #   if NodeConnector.get_master() == nil do
-  #     Process.sleep(10)
-  #     wait_for_node_startup()
-  #   end
-  # end
-
   def init([]) do
-    # wait_for_node_startup()
     # Assign all new incase there was a reboot.
-    sys_state = StateDistribution.get_state()
+    sys_state = StateServer.get_state()
     IO.inspect(sys_state.hall_requests.hall_orders)
     new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
@@ -66,7 +58,6 @@ defmodule RequestHandler do
       assignee = Node.self()
 
       StateDistribution.update_hall_requests(
-        NodeConnector.get_master(),
         assignee,
         floor,
         @btn_types_map_rev[btn_type],
@@ -129,14 +120,13 @@ defmodule RequestHandler do
         IO.puts("time out!!")
 
         StateDistribution.update_hall_requests(
-          NodeConnector.get_master(),
           assignee,
           floor,
           @btn_types_map_rev[btn_type],
           :new
         )
 
-        StateDistribution.node_active(NodeConnector.get_master(), assignee, false)
+        StateDistribution.node_active(assignee, false)
     end
   end
 end

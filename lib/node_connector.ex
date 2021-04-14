@@ -234,9 +234,9 @@ defmodule NodeConnector do
   def handle_info({:slave_connected, node_name, up_since}, state) do
     IO.puts("Slave #{node_name} connected!")
 
-    StateDistribution.update_requests(state.master, node_name)
-    StateDistribution.update_node(state.master, node_name)
-    StateDistribution.node_active(state.master, node_name, true)
+    StateDistribution.update_requests(node_name)
+    StateDistribution.update_node(node_name)
+    StateDistribution.node_active(node_name, true)
 
     Node.monitor(node_name, true)
     new_slaves = Map.put(state.slaves, node_name, up_since)
@@ -252,7 +252,7 @@ defmodule NodeConnector do
     IO.puts("Lost connection to node #{node}!")
     # name = node |> to_string() |> String.split("@") |> Enum.at(0)
 
-    StateDistribution.node_active(state.master, node, false)
+    StateDistribution.node_active(node, false)
 
     # upgrade to master if master disconnected
     case state.master do

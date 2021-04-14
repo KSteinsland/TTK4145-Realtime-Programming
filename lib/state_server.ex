@@ -105,7 +105,7 @@ defmodule StateServer do
           # master distributes it
 
           # async call to master to update everybody
-          StateDistribution.new_elevator_state(NodeConnector.get_master(), node_name, elevator)
+          StateDistribution.new_elevator_state(node_name, elevator)
 
           new_state = %SystemState{
             state
@@ -147,7 +147,6 @@ defmodule StateServer do
 
     if node_name == nil do
       StateDistribution.update_hall_requests(
-        NodeConnector.get_master(),
         NodeConnector.get_self(),
         floor_ind,
         btn_type,

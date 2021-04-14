@@ -15,41 +15,36 @@ defmodule StateDistribution do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
-  def update_hall_requests(master, node_name, floor_ind, btn_type, hall_state) do
+  def update_hall_requests(node_name, floor_ind, btn_type, hall_state) do
     GenServer.cast(
-      # {StateDistribution, master},
       {:global, StateDistribution},
       {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
     )
   end
 
-  def new_elevator_state(master, node_name, elevator) do
+  def new_elevator_state(node_name, elevator) do
     GenServer.cast(
-      # {StateDistribution, master},
       {:global, StateDistribution},
       {:new_elevator_state, node_name, elevator}
     )
   end
 
-  def node_active(master, node_name, active_state) do
+  def node_active(node_name, active_state) do
     GenServer.cast(
-      # {StateDistribution, master},
       {:global, StateDistribution},
       {:node_active, node_name, active_state}
     )
   end
 
-  def update_node(master, node_name) do
+  def update_node(node_name) do
     GenServer.cast(
-      # {StateDistribution, master},
       {:global, StateDistribution},
       {:update_node, node_name}
     )
   end
 
-  def update_requests(master, node_name) do
+  def update_requests(node_name) do
     GenServer.cast(
-      # {StateDistribution, master},
       {:global, StateDistribution},
       {:update_requests, node_name}
     )
@@ -203,7 +198,6 @@ defmodule StateDistribution do
         # everything else
         hall_state ->
           StateDistribution.update_hall_requests(
-            Node.self(),
             node_name,
             floor_ind,
             :btn_hall_up,
@@ -218,7 +212,6 @@ defmodule StateDistribution do
         # everything else
         hall_state ->
           StateDistribution.update_hall_requests(
-            Node.self(),
             node_name,
             floor_ind,
             :btn_hall_down,
