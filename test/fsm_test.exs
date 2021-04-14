@@ -1,31 +1,6 @@
 defmodule FSMTest do
   use ExUnit.Case
-  # , async: false
   doctest FSM
-
-  # setup do
-  #   Application.stop(:kv)
-  #   :ok = Application.start(:kv)
-  # end
-
-  # defp wait_for_floor(floor_n) do
-  #   if Driver.get_floor_sensor_state() == floor_n do
-  #     floor_n
-  #   else
-  #     wait_for_floor(floor_n)
-  #   end
-  # end
-
-  # setup_all do
-  #   #TODO move this to a integration test
-  #   port = 17777
-  #   {:ok, elevator_driver_pid} = Driver.start_link([{127, 0, 0, 1}, port])
-  #   {:ok, elevator_pid} = Elevator.start_link([])
-  #   %{pid: elevator_pid}
-
-  #   %{elevator: %Elevator{}}
-  #   :ok
-  # end
 
   describe "On request button pressed" do
     test "door open" do
