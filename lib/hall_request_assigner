@@ -13,7 +13,7 @@ defmodule Tester do
     as input_args.
 
     You run the executable by using the "run.sh" file in the "hall_request_assigner" folder. The "run.sh" file is not in
-    the origional git-files, I've made it myself to use "System.cmd("bash", [script_path, input_args])"
+    the origional git-files, I've made it myself to use "System.cmd("bash", ["./run.sh", input_args])"
     it's apparently not possible to run the executable directly from "System.cmd".
     It will end up like this:
       System.cmd "bash", ["./hall_request_assigner"]
