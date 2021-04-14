@@ -87,9 +87,9 @@ defmodule StateServer do
     GenServer.cast(__MODULE__, {:set_state, new_state})
   end
 
-  def set_elevator_hall_request(node_name, floor, btn_type) do
-    GenServer.cast(__MODULE__, {:set_elevator_hall_request, node_name, floor, btn_type})
-  end
+  # def set_elevator_request(node_name, floor, btn_type) do
+  #   GenServer.cast(__MODULE__, {:set_elevator_request, node_name, floor, btn_type})
+  # end
 
   # def set_hall_requests(requests) do
   #  GenServer.cast(__MODULE__, {:set_hall_requests, requests})
@@ -182,20 +182,20 @@ defmodule StateServer do
     {:noreply, state}
   end
 
-  def handle_cast({:set_elevator_hall_request, node_name, floor, btn_type}, state) do
-    elevator = get_elevator_init(node_name, state.elevators)
+  # def handle_cast({:set_elevator_request, node_name, floor, btn_type}, state) do
+  #   elevator = get_elevator_init(node_name, state.elevators)
 
-    new_elevator = %Elevator{
-      elevator
-      | requests: Elevator.update_requests(elevator.requests, floor, btn_type, 1)
-    }
+  #   new_elevator = %Elevator{
+  #     elevator
+  #     | requests: Elevator.update_requests(elevator.requests, floor, btn_type, 1)
+  #   }
 
-    new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, new_elevator)}
+  #   new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, new_elevator)}
 
-    StateDistribution.new_elevator_state(NodeConnector.get_master(), node_name, elevator)
+  #   StateDistribution.new_elevator_state(NodeConnector.get_master(), node_name, elevator)
 
-    {:noreply, new_state}
-  end
+  #   {:noreply, new_state}
+  # end
 
   defp wait_for_node_startup() do
     if NodeConnector.get_master() == nil do

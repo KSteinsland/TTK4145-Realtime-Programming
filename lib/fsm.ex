@@ -3,6 +3,7 @@ defmodule FSM do
   `FSM` is a pure module implementing the logic of an elevator as a finite state machine.
   """
 
+  @btn_map Application.fetch_env!(:elevator_project, :button_map)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
@@ -57,19 +58,18 @@ defmodule FSM do
         if(elevator.floor == btn_floor) do
           {:open_door, %Elevator{elevator | behaviour: :be_door_open}}
         else
-          new_elevator = %Elevator{
-            elevator
-            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-          }
-
-          # TODO add this back once we have implemented state distribution!
-          if false do
-            # if(btn_type in @hall_btn_types) do
-            {:update_hall_requests, new_elevator}
+          if btn_type in @hall_btn_types and
+               Enum.at(Enum.at(elevator.requests, btn_floor), Map.get(@btn_map, btn_type)) == 0 do
+            {:update_hall_requests, elevator}
           else
+            elevator = %Elevator{
+              elevator
+              | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+            }
+
             new_elevator = %Elevator{
-              new_elevator
-              | direction: new_elevator |> Requests.choose_direction(),
+              elevator
+              | direction: elevator |> Requests.choose_direction(),
                 behaviour: :be_moving
             }
 

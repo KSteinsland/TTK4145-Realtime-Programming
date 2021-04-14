@@ -74,17 +74,6 @@ defmodule StateDistribution do
 
   def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     if NodeConnector.get_role() == :master do
-      case hall_state do
-        :new ->
-          :ok
-
-        :done ->
-          :ok
-
-        :assigned ->
-          SS.set_elevator_hall_request(node_name, floor_ind, btn_type)
-      end
-
       hall_requests = SS.get_hall_requests()
 
       new_hall_requests =
@@ -97,6 +86,24 @@ defmodule StateDistribution do
         StateServer,
         {:set_hall_requests, new_hall_requests}
       )
+
+      case hall_state do
+        :new ->
+          # SS.set_elevator_request(node_name, floor_ind, btn_type)
+          ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
+
+          # TODO REQUEST HANDLER
+          # RequestHandler.new_state(SS.get_state())
+
+          :ok
+
+        :done ->
+          :ok
+
+        :assigned ->
+          # SS.set_elevator_request(node_name, floor_ind, btn_type)
+          ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
+      end
 
       {:noreply, state}
     else
@@ -189,8 +196,13 @@ defmodule StateDistribution do
 
         # everything else
         hall_state ->
-          StateDistribution.update_hall_requests(Node.self(), node_name, floor_ind, :btn_hall_up, hall_state)
-
+          StateDistribution.update_hall_requests(
+            Node.self(),
+            node_name,
+            floor_ind,
+            :btn_hall_up,
+            hall_state
+          )
       end
 
       case Enum.at(floor, 1) do
@@ -199,8 +211,13 @@ defmodule StateDistribution do
 
         # everything else
         hall_state ->
-          StateDistribution.update_hall_requests(Node.self(), node_name, floor_ind, :btn_hall_down, hall_state)
-
+          StateDistribution.update_hall_requests(
+            Node.self(),
+            node_name,
+            floor_ind,
+            :btn_hall_down,
+            hall_state
+          )
       end
     end)
 

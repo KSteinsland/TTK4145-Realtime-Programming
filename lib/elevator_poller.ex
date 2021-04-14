@@ -49,6 +49,13 @@ defmodule ElevatorPoller do
     {:ok, state}
   end
 
+  def send_hall_request(node_name, floor_ind, btn_type) do
+    GenServer.cast(
+      {__MODULE__, node_name},
+      {:assigned_hall_request, floor_ind, btn_type}
+    )
+  end
+
   def handle_info(:loop_poller, state) do
     {prev_floor, prev_req_list} = state
 
@@ -105,6 +112,29 @@ defmodule ElevatorPoller do
     {:noreply, state}
   end
 
+  def handle_cast({:assigned_hall_request, floor_ind, btn_type}, state) do
+    elevator = SS.get_elevator(NodeConnector.get_self())
+
+    elevator = %Elevator{
+      elevator
+      | requests: Elevator.update_requests(elevator.requests, floor_ind, btn_type, 1)
+    }
+
+    elevator = %Elevator{
+      elevator
+      | direction: elevator |> Requests.choose_direction(),
+        behaviour: :be_moving
+    }
+
+    IO.puts("setting motor direction")
+    elevator.direction |> Driver.set_motor_direction()
+
+    set_all_lights(elevator)
+    :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+
+    {:noreply, state}
+  end
+
   defp check_requests(prev_req_list) do
     Enum.with_index(prev_req_list)
     |> Enum.map(fn {floor, floor_ind} ->
@@ -133,12 +163,6 @@ defmodule ElevatorPoller do
             :move_elevator ->
               # IO.puts("setting motor direction")
               elevator.direction |> Driver.set_motor_direction()
-
-              # move elevator should only trigger on cab requests once we have state distribution fixed!
-              # TODO remove this when state distributor is finished
-              if btn_ind < 2 do
-                SS.update_hall_requests(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
-              end
 
             :update_hall_requests ->
               IO.puts("New hall request!")
