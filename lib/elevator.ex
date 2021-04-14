@@ -17,8 +17,12 @@ defmodule Elevator do
   @type btn_types :: :btn_hall_up | :btn_hall_down | :btn_cab
   @type behaviours :: :be_idle | :be_door_open | :be_moving
 
-  # Feels bad to have counter here, but is the easiest solution
-  defstruct floor: 0, direction: :dir_stop, requests: req_list, behaviour: :be_idle, counter: 0
+  defstruct floor: 0,
+            direction: :dir_stop,
+            requests: req_list,
+            behaviour: :be_idle,
+            counter: 0,
+            active: true
 
   @type t :: %__MODULE__{
           floor: pos_integer(),
@@ -27,7 +31,7 @@ defmodule Elevator do
           behaviour: behaviours()
         }
 
-  def new(%__MODULE__{} = elevator \\ %__MODULE__{}) do
+  def check(%__MODULE__{} = elevator \\ %__MODULE__{}) do
     # elevator = struct(elevator, map)
 
     with {:ok, _floor} <- parse_floor(elevator.floor),

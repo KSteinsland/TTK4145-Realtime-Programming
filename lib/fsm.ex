@@ -12,13 +12,14 @@ defmodule FSM do
   #   behaviour: :be_moving}}
   # end
 
-  # TODO use Elevator.new function to check for errors!
+  # TODO use Elevator.check function to check for errors!
 
   @spec on_request_button_press(Elevator.t(), pos_integer(), Elevator.btn_types()) ::
           {:move_elevator, Elevator.t()}
           | {nil, Elevator.t()}
           | {:open_door, Elevator.t()}
           | {:start_timer, Elevator.t()}
+          | {:update_hall_requests, Elevator.t()}
   @doc """
   Logic returning the required action to be done when a button is pressed
   and a new `Elevator` state.
@@ -29,27 +30,27 @@ defmodule FSM do
         if(elevator.floor == btn_floor) do
           {:start_timer, elevator}
         else
-          new_elevator = %Elevator{
-            elevator
-            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-          }
-
           if(btn_type in @hall_btn_types) do
-            {:update_hall_requests, new_elevator}
+            {:update_hall_requests, elevator}
           else
+            new_elevator = %Elevator{
+              elevator
+              | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+            }
+
             {nil, new_elevator}
           end
         end
 
       :be_moving ->
-        new_elevator = %Elevator{
-          elevator
-          | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-        }
-
         if(btn_type in @hall_btn_types) do
-          {:update_hall_requests, new_elevator}
+          {:update_hall_requests, elevator}
         else
+          new_elevator = %Elevator{
+            elevator
+            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+          }
+
           {nil, new_elevator}
         end
 
@@ -57,19 +58,17 @@ defmodule FSM do
         if(elevator.floor == btn_floor) do
           {:open_door, %Elevator{elevator | behaviour: :be_door_open}}
         else
-          new_elevator = %Elevator{
-            elevator
-            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-          }
-
-          # TODO add this back once we have implemented state distribution!
-          if false do
-            # if(btn_type in @hall_btn_types) do
-            {:update_hall_requests, new_elevator}
+          if btn_type in @hall_btn_types do
+            {:update_hall_requests, elevator}
           else
+            elevator = %Elevator{
+              elevator
+              | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+            }
+
             new_elevator = %Elevator{
-              new_elevator
-              | direction: new_elevator |> Requests.choose_direction(),
+              elevator
+              | direction: elevator |> Requests.choose_direction(),
                 behaviour: :be_moving
             }
 

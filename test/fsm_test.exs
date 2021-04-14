@@ -1,72 +1,76 @@
 defmodule FSMTest do
   use ExUnit.Case
-  # , async: false
   doctest FSM
 
-  # setup do
-  #   Application.stop(:kv)
-  #   :ok = Application.start(:kv)
-  # end
+  describe "On request button pressed" do
+    test "door open" do
+      elevator = %Elevator{
+        floor: 2,
+        behaviour: :be_door_open
+      }
 
-  # defp wait_for_floor(floor_n) do
-  #   if Driver.get_floor_sensor_state() == floor_n do
-  #     floor_n
-  #   else
-  #     wait_for_floor(floor_n)
-  #   end
-  # end
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_cab)
+      assert action == :start_timer
+      assert elevator == new_elevator
 
-  # setup_all do
-  #   #TODO move this to a integration test
-  #   port = 17777
-  #   {:ok, elevator_driver_pid} = Driver.start_link([{127, 0, 0, 1}, port])
-  #   {:ok, elevator_pid} = Elevator.start_link([])
-  #   %{pid: elevator_pid}
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      assert action == nil
+      assert elevator.requests != new_elevator.requests
 
-  #   %{elevator: %Elevator{}}
-  #   :ok
-  # end
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_hall_up)
+      assert action == :start_timer
+      assert elevator == new_elevator
 
-  test "request button pressed" do
-    elevator = %Elevator{
-      floor: 2,
-      behaviour: :be_door_open
-    }
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_hall_up)
+      assert action == :update_hall_requests
+      assert elevator == new_elevator
+    end
 
-    {action, _new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_cab)
-    assert action == :start_timer
+    test "moving" do
+      elevator = %Elevator{
+        floor: 2,
+        behaviour: :be_moving
+      }
 
-    {action, _new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
-    assert action == nil
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      assert action == nil
+      assert elevator.requests != new_elevator.requests
 
-    elevator = %Elevator{
-      elevator
-      | behaviour: :be_moving
-    }
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_hall_up)
+      assert action == :update_hall_requests
+      assert elevator == new_elevator
+    end
 
-    {action, _new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
-    assert action == nil
+    test "idle" do
+      elevator = %Elevator{
+        floor: 2,
+        behaviour: :be_idle
+      }
 
-    elevator = %Elevator{
-      elevator
-      | behaviour: :be_idle
-    }
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_cab)
+      assert action == :open_door
+      assert new_elevator.behaviour == :be_door_open
 
-    {action, _new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_cab)
-    assert action == :open_door
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      assert action == :move_elevator
+      assert new_elevator.behaviour == :be_moving
+      assert elevator.requests != new_elevator.requests
 
-    {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
-    assert action == :move_elevator
-    assert new_elevator.behaviour == :be_moving
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_hall_up)
+      assert action == :update_hall_requests
+      assert elevator == new_elevator
+    end
 
-    elevator = %Elevator{
-      elevator
-      | behaviour: :not_valid
-    }
+    test "not valid" do
+      elevator = %Elevator{
+        floor: 2,
+        behaviour: :not_valid
+      }
 
-    {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
-    assert action == nil
-    assert new_elevator == elevator
+      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      assert action == nil
+      assert new_elevator == elevator
+    end
   end
 
   test "just arrived at a floor" do
