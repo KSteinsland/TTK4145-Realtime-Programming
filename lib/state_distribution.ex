@@ -12,40 +12,45 @@ defmodule StateDistribution do
   # client----------------------------------------
   def start_link([]) do
     # , debug: [:trace])
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
   def update_hall_requests(master, node_name, floor_ind, btn_type, hall_state) do
     GenServer.cast(
-      {StateDistribution, master},
+      # {StateDistribution, master},
+      {:global, StateDistribution},
       {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
     )
   end
 
   def new_elevator_state(master, node_name, elevator) do
     GenServer.cast(
-      {StateDistribution, master},
+      # {StateDistribution, master},
+      {:global, StateDistribution},
       {:new_elevator_state, node_name, elevator}
     )
   end
 
   def node_active(master, node_name, active_state) do
     GenServer.cast(
-      {StateDistribution, master},
+      # {StateDistribution, master},
+      {:global, StateDistribution},
       {:node_active, node_name, active_state}
     )
   end
 
   def update_node(master, node_name) do
     GenServer.cast(
-      {StateDistribution, master},
+      # {StateDistribution, master},
+      {:global, StateDistribution},
       {:update_node, node_name}
     )
   end
 
   def update_requests(master, node_name) do
     GenServer.cast(
-      {StateDistribution, master},
+      # {StateDistribution, master},
+      {:global, StateDistribution},
       {:update_requests, node_name}
     )
   end
@@ -74,25 +79,20 @@ defmodule StateDistribution do
 
   def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     if NodeConnector.get_role() == :master do
-      hall_requests = SS.get_hall_requests()
-
-      new_hall_requests =
-        SS.HallRequests.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
-
-      nodes = [NodeConnector.get_self() | Node.list()]
+      nodes = List.delete([NodeConnector.get_self() | Node.list()], node_name)
 
       GenServer.abcast(
         nodes,
         StateServer,
-        {:set_hall_requests, new_hall_requests}
+        {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
       )
 
       case hall_state do
         :new ->
-          # SS.set_elevator_request(node_name, floor_ind, btn_type)
+          # TODO REMOVE
           ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
 
-          # TODO REQUEST HANDLER
+          # TODO ADD
           # RequestHandler.new_state(SS.get_state())
 
           :ok
@@ -101,7 +101,6 @@ defmodule StateDistribution do
           :ok
 
         :assigned ->
-          # SS.set_elevator_request(node_name, floor_ind, btn_type)
           ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
       end
 

@@ -135,8 +135,7 @@ defmodule NodeConnector do
     if state.role != :master do
       IO.puts("Master timed out, upgrading self to master")
 
-      # do something useful here...
-      # like starting a dynamic supervisor
+      upgrade_to_master()
 
       state = %State{state | role: :master, master: Node.self()}
       send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
@@ -195,7 +194,7 @@ defmodule NodeConnector do
               # and when state.master is outdated
               IO.puts("Found master #{full_name}!")
 
-              connect_to_master(latest_master)
+              connect_to_master(latest_master, state.up_since)
 
               latest_master
           end
@@ -209,8 +208,10 @@ defmodule NodeConnector do
           IO.puts("Downgrading to slave")
           IO.puts("#{full_name} is the master")
 
+          downgrade_to_slave()
+
           master = String.to_atom(full_name)
-          connect_to_master(master)
+          connect_to_master(master, up_since)
 
           {:noreply,
            %State{
@@ -230,7 +231,7 @@ defmodule NodeConnector do
     end
   end
 
-  def handle_info({:slave_connected, node_name}, state) do
+  def handle_info({:slave_connected, node_name, up_since}, state) do
     IO.puts("Slave #{node_name} connected!")
 
     StateDistribution.update_requests(state.master, node_name)
@@ -238,37 +239,46 @@ defmodule NodeConnector do
     StateDistribution.node_active(state.master, node_name, true)
 
     Node.monitor(node_name, true)
-    [host_name | host_adr_str] = String.split(to_string(node_name), "@")
-    {:noreply, %State{state | slaves: Map.put(state.slaves, host_name, host_adr_str)}}
+    new_slaves = Map.put(state.slaves, node_name, up_since)
+    send({__MODULE__, node_name}, {:slaves, new_slaves})
+    {:noreply, %State{state | slaves: new_slaves}}
+  end
+
+  def handle_info({:slaves, slaves}, state) do
+    {:noreply, %State{state | slaves: slaves}}
   end
 
   def handle_info({:nodedown, node}, state) do
     IO.puts("Lost connection to node #{node}!")
-
-    name = node |> to_string() |> String.split("@") |> Enum.at(0)
+    # name = node |> to_string() |> String.split("@") |> Enum.at(0)
 
     StateDistribution.node_active(state.master, node, false)
 
     # upgrade to master if master disconnected
     case state.master do
       ^node ->
-        IO.puts("Master disconnected, upgrading self to master")
+        if state.up_since <= state.slaves |> Map.values() |> Enum.min() do
+          IO.puts("Master disconnected, upgrading self to master")
 
-        # do something useful here...
-        # like starting a dynamic supervisor
+          upgrade_to_master()
 
-        state = %State{
-          state
-          | watchdog: stop_watchdog(state.watchdog),
-            role: :master,
-            master: Node.self()
-        }
+          state = %State{
+            state
+            | watchdog: stop_watchdog(state.watchdog),
+              role: :master,
+              master: Node.self(),
+              slaves: Map.delete(state.slaves, Node.self())
+          }
 
-        send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
-        {:noreply, state}
+          send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
+          {:noreply, state}
+        else
+          # somebody else should become master
+          {:noreply, %{state | watchdog: restart_watchdog(state.watchdog)}}
+        end
 
       master ->
-        {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, name)}}
+        {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, node)}}
     end
   end
 
@@ -287,10 +297,28 @@ defmodule NodeConnector do
 
   # Utils ------------------------------------------
 
-  defp connect_to_master(master) do
+  defp connect_to_master(master, up_since) do
     Node.monitor(master, true)
     Node.connect(master)
-    send({__MODULE__, master}, {:slave_connected, Node.self()})
+    send({__MODULE__, master}, {:slave_connected, Node.self(), up_since})
+  end
+
+  def upgrade_to_master() do
+    case Supervisor.start_child(MasterSupervisor, StateDistribution) do
+      {:error, :already_present} ->
+        if Process.whereis(StateDistribution) == nil do
+          Supervisor.restart_child(MasterSupervisor, StateDistribution)
+        else
+          :ok
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  def downgrade_to_slave() do
+    Supervisor.terminate_child(MasterSupervisor, StateDistribution)
   end
 
   defp start_watchdog() do

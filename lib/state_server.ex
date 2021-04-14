@@ -17,7 +17,6 @@ defmodule StateServer do
     @hall_btn_types List.delete(@btn_types, :btn_cab)
 
     @valid_hall_request_states [:new, :done]
-    @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
 
     new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
 
@@ -51,14 +50,7 @@ defmodule StateServer do
 
   def init(_opts) do
     wait_for_node_startup()
-
-    # if NodeConnector.get_master() == NodeConnector.get_self() do
     {:ok, %SystemState{}}
-    # else
-    #   IO.puts("Received state from master")
-    #   sys_state = GenServer.call({StateServer, NodeConnector.get_master()}, :get_state)
-    #   {:ok, sys_state}
-    # end
   end
 
   # client----------------------------------------
@@ -83,20 +75,8 @@ defmodule StateServer do
     GenServer.call(__MODULE__, {:set_elevator, node_name, elevator})
   end
 
-  def set_state(new_state) do
-    GenServer.cast(__MODULE__, {:set_state, new_state})
-  end
-
-  # def set_elevator_request(node_name, floor, btn_type) do
-  #   GenServer.cast(__MODULE__, {:set_elevator_request, node_name, floor, btn_type})
-  # end
-
-  # def set_hall_requests(requests) do
-  #  GenServer.cast(__MODULE__, {:set_hall_requests, requests})
-  # end
-
   def update_hall_requests(floor_ind, btn_type, hall_state) do
-    GenServer.cast(__MODULE__, {:update_hall_requests, floor_ind, btn_type, hall_state})
+    GenServer.cast(__MODULE__, {:update_hall_requests, nil, floor_ind, btn_type, hall_state})
   end
 
   # calls----------------------------------------
@@ -159,43 +139,27 @@ defmodule StateServer do
     {:noreply, new_state}
   end
 
-  def handle_cast({:set_hall_requests, requests}, state) do
-    new_state = %SystemState{state | hall_requests: requests}
-    {:noreply, new_state}
-  end
-
-  def handle_cast({:update_hall_requests, floor_ind, btn_type, hall_state}, state) do
+  def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     hall_requests = state.hall_requests
 
     new_hall_requests =
       HallRequests.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
-    StateDistribution.update_hall_requests(
-      NodeConnector.get_master(),
-      NodeConnector.get_self(),
-      floor_ind,
-      btn_type,
-      hall_state
-    )
+    if node_name == nil do
+      StateDistribution.update_hall_requests(
+        NodeConnector.get_master(),
+        NodeConnector.get_self(),
+        floor_ind,
+        btn_type,
+        hall_state
+      )
+    end
 
     state = %SystemState{state | hall_requests: new_hall_requests}
     {:noreply, state}
   end
 
-  # def handle_cast({:set_elevator_request, node_name, floor, btn_type}, state) do
-  #   elevator = get_elevator_init(node_name, state.elevators)
-
-  #   new_elevator = %Elevator{
-  #     elevator
-  #     | requests: Elevator.update_requests(elevator.requests, floor, btn_type, 1)
-  #   }
-
-  #   new_state = %SystemState{state | elevators: Map.put(state.elevators, node_name, new_elevator)}
-
-  #   StateDistribution.new_elevator_state(NodeConnector.get_master(), node_name, elevator)
-
-  #   {:noreply, new_state}
-  # end
+  ## Utils ------------------------------
 
   defp wait_for_node_startup() do
     if NodeConnector.get_master() == nil do
