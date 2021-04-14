@@ -51,7 +51,7 @@ defmodule StateDistribution do
   end
 
   def init(_opts) do
-    {:ok, %{previous_hall_requests: nil}}
+    {:ok, %{}}
   end
 
   def get_state() do
