@@ -20,6 +20,7 @@ defmodule FSM do
           | {nil, Elevator.t()}
           | {:open_door, Elevator.t()}
           | {:start_timer, Elevator.t()}
+          | {:update_hall_requests, Elevator.t()}
   @doc """
   Logic returning the required action to be done when a button is pressed
   and a new `Elevator` state.
@@ -30,27 +31,27 @@ defmodule FSM do
         if(elevator.floor == btn_floor) do
           {:start_timer, elevator}
         else
-          new_elevator = %Elevator{
-            elevator
-            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-          }
-
           if(btn_type in @hall_btn_types) do
-            {:update_hall_requests, new_elevator}
+            {:update_hall_requests, elevator}
           else
+            new_elevator = %Elevator{
+              elevator
+              | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+            }
+
             {nil, new_elevator}
           end
         end
 
       :be_moving ->
-        new_elevator = %Elevator{
-          elevator
-          | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
-        }
-
         if(btn_type in @hall_btn_types) do
-          {:update_hall_requests, new_elevator}
+          {:update_hall_requests, elevator}
         else
+          new_elevator = %Elevator{
+            elevator
+            | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
+          }
+
           {nil, new_elevator}
         end
 
