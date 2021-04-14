@@ -4,7 +4,7 @@ defmodule RequestHandler do
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
   @num_hall_order_types 2
-  @timeout_ms 20*1000
+  @timeout_ms 20 * 1000
 
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -44,9 +44,15 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      #assignee = Assignment.get_assignee(sys_state)
-      assignee = Node.self() #for now
-      StateDistribution.update_hall_requests(NodeConnector.get_master(), assignee, floor, btn_type, :assigned)
+      assignee = Assignment.get_assignee(sys_state)
+
+      StateDistribution.update_hall_requests(
+        NodeConnector.get_master(),
+        assignee,
+        floor,
+        btn_type,
+        :assigned
+      )
 
       pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type])
       List.update_at(Enum.at(wd_list, floor), @btn_types_map[btn_type], pid)
@@ -85,7 +91,14 @@ defmodule RequestHandler do
         Process.exit(self(), :normal)
     after
       @timeout_ms ->
-        StateDistribution.update_hall_requests(NodeConnector.get_master(), assignee, floor, btn_type, :new)
+        StateDistribution.update_hall_requests(
+          NodeConnector.get_master(),
+          assignee,
+          floor,
+          btn_type,
+          :new
+        )
+
         StateDistribution.node_active(NodeConnector.get_master(), assignee, false)
     end
   end
