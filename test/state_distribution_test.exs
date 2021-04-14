@@ -28,6 +28,14 @@ defmodule StateDistributionTest do
       |> Simulator.send_key(Enum.random(0..(num_nodes - 1)))
     end)
 
+    Process.sleep(2_000)
+
+    Enum.map(Node.list(), fn node ->
+      Cluster.rpc(node, Driver, :set_motor_direction, [:dir_stop])
+    end)
+
+    Process.sleep(4_000)
+
     # check that state is the same on all nodes
     system_state = StateServer.get_state()
 
