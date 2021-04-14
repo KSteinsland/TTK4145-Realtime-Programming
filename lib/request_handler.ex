@@ -8,10 +8,18 @@ defmodule RequestHandler do
   @timeout_ms 20 * 1000
 
   def start_link([]) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
+  # defp wait_for_node_startup() do
+  #   if NodeConnector.get_master() == nil do
+  #     Process.sleep(10)
+  #     wait_for_node_startup()
+  #   end
+  # end
+
   def init([]) do
+    # wait_for_node_startup()
     # Assign all new incase there was a reboot.
     sys_state = StateDistribution.get_state()
     IO.inspect(sys_state.hall_requests.hall_orders)
@@ -22,7 +30,7 @@ defmodule RequestHandler do
   end
 
   def new_state(sys_state) do
-    GenServer.cast(__MODULE__, {:new_state, sys_state})
+    GenServer.cast({:global, __MODULE__}, {:new_state, sys_state})
   end
 
   def get_wd() do
@@ -53,8 +61,9 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      #assignee = Assignment.get_assignee(sys_state)
-      assignee = Node.self() #for now
+      # assignee = Assignment.get_assignee(sys_state)
+      # for now
+      assignee = Node.self()
 
       StateDistribution.update_hall_requests(
         NodeConnector.get_master(),
@@ -76,8 +85,11 @@ defmodule RequestHandler do
     Enum.reduce(done_requests, wd_list, fn {floor, btn_type}, wd_list ->
       wd_pid = Enum.at(Enum.at(wd_list, floor), btn_type)
       IO.inspect(wd_pid)
+
       case wd_pid do
-        nil -> :noop
+        nil ->
+          :noop
+
         pid ->
           send(pid, :done)
           IO.puts("sent hall req confirmation")
@@ -109,12 +121,13 @@ defmodule RequestHandler do
 
   def watchdog(assignee, floor, btn_type) do
     receive do
-      {:done} ->
+      :done ->
         IO.puts("confirmed done!")
         Process.exit(self(), :normal)
     after
       @timeout_ms ->
         IO.puts("time out!!")
+
         StateDistribution.update_hall_requests(
           NodeConnector.get_master(),
           assignee,

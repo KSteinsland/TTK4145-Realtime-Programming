@@ -135,7 +135,7 @@ defmodule NodeConnector do
     if state.role != :master do
       IO.puts("Master timed out, upgrading self to master")
 
-      upgrade_to_master()
+      MasterSupervisor.upgrade_to_master()
 
       state = %State{state | role: :master, master: Node.self()}
       send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
@@ -208,7 +208,7 @@ defmodule NodeConnector do
           IO.puts("Downgrading to slave")
           IO.puts("#{full_name} is the master")
 
-          downgrade_to_slave()
+          MasterSupervisor.downgrade_to_slave()
 
           master = String.to_atom(full_name)
           connect_to_master(master, up_since)
@@ -260,7 +260,7 @@ defmodule NodeConnector do
         if state.up_since <= state.slaves |> Map.values() |> Enum.min() do
           IO.puts("Master disconnected, upgrading self to master")
 
-          upgrade_to_master()
+          MasterSupervisor.upgrade_to_master()
 
           state = %State{
             state
@@ -301,24 +301,6 @@ defmodule NodeConnector do
     Node.monitor(master, true)
     Node.connect(master)
     send({__MODULE__, master}, {:slave_connected, Node.self(), up_since})
-  end
-
-  def upgrade_to_master() do
-    case Supervisor.start_child(MasterSupervisor, StateDistribution) do
-      {:error, :already_present} ->
-        if Process.whereis(StateDistribution) == nil do
-          Supervisor.restart_child(MasterSupervisor, StateDistribution)
-        else
-          :ok
-        end
-
-      _ ->
-        :ok
-    end
-  end
-
-  def downgrade_to_slave() do
-    Supervisor.terminate_child(MasterSupervisor, StateDistribution)
   end
 
   defp start_watchdog() do

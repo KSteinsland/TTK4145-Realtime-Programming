@@ -16,7 +16,7 @@ defmodule StateServer do
     @btn_types Application.fetch_env!(:elevator_project, :button_types)
     @hall_btn_types List.delete(@btn_types, :btn_cab)
 
-    @valid_hall_request_states [:new, :done]
+    @valid_hall_request_states [:new, :done, :assigned]
 
     new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
 
@@ -162,7 +162,7 @@ defmodule StateServer do
   ## Utils ------------------------------
 
   defp wait_for_node_startup() do
-    if NodeConnector.get_master() == nil do
+    if Node.self() == :nonode@nohost do
       Process.sleep(10)
       wait_for_node_startup()
     end

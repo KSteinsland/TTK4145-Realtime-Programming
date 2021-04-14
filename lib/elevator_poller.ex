@@ -130,6 +130,7 @@ defmodule ElevatorPoller do
     elevator.direction |> Driver.set_motor_direction()
 
     set_all_lights(elevator)
+    # SS.update_hall_requests(floor_ind, btn_type, :assigned)
     :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
 
     {:noreply, state}

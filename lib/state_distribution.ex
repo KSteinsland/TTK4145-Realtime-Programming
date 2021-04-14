@@ -90,10 +90,10 @@ defmodule StateDistribution do
       case hall_state do
         :new ->
           # TODO REMOVE
-          ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
+          # ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
 
           # TODO ADD
-          # RequestHandler.new_state(SS.get_state())
+          RequestHandler.new_state(SS.get_state())
 
           :ok
 
@@ -101,6 +101,13 @@ defmodule StateDistribution do
           :ok
 
         :assigned ->
+          IO.puts("assigned!")
+
+          GenServer.cast(
+            {StateServer, node_name},
+            {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
+          )
+
           ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
       end
 
