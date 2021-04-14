@@ -13,6 +13,7 @@ defmodule RequestHandler do
   def init([]) do
     # Assign all new incase there was a reboot.
     sys_state = StateDistribution.get_state()
+    IO.inspect(sys_state.hall_requests.hall_orders)
     new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
     wd_list = handle_new_hall_requests(new_reqs, empty_wd_list, sys_state)
@@ -43,7 +44,8 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      assignee = Assignment.get_assignee(sys_state)
+      #assignee = Assignment.get_assignee(sys_state)
+      assignee = Node.self() #for now
       StateDistribution.update_hall_requests(NodeConnector.get_master(), assignee, floor, btn_type, :assigned)
 
       pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type])
