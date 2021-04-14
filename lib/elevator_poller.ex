@@ -76,7 +76,7 @@ defmodule ElevatorPoller do
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
           Timer.timer_start(@door_open_duration_ms)
-          set_all_lights(new_state)
+          set_all_cab_lights(new_state)
 
         _ ->
           :ok
@@ -129,7 +129,7 @@ defmodule ElevatorPoller do
     IO.puts("setting motor direction")
     elevator.direction |> Driver.set_motor_direction()
 
-    set_all_lights(elevator)
+    set_all_cab_lights(elevator)
     # SS.update_hall_requests(floor_ind, btn_type, :assigned)
     :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
 
@@ -173,7 +173,7 @@ defmodule ElevatorPoller do
               :ok
           end
 
-          set_all_lights(elevator)
+          set_all_cab_lights(elevator)
           :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
         end
 
@@ -182,15 +182,13 @@ defmodule ElevatorPoller do
     end)
   end
 
-  defp set_all_lights(elevator) do
+  defp set_all_cab_lights(elevator) do
     light_state = [:off, :on]
 
     Enum.with_index(elevator.requests)
     |> Enum.map(fn {floor, floor_ind} ->
-      Enum.zip(floor, @btn_types)
-      |> Enum.map(fn {btn, btn_type} ->
-        Driver.set_order_button_light(btn_type, floor_ind, Enum.at(light_state, btn))
-      end)
+      cab_btn = Enum.at(floor, 2)
+      Driver.set_order_button_light(:btn_cab, floor_ind, Enum.at(light_state, cab_btn))
     end)
   end
 
