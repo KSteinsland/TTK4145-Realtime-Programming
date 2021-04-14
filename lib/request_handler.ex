@@ -3,6 +3,7 @@ defmodule RequestHandler do
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
+  @btn_types_map_rev %{0 => :btn_hall_up, 1 => :btn_hall_down, 2 => :btn_cab}
   @num_hall_order_types 2
   @timeout_ms 20 * 1000
 
@@ -21,7 +22,15 @@ defmodule RequestHandler do
   end
 
   def new_state(sys_state) do
-    Genserver.cast(__MODULE__, {:new_state, sys_state})
+    GenServer.cast(__MODULE__, {:new_state, sys_state})
+  end
+
+  def get_wd() do
+    GenServer.call(__MODULE__, :get_wd)
+  end
+
+  def handle_call(:get_wd, _from, wd_list) do
+    {:reply, wd_list, wd_list}
   end
 
   @doc """
@@ -33,40 +42,48 @@ defmodule RequestHandler do
     wd_list = handle_done_hall_requests(done_reqs, wd_list)
 
     new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
-    # todo filter out inactive 
+    # todo filter out inactive
     wd_list = handle_new_hall_requests(new_reqs, wd_list, sys_state)
 
-    {:ok, wd_list}
+    {:noreply, wd_list}
   end
 
   @doc """
-  For all new requests: assign and start watchdog. Returns a new watchdog list 
+  For all new requests: assign and start watchdog. Returns a new watchdog list
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      assignee = Assignment.get_assignee(sys_state)
+      #assignee = Assignment.get_assignee(sys_state)
+      assignee = Node.self() #for now
 
       StateDistribution.update_hall_requests(
         NodeConnector.get_master(),
         assignee,
         floor,
-        btn_type,
+        @btn_types_map_rev[btn_type],
         :assigned
       )
 
       pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type])
-      List.update_at(Enum.at(wd_list, floor), @btn_types_map[btn_type], pid)
+      wd_list_replace_at(wd_list, floor, btn_type, pid)
     end)
   end
 
   @doc """
-  For all done requests: kill watchdog timer. Returns a new watchdog list  
+  For all done requests: kill watchdog timer. Returns a new watchdog list
   """
   def handle_done_hall_requests(done_requests, wd_list) do
     Enum.reduce(done_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      pid = Enum.at(Enum.at(wd_list, floor), @btn_types_map[btn_type], floor)
-      send(pid, :done)
-      List.update_at(Enum.at(wd_list, floor), @btn_types_map[btn_type], nil)
+      wd_pid = Enum.at(Enum.at(wd_list, floor), btn_type)
+      IO.inspect(wd_pid)
+      case wd_pid do
+        nil -> :noop
+        pid ->
+          send(pid, :done)
+          IO.puts("sent hall req confirmation")
+      end
+
+      wd_list_replace_at(wd_list, floor, btn_type, nil)
     end)
   end
 
@@ -85,17 +102,24 @@ defmodule RequestHandler do
     end)
   end
 
+  def wd_list_replace_at(wd_list, floor, btn_type, value) do
+    f = List.replace_at(Enum.at(wd_list, floor), btn_type, value)
+    List.replace_at(wd_list, floor, f)
+  end
+
   def watchdog(assignee, floor, btn_type) do
     receive do
       {:done} ->
+        IO.puts("confirmed done!")
         Process.exit(self(), :normal)
     after
       @timeout_ms ->
+        IO.puts("time out!!")
         StateDistribution.update_hall_requests(
           NodeConnector.get_master(),
           assignee,
           floor,
-          btn_type,
+          @btn_types_map_rev[btn_type],
           :new
         )
 
