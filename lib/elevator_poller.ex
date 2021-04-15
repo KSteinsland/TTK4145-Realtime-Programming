@@ -105,9 +105,9 @@ defmodule ElevatorPoller do
 
     if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
       # IO.puts("Door open timer has timed out!")
-      {actions, new_state} = FSM.on_door_timeout(SS.get_elevator(NodeConnector.get_self()))
+      {action, new_state} = FSM.on_door_timeout(SS.get_elevator(NodeConnector.get_self()))
 
-      case actions do
+      case action do
         :close_doors ->
           Driver.set_door_open_light(:off)
           new_state.direction |> Driver.set_motor_direction()
@@ -159,6 +159,7 @@ defmodule ElevatorPoller do
     {action, elevator} = FSM.on_request(elevator, floor, btn_type, req_type)
     # IO.inspect(action)
 
+    # TODO move req_type check into FSM and return a list of actions instead
     case action do
       :start_timer ->
         IO.puts("starting timer")
