@@ -4,7 +4,7 @@ defmodule Requests do
   """
 
   @button_map Application.fetch_env!(:elevator_project, :button_map)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
+  @num_buttons length(Map.values(@button_map))
 
   @doc """
   Returns bool ':true' if there is a request above current floor. 'false' if not.

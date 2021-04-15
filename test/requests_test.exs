@@ -3,7 +3,7 @@ defmodule RequestsTest do
   doctest Elevator
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
+  @num_buttons 3
 
   setup do
     %{elevator: %Elevator{}}

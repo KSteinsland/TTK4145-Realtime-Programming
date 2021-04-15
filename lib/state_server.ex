@@ -18,9 +18,17 @@ defmodule StateServer do
 
     @valid_hall_request_states [:new, :done, :assigned]
 
+    @type hall_btn_states :: :new | :assigned | :done
+    @type hall_btn_types :: :btn_hall_down | :btn_hall_up
+    @type hall_req_list :: [[hall_btn_states(), ...], ...]
+
     new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
 
     defstruct hall_orders: new_hall_orders
+
+    @type t :: %__MODULE__{
+            hall_orders: hall_req_list()
+          }
 
     def update_hall_requests_logic(req, floor, btn_type, hall_state) do
       # TODO make this a config maybe?
@@ -46,6 +54,11 @@ defmodule StateServer do
     """
 
     defstruct hall_requests: %HallRequests{}, elevators: %{}
+
+    @type t :: %__MODULE__{
+            hall_requests: HallRequests.t(),
+            elevators: %{node() => Elevator.t()}
+          }
   end
 
   def init(_opts) do
@@ -75,8 +88,21 @@ defmodule StateServer do
     GenServer.call(__MODULE__, {:set_elevator, node_name, elevator})
   end
 
-  def update_hall_requests(floor_ind, btn_type, hall_state) do
-    GenServer.cast(__MODULE__, {:update_hall_requests, nil, floor_ind, btn_type, hall_state})
+  @spec update_hall_requests(
+          node() | :local,
+          Elevator.floors(),
+          HallRequests.hall_btn_types(),
+          HallRequests.hall_btn_states()
+        ) :: :ok
+  @doc """
+  Updates the hall request in `StateServer` for node `node_name`.
+  If node_name = `:local` it distributes the hall request update
+  """
+  def update_hall_requests(node_name \\ :local, floor_ind, btn_type, hall_state) do
+    GenServer.cast(
+      __MODULE__,
+      {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
+    )
   end
 
   # calls----------------------------------------
@@ -147,7 +173,7 @@ defmodule StateServer do
 
     spawn(fn -> LightHandler.light_check(new_hall_requests, hall_requests) end)
 
-    if node_name == nil do
+    if node_name == :local do
       StateDistribution.update_hall_requests(
         NodeConnector.get_self(),
         floor_ind,

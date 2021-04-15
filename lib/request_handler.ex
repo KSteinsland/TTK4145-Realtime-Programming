@@ -4,6 +4,7 @@ defmodule RequestHandler do
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
   @btn_types_map_rev %{0 => :btn_hall_up, 1 => :btn_hall_down, 2 => :btn_cab}
+  # TODO maybe change reverse map out with a btn_types list
   @num_hall_order_types 2
   @timeout_ms 20 * 1000
 

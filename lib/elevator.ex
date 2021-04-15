@@ -4,20 +4,19 @@ defmodule Elevator do
   """
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-  @directions Application.fetch_env!(:elevator_project, :directions)
-  @behaviours Application.fetch_env!(:elevator_project, :behaviours)
+  @directions [:dir_up, :dir_down, :dir_stop]
+  @behaviours [:be_idle, :be_door_open, :be_moving]
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
-  @btn_types Map.keys(@btn_types_map)
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @num_buttons length(@btn_types)
   @btn_values 0..1
 
   @type directions :: :dir_up | :dir_down | :dir_stop
   @type btn_types :: :btn_hall_up | :btn_hall_down | :btn_cab
-  @type hall_btn_types :: :btn_hall_up | :btn_hall_down
   @type btn_values :: 0..1
   @type floors :: 0..unquote(@num_floors)
   @type behaviours :: :be_idle | :be_door_open | :be_moving
-  @type req_list :: [[btn_types(), ...], ...]
+  @type req_list :: [[btn_values(), ...], ...]
 
   req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
