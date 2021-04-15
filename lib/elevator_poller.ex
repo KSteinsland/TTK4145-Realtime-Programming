@@ -90,8 +90,6 @@ defmodule ElevatorPoller do
     if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
       # IO.puts("Door open timer has timed out!")
       {actions, new_state} = FSM.on_door_timeout(SS.get_elevator(NodeConnector.get_self()))
-      # IO.inspect(new_state)
-      # IO.inspect(actions)
 
       case actions do
         :close_doors ->
@@ -115,22 +113,8 @@ defmodule ElevatorPoller do
   def handle_cast({:assigned_hall_request, floor_ind, btn_type}, state) do
     elevator = SS.get_elevator(NodeConnector.get_self())
 
-    elevator = %Elevator{
-      elevator
-      | requests: Elevator.update_requests(elevator.requests, floor_ind, btn_type, 1)
-    }
+    elevator = request_procedure(elevator, floor_ind, btn_type, :message)
 
-    elevator = %Elevator{
-      elevator
-      | direction: elevator |> Requests.choose_direction(),
-        behaviour: :be_moving
-    }
-
-    IO.puts("setting motor direction")
-    elevator.direction |> Driver.set_motor_direction()
-
-    set_all_cab_lights(elevator)
-    # SS.update_hall_requests(floor_ind, btn_type, :assigned)
     :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
 
     {:noreply, state}
@@ -148,38 +132,48 @@ defmodule ElevatorPoller do
         if v == 1 && v != prev_v do
           elevator = SS.get_elevator(NodeConnector.get_self())
 
-          {action, elevator} =
-            FSM.on_request_button_press(elevator, floor_ind, Enum.at(@btn_types, btn_ind))
+          elevator = request_procedure(elevator, floor_ind, Enum.at(@btn_types, btn_ind), :button)
 
-          case action do
-            :start_timer ->
-              # IO.puts("starting timer")
-              Timer.timer_start(@door_open_duration_ms)
-
-            :open_door ->
-              # IO.puts("opening door!")
-              Driver.set_door_open_light(:on)
-              Timer.timer_start(@door_open_duration_ms)
-
-            :move_elevator ->
-              # IO.puts("setting motor direction")
-              elevator.direction |> Driver.set_motor_direction()
-
-            :update_hall_requests ->
-              IO.puts("New hall request!")
-              SS.update_hall_requests(floor_ind, Enum.at(@hall_btn_types, btn_ind), :new)
-
-            nil ->
-              :ok
-          end
-
-          set_all_cab_lights(elevator)
           :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
         end
 
         v
       end)
     end)
+  end
+
+  defp request_procedure(elevator, floor, btn_type, req_type) do
+    # performs actions on received request, either a request button press
+    # or a request message from distribution
+
+    {action, elevator} = FSM.on_request(elevator, floor, btn_type, req_type)
+
+    IO.inspect(action)
+
+    case action do
+      :start_timer ->
+        IO.puts("starting timer")
+        Timer.timer_start(@door_open_duration_ms)
+
+      :open_door ->
+        IO.puts("opening door!")
+        Driver.set_door_open_light(:on)
+        Timer.timer_start(@door_open_duration_ms)
+
+      :move_elevator ->
+        IO.puts("setting motor direction")
+        elevator.direction |> Driver.set_motor_direction()
+
+      :update_hall_requests ->
+        IO.puts("New hall request!")
+        SS.update_hall_requests(floor, btn_type, :new)
+
+      nil ->
+        :ok
+    end
+
+    set_all_cab_lights(elevator)
+    elevator
   end
 
   defp set_all_cab_lights(elevator) do
