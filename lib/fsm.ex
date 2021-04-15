@@ -14,7 +14,7 @@ defmodule FSM do
 
   # TODO use Elevator.check function to check for errors!
 
-  @spec on_request_button_press(Elevator.t(), pos_integer(), Elevator.btn_types()) ::
+  @spec on_request(Elevator.t(), pos_integer(), Elevator.btn_types(), :button | :message) ::
           {:move_elevator, Elevator.t()}
           | {nil, Elevator.t()}
           | {:open_door, Elevator.t()}
@@ -24,14 +24,36 @@ defmodule FSM do
   Logic returning the required action to be done when a button is pressed
   and a new `Elevator` state.
   """
-  def on_request_button_press(%Elevator{} = elevator, btn_floor, btn_type) do
-    case elevator.behaviour do
-      :be_door_open ->
-        if(elevator.floor == btn_floor) do
-          {:start_timer, elevator}
-        else
-          if(btn_type in @hall_btn_types) do
+  def on_request(%Elevator{} = elevator, btn_floor, btn_type, req_type) do
+    # maybe we should send update_hall_requests, even if elevator.floor = btn_floor
+    # to make the best elevator take the order
+    if req_type == :button and btn_type in @hall_btn_types do
+      case elevator.behaviour do
+        :be_door_open ->
+          if(elevator.floor == btn_floor) do
+            {:start_timer, elevator}
+          else
             {:update_hall_requests, elevator}
+          end
+
+        :be_moving ->
+          {:update_hall_requests, elevator}
+
+        :be_idle ->
+          if(elevator.floor == btn_floor) do
+            {:open_door, %Elevator{elevator | behaviour: :be_door_open}}
+          else
+            {:update_hall_requests, elevator}
+          end
+
+        _ ->
+          {nil, elevator}
+      end
+    else
+      case elevator.behaviour do
+        :be_door_open ->
+          if(elevator.floor == btn_floor) do
+            {:start_timer, elevator}
           else
             new_elevator = %Elevator{
               elevator
@@ -40,26 +62,18 @@ defmodule FSM do
 
             {nil, new_elevator}
           end
-        end
 
-      :be_moving ->
-        if(btn_type in @hall_btn_types) do
-          {:update_hall_requests, elevator}
-        else
+        :be_moving ->
           new_elevator = %Elevator{
             elevator
             | requests: Elevator.update_requests(elevator.requests, btn_floor, btn_type, 1)
           }
 
           {nil, new_elevator}
-        end
 
-      :be_idle ->
-        if(elevator.floor == btn_floor) do
-          {:open_door, %Elevator{elevator | behaviour: :be_door_open}}
-        else
-          if btn_type in @hall_btn_types do
-            {:update_hall_requests, elevator}
+        :be_idle ->
+          if(elevator.floor == btn_floor) do
+            {:open_door, %Elevator{elevator | behaviour: :be_door_open}}
           else
             elevator = %Elevator{
               elevator
@@ -74,10 +88,10 @@ defmodule FSM do
 
             {:move_elevator, new_elevator}
           end
-        end
 
-      _ ->
-        {nil, elevator}
+        _ ->
+          {nil, elevator}
+      end
     end
   end
 

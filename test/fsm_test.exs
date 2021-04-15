@@ -9,21 +9,37 @@ defmodule FSMTest do
         behaviour: :be_door_open
       }
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_cab)
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_cab, :button)
       assert action == :start_timer
       assert elevator == new_elevator
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :button)
       assert action == nil
       assert elevator.requests != new_elevator.requests
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_hall_up)
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_hall_up, :button)
       assert action == :start_timer
       assert elevator == new_elevator
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_hall_up)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :button)
       assert action == :update_hall_requests
       assert elevator == new_elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_cab, :button)
+      assert action == :start_timer
+      assert elevator == new_elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :button)
+      assert action == nil
+      assert elevator.requests != new_elevator.requests
+
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_hall_up, :message)
+      assert action == :start_timer
+      assert elevator == new_elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :message)
+      assert action == nil
+      assert elevator.requests != new_elevator.requests
     end
 
     test "moving" do
@@ -32,13 +48,21 @@ defmodule FSMTest do
         behaviour: :be_moving
       }
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :button)
       assert action == nil
       assert elevator.requests != new_elevator.requests
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_hall_up)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :button)
       assert action == :update_hall_requests
       assert elevator == new_elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :message)
+      assert action == nil
+      assert elevator.requests != new_elevator.requests
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :message)
+      assert action == nil
+      assert elevator.requests != new_elevator.requests
     end
 
     test "idle" do
@@ -47,18 +71,36 @@ defmodule FSMTest do
         behaviour: :be_idle
       }
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 2, :btn_cab)
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_cab, :button)
       assert action == :open_door
       assert new_elevator.behaviour == :be_door_open
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :button)
       assert action == :move_elevator
       assert new_elevator.behaviour == :be_moving
       assert elevator.requests != new_elevator.requests
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_hall_up)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :button)
       assert action == :update_hall_requests
       assert elevator == new_elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_cab, :message)
+      assert action == :open_door
+      assert new_elevator.behaviour == :be_door_open
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :message)
+      assert action == :move_elevator
+      assert new_elevator.behaviour == :be_moving
+      assert elevator.requests != new_elevator.requests
+
+      {action, new_elevator} = FSM.on_request(elevator, 2, :btn_hall_up, :message)
+      assert action == :open_door
+      assert new_elevator.behaviour == :be_door_open
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :message)
+      assert action == :move_elevator
+      assert new_elevator.behaviour == :be_moving
+      assert elevator.requests != new_elevator.requests
     end
 
     test "not valid" do
@@ -67,7 +109,19 @@ defmodule FSMTest do
         behaviour: :not_valid
       }
 
-      {action, new_elevator} = FSM.on_request_button_press(elevator, 1, :btn_cab)
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :button)
+      assert action == nil
+      assert new_elevator == elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :button)
+      assert action == nil
+      assert new_elevator == elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_cab, :message)
+      assert action == nil
+      assert new_elevator == elevator
+
+      {action, new_elevator} = FSM.on_request(elevator, 1, :btn_hall_up, :message)
       assert action == nil
       assert new_elevator == elevator
     end
