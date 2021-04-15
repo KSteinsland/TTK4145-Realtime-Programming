@@ -55,7 +55,7 @@ defmodule Assignment do
     case :os.type() do
       {:unix, os} ->
         os = if os == :linux, do: to_string(os), else: "mac"
-        # IO.puts("Calling #{os} assigner")
+        IO.puts("Calling #{os} assigner")
 
         {:ok, dir_path} = File.cwd()
         assigner_path = Path.join(dir_path, "assignment/#{os}/hall_request_assigner")

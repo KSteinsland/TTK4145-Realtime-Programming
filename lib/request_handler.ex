@@ -53,9 +53,9 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      # assignee = Assignment.get_assignee(sys_state)
+      assignee = Assignment.assign(sys_state)
       # for now
-      assignee = Node.self()
+      # assignee = Node.self()
 
       StateDistribution.update_hall_requests(
         assignee,
