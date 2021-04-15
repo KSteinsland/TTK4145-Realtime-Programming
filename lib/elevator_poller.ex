@@ -49,6 +49,10 @@ defmodule ElevatorPoller do
     {:ok, state}
   end
 
+  @spec send_hall_request(node(), Elevator.floors(), Elevator.hall_btn_types()) :: :ok
+  @doc """
+  Sends a assigned hall request to the elevator at `node_name` to be executed
+  """
   def send_hall_request(node_name, floor_ind, btn_type) do
     GenServer.cast(
       {__MODULE__, node_name},
@@ -56,7 +60,19 @@ defmodule ElevatorPoller do
     )
   end
 
+  def handle_cast({:assigned_hall_request, floor_ind, btn_type}, state) do
+    elevator = SS.get_elevator(NodeConnector.get_self())
+
+    elevator = request_procedure(elevator, floor_ind, btn_type, :message)
+
+    :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+
+    {:noreply, state}
+  end
+
   def handle_info(:loop_poller, state) do
+    # Internal polling loop
+
     {prev_floor, prev_req_list} = state
 
     prev_req_list = check_requests(prev_req_list)
@@ -110,29 +126,23 @@ defmodule ElevatorPoller do
     {:noreply, state}
   end
 
-  def handle_cast({:assigned_hall_request, floor_ind, btn_type}, state) do
-    elevator = SS.get_elevator(NodeConnector.get_self())
-
-    elevator = request_procedure(elevator, floor_ind, btn_type, :message)
-
-    :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
-
-    {:noreply, state}
-  end
-
   defp check_requests(prev_req_list) do
+    # Iterates through all num_floors x buttons and checks for button press
+
     Enum.with_index(prev_req_list)
     |> Enum.map(fn {floor, floor_ind} ->
       Enum.with_index(floor)
       |> Enum.map(fn {_btn, btn_ind} ->
-        v = Driver.get_order_button_state(floor_ind, Enum.at(@btn_types, btn_ind))
+        btn_type = @btn_types |> Enum.at(btn_ind)
+
+        v = Driver.get_order_button_state(floor_ind, btn_type)
 
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
         if v == 1 && v != prev_v do
           elevator = SS.get_elevator(NodeConnector.get_self())
 
-          elevator = request_procedure(elevator, floor_ind, Enum.at(@btn_types, btn_ind), :button)
+          elevator = request_procedure(elevator, floor_ind, btn_type, :button)
 
           :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
         end
@@ -147,8 +157,7 @@ defmodule ElevatorPoller do
     # or a request message from distribution
 
     {action, elevator} = FSM.on_request(elevator, floor, btn_type, req_type)
-
-    IO.inspect(action)
+    # IO.inspect(action)
 
     case action do
       :start_timer ->
@@ -187,7 +196,7 @@ defmodule ElevatorPoller do
   end
 
   defp set_all_hall_requests(req_list, prev_req_list, floor_ind) do
-    # Sets all hall requests which are executed in system state
+    # Sets all hall requests which are executed in state
 
     Enum.zip(Enum.at(req_list, floor_ind), Enum.at(prev_req_list, floor_ind))
     |> Enum.with_index()

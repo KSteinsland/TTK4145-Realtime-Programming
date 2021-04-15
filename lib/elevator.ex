@@ -9,13 +9,17 @@ defmodule Elevator do
   @behaviours Application.fetch_env!(:elevator_project, :behaviours)
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
   @btn_types Map.keys(@btn_types_map)
-  @btn_values [0, 1]
-
-  req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
+  @btn_values 0..1
 
   @type directions :: :dir_up | :dir_down | :dir_stop
   @type btn_types :: :btn_hall_up | :btn_hall_down | :btn_cab
+  @type hall_btn_types :: :btn_hall_up | :btn_hall_down
+  @type btn_values :: 0..1
+  @type floors :: 0..unquote(@num_floors)
   @type behaviours :: :be_idle | :be_door_open | :be_moving
+  @type req_list :: [[btn_types(), ...], ...]
+
+  req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
   defstruct floor: 0,
             direction: :dir_stop,
@@ -25,15 +29,21 @@ defmodule Elevator do
             active: true
 
   @type t :: %__MODULE__{
-          floor: pos_integer(),
+          floor: floors(),
           direction: directions(),
-          requests: list(),
-          behaviour: behaviours()
+          requests: req_list(),
+          behaviour: behaviours(),
+          counter: pos_integer(),
+          active: boolean()
         }
 
-  def check(%__MODULE__{} = elevator \\ %__MODULE__{}) do
+  @spec check(Elevator.t()) :: {:error, String.t()} | Elevator.t()
+  @doc """
+  Checks if the elevator struct is valid and returns elevator,
+  If not, returns error
+  """
+  def check(%__MODULE__{} = elevator) do
     # elevator = struct(elevator, map)
-
     with {:ok, _floor} <- parse_floor(elevator.floor),
          {:ok, _direction} <- parse_direction(elevator.direction),
          {:ok, _requests} <- parse_requests(elevator.requests),
@@ -44,20 +54,45 @@ defmodule Elevator do
     end
   end
 
+  @spec update_requests(req_list(), floors(), btn_types(), btn_values()) ::
+          req_list() | {:error, String.t()}
+  @doc """
+  Returns a request list `req` with the `value` set at `floor`, `btn_type`
+  """
+  def update_requests(req, floor, btn_type, value) do
+    with {:ok, _floor} <- parse_floor(floor),
+         {:ok, _requests} <- parse_requests(req),
+         {:ok, _btn_type} <- parse_btn_type(btn_type),
+         {:ok, _btn_val} <- parse_btn_val(value) do
+      {req_at_floor, _list} = List.pop_at(req, floor)
+      updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
+      List.replace_at(req, floor, updated_req_at_floor)
+    else
+      err ->
+        err
+    end
+  end
+
   # guards-------------------------------------
   defp parse_floor(nil), do: {:error, "floor is required"}
 
   defp parse_floor(floor = :between_floors), do: {:ok, floor}
 
-  defp parse_floor(floor) when is_integer(floor) and floor < @num_floors and floor >= 0,
-    do: {:ok, floor}
+  defp parse_floor(floor) when floor in 0..@num_floors, do: {:ok, floor}
 
-  defp parse_floor(_invalid), do: {:error, "floor must be a integer in range [0, #{@num_floors})"}
+  defp parse_floor(_floor), do: {:error, "floor must be a valid floor"}
+
+  defp parse_btn_type(btn_type) when btn_type in @btn_types, do: {:ok, btn_type}
+
+  defp parse_btn_type(_invalid), do: {:error, "btn must be a valid atom"}
+
+  defp parse_btn_val(btn_val) when btn_val in @btn_values, do: {:ok, btn_val}
+
+  defp parse_btn_val(_invalid), do: {:error, "btn_val must be a valid button value"}
 
   defp parse_direction(nil), do: {:error, "direction is required"}
 
-  defp parse_direction(direction) when is_atom(direction) and direction in @directions,
-    do: {:ok, direction}
+  defp parse_direction(direction) when direction in @directions, do: {:ok, direction}
 
   defp parse_direction(_invalid), do: {:error, "direction must be a valid atom"}
 
@@ -85,21 +120,7 @@ defmodule Elevator do
 
   defp parse_behaviour(nil), do: {:error, "behaviour is required"}
 
-  defp parse_behaviour(behaviour) when is_atom(behaviour) and behaviour in @behaviours,
-    do: {:ok, behaviour}
+  defp parse_behaviour(behaviour) when behaviour in @behaviours, do: {:ok, behaviour}
 
   defp parse_behaviour(_invalid), do: {:error, "behaviour must be a valid atom"}
-
-  # util----------------------------------------
-  def update_requests(req, floor, btn_type, value)
-      when is_integer(floor) and floor >= 0 and btn_type in @btn_types and is_list(req) and
-             value in @btn_values do
-    {req_at_floor, _list} = List.pop_at(req, floor)
-    updated_req_at_floor = List.replace_at(req_at_floor, @btn_types_map[btn_type], value)
-    List.replace_at(req, floor, updated_req_at_floor)
-  end
-
-  def update_requests(_req, _floor, _btn_type, _value) do
-    {:error, "value is not valid"}
-  end
 end
