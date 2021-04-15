@@ -75,7 +75,7 @@ defmodule RequestHandler do
   def handle_done_hall_requests(done_requests, wd_list) do
     Enum.reduce(done_requests, wd_list, fn {floor, btn_type}, wd_list ->
       wd_pid = Enum.at(Enum.at(wd_list, floor), btn_type)
-      IO.inspect(wd_pid)
+      # IO.inspect(wd_pid)
 
       case wd_pid do
         nil ->

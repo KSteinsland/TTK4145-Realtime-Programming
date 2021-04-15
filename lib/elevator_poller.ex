@@ -163,11 +163,13 @@ defmodule ElevatorPoller do
       :start_timer ->
         IO.puts("starting timer")
         Timer.timer_start(@door_open_duration_ms)
+        if req_type == :message, do: SS.update_hall_requests(floor, btn_type, :done)
 
       :open_door ->
         IO.puts("opening door!")
         Driver.set_door_open_light(:on)
         Timer.timer_start(@door_open_duration_ms)
+        if req_type == :message, do: SS.update_hall_requests(floor, btn_type, :done)
 
       :move_elevator ->
         IO.puts("setting motor direction")
