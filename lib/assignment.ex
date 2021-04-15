@@ -1,4 +1,4 @@
-defmodule Assigment do
+defmodule Assignment do
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
 
@@ -31,47 +31,15 @@ defmodule Assigment do
 
     {:ok, el_map} = JSON.decode(json_out)
 
-    winner_map = Enum.reduce(el_map, %{}, fn {el_id, list}, winner_map ->
-      if Enum.reduce(List.flatten(list), false, fn bool, acc -> bool or acc end) do
-        Map.put(winner_map, :winner, el_id)
-      else
-        winner_map
-      end
-    end)
+    winner_map =
+      Enum.reduce(el_map, %{}, fn {el_id, list}, winner_map ->
+        if Enum.reduce(List.flatten(list), false, fn bool, acc -> bool or acc end) do
+          Map.put(winner_map, :winner, el_id)
+        else
+          winner_map
+        end
+      end)
 
-    winner_map[:winner]
-  end
-
-  def test_assign() do
-    test_sys_state = %StateServer.SystemState{
-      elevators: %{
-        "CJGXZ@192.168.0.40": %Elevator{
-          active: true,
-          behaviour: :be_moving,
-          counter: 3,
-          direction: :dir_stop,
-          floor: 1,
-          requests: [[0, 0, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]]
-        },
-        "CJGasdZ@192.168.0.40": %Elevator{
-          active: true,
-          behaviour: :be_moving,
-          counter: 3,
-          direction: :dir_stop,
-          floor: 2,
-          requests: [[0, 0, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]]
-        }
-      },
-      hall_requests: %StateServer.HallRequests{
-        hall_orders: [
-          [:done, :done],
-          [:done, :done],
-          [:done, :new],
-          [:done, :done]
-        ]
-      }
-    }
-
-    assign(test_sys_state)
+    String.to_atom(winner_map[:winner])
   end
 end
