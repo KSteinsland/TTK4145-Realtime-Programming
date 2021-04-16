@@ -55,12 +55,15 @@ defmodule RequestHandler do
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
       task = Task.async(fn -> Assignment.assign(sys_state) end)
+
       assignee =
         case Task.await(task) do
-          {:ok, assignee} -> assignee
-          _ ->IO.puts("Assignment crashed!")
-              Node.self()
+          {:ok, assignee} ->
+            assignee
 
+          _ ->
+            IO.puts("Assignment crashed!")
+            Node.self()
         end
 
       StateDistribution.update_hall_requests(
