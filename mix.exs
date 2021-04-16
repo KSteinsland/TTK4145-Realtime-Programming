@@ -14,8 +14,7 @@ defmodule ElevatorProject.MixProject do
         coveralls: :test,
         test_unit: :test,
         test_integration: :test,
-        test_distributed: :test,
-        start_sim: :test
+        test_distributed: :test
       ]
     ]
   end
