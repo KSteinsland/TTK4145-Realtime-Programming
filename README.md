@@ -42,10 +42,10 @@ I tillegg har vi et par shortcuts:
   NB! Fungerer kun på mac dessverre
   Starter et antall noder og åpnet vinduet. En mindre enn antall simulatorer 
 
-### Koble seg til simulatorene
+### Koble seg til cluster-nodene
 
-  Etter at man har enten startet simulatoren eller kjørt en test kommando som har startet et antall simulatorer kan man koble seg til simulatorene
-  med kommandoen `tmux attach-session -t SimTest`
+  Etter at man har enten startet cluster kan man koble seg til med
+  med kommandoen `tmux attach-session -t ClusterTest`
 
 ### Test support
   
