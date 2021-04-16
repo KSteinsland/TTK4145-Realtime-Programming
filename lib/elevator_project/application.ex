@@ -35,5 +35,4 @@ defmodule ElevatorProject.Application do
 
     Application.put_env(:elevator_project, :port_driver, driver_port)
   end
-
 end
