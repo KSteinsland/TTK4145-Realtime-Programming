@@ -108,8 +108,7 @@ defmodule StateDistribution do
         RequestHandler.new_state(SS.get_state())
 
       :done ->
-        # TODO Should we notify RequestHandler here too?
-        # such that watchdog gets notified
+        RequestHandler.new_state(SS.get_state())
         :ok
 
       :assigned ->

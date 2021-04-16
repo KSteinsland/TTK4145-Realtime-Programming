@@ -7,12 +7,16 @@ defmodule Assignment do
       Enum.reduce(sys_state.elevators, %{}, fn {id, el}, acc ->
         cab_reqs = Enum.map(el.requests, fn [_, _, c] -> %{0 => false, 1 => true}[c] end)
 
-        Map.put(acc, id, %{
-          behaviour: @behavior_map[el.behaviour],
-          floor: el.floor,
-          direction: @dir_map[el.direction],
-          cabRequests: cab_reqs
-        })
+        if el.active do
+          Map.put(acc, id, %{
+            behaviour: @behavior_map[el.behaviour],
+            floor: el.floor,
+            direction: @dir_map[el.direction],
+            cabRequests: cab_reqs
+          })
+        else
+          acc
+        end
       end)
 
     hall_requests =
@@ -25,6 +29,8 @@ defmodule Assignment do
     sys_map = %{hallRequests: hall_requests, states: states}
     {:ok, json_in} = JSON.encode(sys_map)
 
+    IO.inspect(sys_map)
+    IO.inspect(json_in)
     json_out = call_assigner(json_in)
 
     {:ok, el_map} = JSON.decode(json_out)
@@ -38,7 +44,7 @@ defmodule Assignment do
         end
       end)
 
-    String.to_atom(winner_map[:winner])
+    {:ok, String.to_atom(winner_map[:winner])}
   end
 
   defp call_assigner(json_in) do
