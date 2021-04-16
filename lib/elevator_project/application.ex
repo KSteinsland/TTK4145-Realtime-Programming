@@ -16,9 +16,7 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       {NodeConnector, [33333, Utils.Random.gen_rand_str(5)]},
       StateServer,
-      Timer,
-      {Driver, [{127, 0, 0, 1}, Application.fetch_env!(:elevator_project, :port_driver)]},
-      ElevatorPoller
+      ElevatorSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -37,9 +35,4 @@ defmodule ElevatorProject.Application do
 
     Application.put_env(:elevator_project, :port_driver, driver_port)
   end
-
-  # dev
-  # def kill() do
-  #   Process.exit(self(), :kill)
-  # end
 end
