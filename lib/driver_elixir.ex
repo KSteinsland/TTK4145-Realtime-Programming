@@ -45,43 +45,58 @@ defmodule Driver do
   end
 
   # User API ----------------------------------------------
-  # direction can be :dir_up/:dir_down/:dir_stop
+
+  @spec set_motor_direction(Elevator.direction()) :: :ok
   def set_motor_direction(direction) do
     GenServer.cast(__MODULE__, {:set_motor_direction, direction})
   end
 
-  # button_type can be :btn_hall_up/:btn_hall_down/:btn_cab
-  # state can be :on/:off
+  @spec set_order_button_light(Elevator.btn_type(), Elevator.floor(), :on | :off) :: :ok
   def set_order_button_light(button_type, floor, state) do
     GenServer.cast(__MODULE__, {:set_order_button_light, button_type, floor, state})
   end
 
+  @spec set_order_button_light_on_nodes(Elevator.btn_type(), Elevator.floor(), :on | :off) ::
+          :abcast
+  def set_order_button_light_on_nodes(button_type, floor, state) do
+    GenServer.abcast(
+      [Node.self() | Node.list()],
+      __MODULE__,
+      {:set_order_button_light, button_type, floor, state}
+    )
+  end
+
+  @spec set_floor_indicator(Elevator.floor() | :between_floors) :: :ok
   def set_floor_indicator(floor) do
     GenServer.cast(__MODULE__, {:set_floor_indicator, floor})
   end
 
-  # state can be :on/:off
+  @spec set_stop_button_light(:on | :off) :: :ok
   def set_stop_button_light(state) do
     GenServer.cast(__MODULE__, {:set_stop_button_light, state})
   end
 
-  # state can be :on/:off
+  @spec set_door_open_light(:on | :off) :: :ok
   def set_door_open_light(state) do
     GenServer.cast(__MODULE__, {:set_door_open_light, state})
   end
 
+  @spec get_order_button_state(Elevator.floor(), Elevator.btn_type()) :: 0 | 1
   def get_order_button_state(floor, button_type) do
     GenServer.call(__MODULE__, {:get_order_button_state, floor, button_type})
   end
 
+  @spec get_floor_sensor_state :: Elevator.floor()
   def get_floor_sensor_state do
     GenServer.call(__MODULE__, :get_floor_sensor_state)
   end
 
+  @spec get_stop_button_state :: :active | :inactive
   def get_stop_button_state do
     GenServer.call(__MODULE__, :get_stop_button_state)
   end
 
+  @spec get_obstruction_switch_state :: :active | :inactive
   def get_obstruction_switch_state do
     GenServer.call(__MODULE__, :get_obstruction_switch_state)
   end

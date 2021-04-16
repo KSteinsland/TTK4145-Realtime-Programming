@@ -42,20 +42,20 @@ defmodule LightHandler do
 
     case btn_state_Up do
       :done ->
-        Driver.set_order_button_light(Enum.at(@hall_btn_types, 0), floor, :off)
+        Driver.set_order_button_light_on_nodes(Enum.at(@hall_btn_types, 0), floor, :off)
 
       _ ->
         # catches :new and :assigned
-        Driver.set_order_button_light(Enum.at(@hall_btn_types, 0), floor, :on)
+        Driver.set_order_button_light_on_nodes(Enum.at(@hall_btn_types, 0), floor, :on)
     end
 
     case btn_state_Down do
       :done ->
-        Driver.set_order_button_light(Enum.at(@hall_btn_types, 1), floor, :off)
+        Driver.set_order_button_light_on_nodes(Enum.at(@hall_btn_types, 1), floor, :off)
 
       _ ->
         # catches :new and :assigned
-        Driver.set_order_button_light(Enum.at(@hall_btn_types, 1), floor, :on)
+        Driver.set_order_button_light_on_nodes(Enum.at(@hall_btn_types, 1), floor, :on)
     end
   end
 end
