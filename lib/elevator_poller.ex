@@ -50,7 +50,7 @@ defmodule ElevatorPoller do
     {:ok, state}
   end
 
-  @spec send_hall_request(node(), Elevator.floors(), Elevator.hall_btn_types()) :: :ok
+  @spec send_hall_request(node(), Elevator.floor(), Elevator.hall_btn_type()) :: :ok
   @doc """
   Sends a assigned hall request to the elevator at `node_name` to be executed
   """

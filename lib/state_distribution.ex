@@ -22,9 +22,9 @@ defmodule StateDistribution do
 
   @spec update_hall_requests(
           node(),
-          Elevator.floors(),
-          SS.HallRequests.hall_btn_types(),
-          SS.HallRequests.hall_btn_states()
+          Elevator.floor(),
+          Elevator.hall_btn_type(),
+          SS.HallRequests.hall_btn_state()
         ) :: :ok
   @doc """
   Distribute the hall request change and possibly call for assignment
