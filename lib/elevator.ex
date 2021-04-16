@@ -4,20 +4,20 @@ defmodule Elevator do
   """
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
-  @directions Application.fetch_env!(:elevator_project, :directions)
-  @behaviours Application.fetch_env!(:elevator_project, :behaviours)
+  @directions [:dir_up, :dir_down, :dir_stop]
+  @behaviours [:be_idle, :be_door_open, :be_moving]
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
-  @btn_types Map.keys(@btn_types_map)
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @num_buttons length(@btn_types)
   @btn_values 0..1
 
-  @type directions :: :dir_up | :dir_down | :dir_stop
-  @type btn_types :: :btn_hall_up | :btn_hall_down | :btn_cab
-  @type hall_btn_types :: :btn_hall_up | :btn_hall_down
-  @type btn_values :: 0..1
-  @type floors :: 0..unquote(@num_floors)
-  @type behaviours :: :be_idle | :be_door_open | :be_moving
-  @type req_list :: [[btn_types(), ...], ...]
+  @type direction :: :dir_up | :dir_down | :dir_stop
+  @type btn_type :: :btn_hall_up | :btn_hall_down | :btn_cab
+  @type hall_btn_type :: :btn_hall_up | :btn_hall_down
+  @type btn_value :: 0..1
+  @type floor :: 0..unquote(@num_floors)
+  @type behaviour :: :be_idle | :be_door_open | :be_moving
+  @type req_list :: [[btn_value(), ...], ...]
 
   req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
 
@@ -29,10 +29,10 @@ defmodule Elevator do
             active: true
 
   @type t :: %__MODULE__{
-          floor: floors(),
-          direction: directions(),
+          floor: floor(),
+          direction: direction(),
           requests: req_list(),
-          behaviour: behaviours(),
+          behaviour: behaviour(),
           counter: pos_integer(),
           active: boolean()
         }
@@ -54,10 +54,10 @@ defmodule Elevator do
     end
   end
 
-  @spec update_requests(req_list(), floors(), btn_types(), btn_values()) ::
+  @spec update_requests(req_list(), floor(), btn_type(), btn_value()) ::
           req_list() | {:error, String.t()}
   @doc """
-  Returns a request list `req` with the `value` set at `floor`, `btn_type`
+  Returns a request list `req` with the `value` set at `floor`, `btn_type`.
   """
   def update_requests(req, floor, btn_type, value) do
     with {:ok, _floor} <- parse_floor(floor),
@@ -72,6 +72,12 @@ defmodule Elevator do
         err
     end
   end
+
+  @spec btn_types_map :: %{btn_cab: 2, btn_hall_down: 1, btn_hall_up: 0}
+  def btn_types_map, do: @btn_types_map
+
+  @spec btn_types :: [:btn_cab | :btn_hall_down | :btn_hall_up]
+  def btn_types, do: @btn_types
 
   # guards-------------------------------------
   defp parse_floor(nil), do: {:error, "floor is required"}

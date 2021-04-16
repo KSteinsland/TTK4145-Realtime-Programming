@@ -14,7 +14,7 @@ defmodule FSM do
 
   # TODO use Elevator.check function to check for errors!
 
-  @spec on_request(Elevator.t(), pos_integer(), Elevator.btn_types(), :button | :message) ::
+  @spec on_request(Elevator.t(), Elevator.floor(), Elevator.btn_type(), :button | :message) ::
           {:move_elevator, Elevator.t()}
           | {nil, Elevator.t()}
           | {:open_door, Elevator.t()}
@@ -24,6 +24,7 @@ defmodule FSM do
   Logic returning the required action to be done when a button is pressed
   and a new `Elevator` state.
   """
+  # TODO make this return actions = {action, nil | :new | :done}
   def on_request(%Elevator{} = elevator, btn_floor, btn_type, req_type) do
     # maybe we should send update_hall_requests, even if elevator.floor = btn_floor
     # to make the best elevator take the order
@@ -95,7 +96,7 @@ defmodule FSM do
     end
   end
 
-  @spec on_floor_arrival(Elevator.t(), pos_integer()) ::
+  @spec on_floor_arrival(Elevator.t(), Elevator.floor()) ::
           {nil, Elevator.t()} | {:stop, Elevator.t()}
   @doc """
   Logic returning the required action to be done when arriving at a floor

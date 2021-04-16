@@ -6,10 +6,11 @@ defmodule ElevatorPoller do
   use GenServer
 
   alias StateServer, as: SS
+  require Logger
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @num_buttons Application.fetch_env!(:elevator_project, :num_buttons)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @num_buttons length(@btn_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   @input_poll_rate_ms Application.compile_env!(:elevator_project, :input_poll_rate_ms)
@@ -49,7 +50,7 @@ defmodule ElevatorPoller do
     {:ok, state}
   end
 
-  @spec send_hall_request(node(), Elevator.floors(), Elevator.hall_btn_types()) :: :ok
+  @spec send_hall_request(node(), Elevator.floor(), Elevator.hall_btn_type()) :: :ok
   @doc """
   Sends a assigned hall request to the elevator at `node_name` to be executed
   """
@@ -173,7 +174,8 @@ defmodule ElevatorPoller do
         if req_type == :message, do: SS.update_hall_requests(floor, btn_type, :done)
 
       :move_elevator ->
-        IO.puts("setting motor direction")
+        Logger.debug("setting motor direction")
+        # IO.puts("setting motor direction")
         elevator.direction |> Driver.set_motor_direction()
 
       :update_hall_requests ->
