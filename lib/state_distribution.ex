@@ -17,7 +17,7 @@ defmodule StateDistribution do
   end
 
   def init(_opts) do
-    {:ok, %{}}
+    {:ok, %{last_hall_requests: nil}}
   end
 
   @spec update_hall_requests(
@@ -95,6 +95,9 @@ defmodule StateDistribution do
       {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
     )
 
+    new_hall_requests = StateServer.get_hall_requests()
+    spawn(fn -> LightHandler.light_check(new_hall_requests, state.last_hall_requests) end)
+
     case hall_state do
       :new ->
         # TODO REMOVE
@@ -118,7 +121,7 @@ defmodule StateDistribution do
         ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
     end
 
-    {:noreply, state}
+    {:noreply, %{state | last_hall_requests: new_hall_requests}}
   end
 
   def handle_cast({:new_elevator_state, node_name, elevator}, state) do

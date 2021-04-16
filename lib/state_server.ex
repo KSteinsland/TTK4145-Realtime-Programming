@@ -210,8 +210,6 @@ defmodule StateServer do
     new_hall_requests =
       HallRequests.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
-    spawn(fn -> LightHandler.light_check(new_hall_requests, hall_requests) end)
-
     if node_name == :local do
       StateDistribution.update_hall_requests(
         NodeConnector.get_self(),
