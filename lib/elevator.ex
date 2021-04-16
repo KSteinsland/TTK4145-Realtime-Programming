@@ -15,6 +15,7 @@ defmodule Elevator do
   @type btn_type :: :btn_hall_up | :btn_hall_down | :btn_cab
   @type hall_btn_type :: :btn_hall_up | :btn_hall_down
   @type btn_value :: 0..1
+  # :between_floors
   @type floor :: 0..unquote(@num_floors)
   @type behaviour :: :be_idle | :be_door_open | :be_moving
   @type req_list :: [[btn_value(), ...], ...]
