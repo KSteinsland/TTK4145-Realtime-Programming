@@ -13,7 +13,6 @@ For å kjøre tester har vi tre aliaser (shortcuts):
 ### mix test_integration
   Denne kommandoen kjører alle tester markert med `@tag:external`, men her starter man heller ikke applikasjonen, 
   så man må selv starte prosessene man trenger i setup av testen.
-  Når denne kommandoen blir kjørt vil heissimulatoren startes med en konfigurasjon som gjør at heisen vil bevege seg kjapt.
 
 ### mix test_distributed
   Kjører alle tester markert med `@tag:distributed` og starter applikasjonen før testene kjøres.
@@ -22,15 +21,31 @@ For å kjøre tester har vi tre aliaser (shortcuts):
 
 ---
 
-I tillegg har vi en shortcut for å kun starte simulatoren som normalt
+I tillegg har vi et par shortcuts:
 
 ### mix start_sim
-  her skal heisen bruke normal tid på å åpne dører og bevege seg mellom etasjer
+  Starter et antall simulatorer.
+
+### mix open_sim
+  NB! Fungerer kun på mac dessverre
+  Starter et antall simulatorer og åpner vinduet 
 
 ### Koble seg til simulatorene
 
   Etter at man har enten startet simulatoren eller kjørt en test kommando som har startet et antall simulatorer kan man koble seg til simulatorene
   med kommandoen `tmux attach-session -t SimTest`
+
+### mix start_cluster
+  Starter et antall noder. En mindre enn antall simulatorer 
+
+### mix open_cluster
+  NB! Fungerer kun på mac dessverre
+  Starter et antall noder og åpnet vinduet. En mindre enn antall simulatorer 
+
+### Koble seg til cluster-nodene
+
+  Etter at man har enten startet cluster kan man koble seg til med
+  med kommandoen `tmux attach-session -t ClusterTest`
 
 ### Test support
   
