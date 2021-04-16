@@ -13,62 +13,32 @@ end)
 
 ExUnit.start()
 
-# Get config
-port = Application.fetch_env!(:elevator_project, :port_driver)
-floors = Application.fetch_env!(:elevator_project, :num_floors)
-num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
-
-# Exclude all external tests from running
+# Exclude all external and distributed tests from running
 ExUnit.configure(exclude: [external: true, distributed: true])
 
 conf = ExUnit.configuration()
 
-# check if we want to run integration tests
-if conf[:include][:external] == "true" or conf[:include][:start_sim] do
-  IO.puts("Running integration tests")
+# check what tests we want to run
+cond do
+  conf[:include][:distributed] == "true" ->
+    IO.puts("Running distributed tests")
+    # Get config
+    port = Application.fetch_env!(:elevator_project, :port_driver)
+    num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
 
-  opts =
-    if conf[:include][:external] do
-      # if we want integration tests to run fast
-      Application.fetch_env!(:elevator_project, :sim_opts)
-    else
-      # just starting a normal simulator
-      []
-    end
+    System.cmd("epmd", ["-daemon"])
 
-  case :os.type() do
-    {:unix, os} ->
-      os = if os == :linux, do: to_string(os), else: "mac"
-      IO.puts("Starting #{os} sim")
+    # Is this bad and needs fixing?
+    ElevatorProject.Application.start(nil, nil)
 
-      Simulator.start_simulator(
-        "sim/#{os}/SimElevatorServer",
-        port,
-        floors,
-        num_local_nodes,
-        opts
-      )
+    Cluster.spawn(port + 1, num_local_nodes - 1)
+    IO.puts("Started cluster")
 
-    _ ->
-      IO.puts("You need to start the simulator yourself!")
-      {:error, "Not supported system"}
-  end
-else
-  IO.puts("Running unit tests")
-end
+  conf[:include][:external] == "true" ->
+    IO.puts("Running integration tests")
 
-# check if we want to run distributed tests
-if conf[:include][:distributed] == "true" do
-  IO.puts("Running distributed tests")
-
-  System.cmd("epmd", ["-daemon"])
-
-  # Is this bad and needs fixing?
-  ElevatorProject.Application.start(nil, nil)
-
-  # Cluster.spawn(create_cluster.(num_local_nodes))
-  Cluster.spawn(port + 1, num_local_nodes - 1)
-  IO.puts("Started cluster")
+  true ->
+    IO.puts("Running unit tests")
 end
 
 # If we want to stop all processes before running tests

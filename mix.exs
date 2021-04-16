@@ -31,10 +31,76 @@ defmodule ElevatorProject.MixProject do
   defp aliases do
     [
       test_unit: "test --no-start",
-      test_integration: "test --no-start --only external:true",
-      test_distributed: "test --no-start --only external:true --only distributed:true",
-      start_sim: "test --no-start --only start_sim:true"
+      test_integration: [&start_sim/1, "test --no-start --only external:true"],
+      test_distributed: [
+        &start_sim/1,
+        "test --no-start --only distributed:true"
+      ],
+      start_sim: &start_sim/1,
+      start_cluster: &start_cluster/1,
+      open_sim: &open_sim/1,
+      open_cluster: &open_cluster/1
     ]
+  end
+
+  defp start_sim(_) do
+    # Load simulator support module
+    Code.require_file("test/support/simulator.exs", __DIR__)
+
+    # Get config
+    port = Application.fetch_env!(:elevator_project, :port_driver)
+    floors = Application.fetch_env!(:elevator_project, :num_floors)
+    num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
+    opts = []
+    # opts = Application.fetch_env!(:elevator_project, :sim_opts)
+
+    case :os.type() do
+      {:unix, os} ->
+        os = if os == :linux, do: to_string(os), else: "mac"
+        IO.puts("Starting #{os} sim")
+
+        Simulator.start_simulator(
+          "sim/#{os}/SimElevatorServer",
+          port,
+          floors,
+          num_local_nodes,
+          opts
+        )
+
+      _ ->
+        IO.puts("You need to start the simulator yourself!")
+        {:error, "Not supported system"}
+    end
+  end
+
+  defp open_sim(_) do
+    start_sim(nil)
+
+    {:ok, dir_path} = File.cwd()
+    script_path = Path.join(dir_path, "test/scripts/open_sim.sh")
+    System.cmd(script_path, [])
+  end
+
+  defp open_cluster(_) do
+    start_cluster(nil)
+
+    {:ok, dir_path} = File.cwd()
+    script_path = Path.join(dir_path, "test/scripts/open_cluster.sh")
+    System.cmd(script_path, [])
+  end
+
+  defp start_cluster(_) do
+    # Load simulator support module
+    Code.require_file("test/support/cluster.exs", __DIR__)
+
+    # Get config
+    port = Application.fetch_env!(:elevator_project, :port_driver)
+    num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
+
+    System.cmd("epmd", ["-daemon"])
+
+    Cluster.spawn(port + 1, num_local_nodes - 1)
+    IO.puts("Started cluster")
   end
 
   # Run "mix help deps" to learn about dependencies.
