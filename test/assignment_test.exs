@@ -32,7 +32,7 @@ defmodule AssignmentTest do
       }
     }
 
-    assert Assignment.assign(test_sys_state) == {:ok, :"CJGasdZ@192.168.0.40"}
+    assert Assignment.assign(test_sys_state, self()) == {:ok, :"CJGasdZ@192.168.0.40"}
   end
 
   test "test assignment2" do
@@ -65,6 +65,6 @@ defmodule AssignmentTest do
       }
     }
 
-    assert Assignment.assign(test_sys_state) == {:ok, :"CJGXZ@192.168.0.40"}
+    assert Assignment.assign(test_sys_state, self()) == {:ok, :"CJGXZ@192.168.0.40"}
   end
 end

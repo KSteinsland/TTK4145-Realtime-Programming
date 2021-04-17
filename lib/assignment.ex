@@ -2,8 +2,6 @@ defmodule Assignment do
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
 
-
-
   def assign(sys_state, parent) do
     sys_state_formated = format_sys_state(sys_state)
     {:ok, json_in} = JSON.encode(sys_state_formated)
@@ -94,7 +92,7 @@ defmodule Assignment do
   end
 
   def test_assignmenet() do
-    #this input will generate bug, TODO fix bug
+    # this input will generate bug, TODO fix bug
     test_sys_state = %StateServer.SystemState{
       elevators: %{
         "HPFND@192.168.0.40": %Elevator{
