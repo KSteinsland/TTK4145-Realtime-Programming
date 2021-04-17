@@ -20,7 +20,7 @@ defmodule NodeConnector do
               role: :slave,
               up_since: nil,
               watchdog: nil,
-              master: nil,
+              master: {nil, 0},
               slaves: %{},
               # dev
               test_disconnected: false
@@ -70,11 +70,17 @@ defmodule NodeConnector do
   ## server ------------------------------------------
 
   def init([start_port, name]) do
+
     # dev
     # port = start_port
     # {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     {:ok, socket, port} = dev_try_create_socket(start_port, start_port + @port_range)
     name = dev_register_node(name)
+
+    # Amount of seconds before timeout
+    res = :net_kernel.set_net_ticktime(4,4)
+    IO.inspect(res)
+
 
     {:ok,
      %State{
@@ -113,13 +119,24 @@ defmodule NodeConnector do
 
   def handle_call(:dev_reconnect, _from, state) do
     Node.start(state.name, :longnames)
-    Node.set_cookie(:choc)
+    #Node.set_cookie(:choc)
 
     state = %State{state | test_disconnected: false}
 
-    if state.role == :master do
-      send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
-    end
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:dev_disconnect, _from, state) do
+    Enum.map(Node.list(), fn node ->
+      Node.disconnect(node)
+    end)
+
+    Node.stop()
+
+    state = %{state | test_disconnected: true}
+
+    # do this to avoid having no name
+    Node.start(state.name, :longnames)
 
     {:reply, :ok, state}
   end
@@ -132,7 +149,8 @@ defmodule NodeConnector do
 
       MasterSupervisor.upgrade_to_master()
 
-      state = %State{state | role: :master, master: Node.self()}
+      state = %State{state | role: :master, master: {Node.self(), state.up_since}}
+      # TODO
       send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
       {:noreply, state}
     else
@@ -143,7 +161,7 @@ defmodule NodeConnector do
   # dev
   # def handle_info(:loop_master, state) do
   def handle_info({:loop_master, start_port, end_port}, state) do
-    if state.role == :master and not state.test_disconnected do
+    if state.role == :master do # and not state.test_disconnected do
       :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
 
       # dev
@@ -174,19 +192,23 @@ defmodule NodeConnector do
   def handle_info({:udp, _socket, _host, _port, packet}, state) do
     [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
-
+    IO.puts(full_name)
     latest_master = String.to_atom(full_name)
 
     if not state.test_disconnected do
       if state.role == :slave do
-        master =
-          case state.master do
-            ^latest_master ->
-              state.master
 
-            _ ->
+        current_master = state.master
+
+        master =
+          case latest_master do
+            ^current_master ->
+              current_master
+
+            nil ->
               # catches both when state.master = nil
               # and when state.master is outdated
+              if latest_master == nil or up_since
               IO.puts("Found master #{full_name}!")
 
               connect_to_master(latest_master, state.up_since)
@@ -264,7 +286,7 @@ defmodule NodeConnector do
               master: Node.self(),
               slaves: Map.delete(state.slaves, Node.self())
           }
-
+          IO.puts("starting loop")
           send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
           {:noreply, state}
         else
@@ -275,6 +297,11 @@ defmodule NodeConnector do
       master ->
         {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, node)}}
     end
+  end
+
+  def handle_info({:nodeup, node}, state) do
+    IO.puts("#{node} connected!")
+    {:noreply, state}
   end
 
   def handle_info(:shutdown, state) do
@@ -354,6 +381,7 @@ defmodule NodeConnector do
   end
 
   def dev_network_loss(timeout) do
+    # To simulate a network failure
     IO.puts("simulating network loss")
     dev_disconnect()
     Process.sleep(timeout)
@@ -361,13 +389,7 @@ defmodule NodeConnector do
   end
 
   def dev_disconnect() do
-    # To simulate a network failure
-    # do this so we can stop broadcasting master hb
-    Node.stop()
-    state = get_state()
-    set_state(%{state | test_disconnected: true})
-    # do this to avoid having no name
-    # Node.start(state.name, :longnames)
+    GenServer.call(__MODULE__, :dev_disconnect)
   end
 
   def dev_reconnect() do
