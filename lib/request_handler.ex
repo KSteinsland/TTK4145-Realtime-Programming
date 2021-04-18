@@ -6,7 +6,6 @@ defmodule RequestHandler do
   @timeout_ms Application.fetch_env!(:elevator_project, :watchdog_timeout_ms)
   @num_hall_order_types 2
 
-
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
@@ -125,7 +124,6 @@ defmodule RequestHandler do
           Enum.at(@button_types, btn_type),
           :new
         )
-
     end
   end
 end
