@@ -21,8 +21,8 @@ defmodule RequestHandler do
     {:ok, wd_list}
   end
 
-  def new_state(sys_state) do
-    GenServer.cast({:global, __MODULE__}, {:new_state, sys_state})
+  def new_state() do
+    GenServer.cast({:global, __MODULE__}, :new_state)
   end
 
   def get_wd() do
@@ -37,7 +37,11 @@ defmodule RequestHandler do
   kill watchdog for done requests.
   Assign and start watchdog timer for new requests.
   """
-  def handle_cast({:new_state, sys_state}, wd_list) do
+  def handle_cast(:new_state, wd_list) do
+    sys_state = StateServer.get_state()
+
+    spawn(fn -> LightHandler.light_check(sys_state.hall_requests, nil) end)
+
     done_reqs = find_hall_requests(sys_state.hall_requests, :done)
     wd_list = handle_done_hall_requests(done_reqs, wd_list)
 
@@ -54,11 +58,18 @@ defmodule RequestHandler do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
       assignee = Assignment.assign(sys_state)
 
-      StateDistribution.update_hall_requests(
+      # StateDistribution.update_hall_requests(
+      #   assignee,
+      #   floor,
+      #   Enum.at(@button_types, btn_type),
+      #   :assigned
+      # )
+
+      ElevatorController.send_hall_request(
         assignee,
         floor,
         Enum.at(@button_types, btn_type),
-        :assigned
+        :message
       )
 
       pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type])
@@ -118,12 +129,12 @@ defmodule RequestHandler do
 
         StateDistribution.node_active(assignee, false)
 
-        StateDistribution.update_hall_requests(
-          assignee,
-          floor,
-          Enum.at(@button_types, btn_type),
-          :new
-        )
+        # StateDistribution.update_hall_requests(
+        #   assignee,
+        #   floor,
+        #   Enum.at(@button_types, btn_type),
+        #   :new
+        # )
     end
   end
 end

@@ -80,13 +80,21 @@ defmodule ElevatorController do
         :start_timer ->
           IO.puts("starting timer")
           Timer.timer_start(self(), @door_open_duration_ms)
-          if req_type == :message, do: SS.update_hall_requests(floor, btn_type, :done)
+
+          if req_type == :message do
+            SS.update_hall_requests(floor, btn_type, :done)
+            RequestHandler.new_state()
+          end
 
         :open_door ->
           IO.puts("opening door!")
           Driver.set_door_open_light(:on)
           Timer.timer_start(self(), @door_open_duration_ms)
-          if req_type == :message, do: SS.update_hall_requests(floor, btn_type, :done)
+
+          if req_type == :message do
+            SS.update_hall_requests(floor, btn_type, :done)
+            RequestHandler.new_state()
+          end
 
         :move_elevator ->
           Logger.debug("setting motor direction")
@@ -96,6 +104,7 @@ defmodule ElevatorController do
         :update_hall_requests ->
           IO.puts("New hall request!")
           SS.update_hall_requests(floor, btn_type, :new)
+          RequestHandler.new_state()
 
         nil ->
           :ok
@@ -119,7 +128,7 @@ defmodule ElevatorController do
       if floor == :between_floors do
         # IO.puts("Between floors!")
 
-        elevator =
+        {:ok, elevator} =
           Elevator.check(%Elevator{
             SS.get_elevator(Node.self())
             | direction: :dir_down,
@@ -130,7 +139,7 @@ defmodule ElevatorController do
 
         Driver.set_motor_direction(:dir_down)
       else
-        elevator =
+        {:ok, elevator} =
           Elevator.check(%Elevator{
             SS.get_elevator(Node.self())
             | floor: floor

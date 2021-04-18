@@ -127,9 +127,17 @@ defmodule StateServer do
   """
   def set_elevator(node_name, elevator) do
     # TODO move, Elevator check out of server?
-    # and just use a cast?
-    elevator = %Elevator{elevator | counter: elevator.counter + 1}
-    GenServer.call(__MODULE__, {:set_elevator, node_name, elevator})
+
+    case Elevator.check(elevator) do
+      {:error, msg} ->
+        {:error, msg}
+
+      {:ok, ^elevator} ->
+        elevator = %Elevator{elevator | counter: elevator.counter + 1}
+        nodes = [Node.self() | Node.list()]
+        GenServer.abcast(nodes, __MODULE__, {:set_elevator, node_name, elevator})
+        :ok
+    end
   end
 
   @spec update_hall_requests(
@@ -143,7 +151,10 @@ defmodule StateServer do
   If node_name = `:local` it distributes the hall request update
   """
   def update_hall_requests(node_name \\ :local, floor_ind, btn_type, hall_state) do
-    GenServer.cast(
+    nodes = [Node.self() | Node.list()]
+
+    GenServer.abcast(
+      nodes,
       __MODULE__,
       {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
     )
@@ -154,9 +165,10 @@ defmodule StateServer do
   @impl true
   @spec init(any) :: {:ok, StateServer.SystemState.t()}
   def init(_opts) do
-    NodeConnector.wait_for_node_startup()
-    # state = StateDistribution.get_master_state()
-    {:ok, %SystemState{}}
+    wait_for_master_startup()
+
+    state = StateDistribution.get_master_state()
+    {:ok, state}
   end
 
   @impl true
@@ -175,38 +187,38 @@ defmodule StateServer do
     {:reply, state.hall_requests, state}
   end
 
-  @impl true
-  def handle_call({:set_elevator, node_name, elevator}, _from, state) do
-    case Elevator.check(elevator) do
-      {:error, msg} ->
-        {:reply, {:error, msg}, state}
+  # @impl true
+  # def handle_call({:set_elevator, node_name, elevator}, _from, state) do
+  #   case Elevator.check(elevator) do
+  #     {:error, msg} ->
+  #       {:reply, {:error, msg}, state}
 
-      ^elevator ->
-        old_elevator = get_elevator_init(node_name, state.elevators)
+  #     {:ok, ^elevator} ->
+  #       old_elevator = get_elevator_init(node_name, state.elevators)
 
-        if elevator.counter > old_elevator.counter do
-          # sends new elevator state to master
-          # master distributes it
+  #       if elevator.counter > old_elevator.counter do
+  #         # sends new elevator state to master
+  #         # master distributes it
 
-          if old_elevator.obstructed != elevator.obstructed do
-            StateDistribution.node_active(node_name, not elevator.obstructed)
-          end
+  #         if old_elevator.obstructed != elevator.obstructed do
+  #           StateDistribution.node_active(node_name, not elevator.obstructed)
+  #         end
 
-          # async call to master to update everybody
-          StateDistribution.new_elevator_state(node_name, elevator)
+  #         # async call to master to update everybody
+  #         StateDistribution.new_elevator_state(node_name, elevator)
 
-          new_state = %SystemState{
-            state
-            | elevators: Map.put(state.elevators, node_name, elevator)
-          }
+  #         new_state = %SystemState{
+  #           state
+  #           | elevators: Map.put(state.elevators, node_name, elevator)
+  #         }
 
-          {:reply, :ok, new_state}
-        else
-          # IO.puts("bad counter on set el!")
-          {:reply, :ok, state}
-        end
-    end
-  end
+  #         {:reply, :ok, new_state}
+  #       else
+  #         # IO.puts("bad counter on set el!")
+  #         {:reply, :ok, state}
+  #       end
+  #   end
+  # end
 
   # casts----------------------------------------
 
@@ -236,15 +248,6 @@ defmodule StateServer do
     new_hall_requests =
       HallOrder.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
-    if node_name == :local do
-      StateDistribution.update_hall_requests(
-        Node.self(),
-        floor_ind,
-        btn_type,
-        hall_state
-      )
-    end
-
     state = %SystemState{state | hall_requests: new_hall_requests}
     {:noreply, state}
   end
@@ -258,6 +261,14 @@ defmodule StateServer do
 
       elevator_state ->
         elevator_state
+    end
+  end
+
+  defp wait_for_master_startup() do
+    # Ensures that we do not register :nonode@nohost in the elevator map
+    if :global.whereis_name(StateDistribution) == :undefined do
+      Process.sleep(10)
+      wait_for_master_startup()
     end
   end
 end

@@ -90,7 +90,7 @@ defmodule NodeConnector do
     if state.role != :master and state.up_since <= Enum.min(up_times) do
       IO.puts("Master timed out, upgrading self to master")
 
-      MasterSupervisor.upgrade_to_master()
+      MasterStarter.upgrade_to_master()
 
       state = %State{
         state
@@ -188,7 +188,7 @@ defmodule NodeConnector do
         IO.puts("Downgrading to slave")
         IO.puts("#{full_name} is the master")
 
-        MasterSupervisor.downgrade_to_slave()
+        MasterStarter.downgrade_to_slave()
 
         Node.connect(latest_master)
         send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
@@ -211,7 +211,7 @@ defmodule NodeConnector do
   def handle_info({:slave_connected, node_name, up_since}, state) do
     IO.puts("Slave #{node_name} connected!")
 
-    StateDistribution.update_node(node_name)
+    # StateDistribution.update_node(node_name)
     StateDistribution.node_active(node_name, true)
 
     Node.monitor(node_name, true)
