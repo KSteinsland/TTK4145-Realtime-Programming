@@ -252,7 +252,9 @@ defmodule NodeConnector do
     # upgrade to master if master disconnected
     case state.master do
       ^node ->
-        if state.up_since <= state.slaves |> Map.values() |> Enum.min() do
+        up_times = [state.up_since | state.slaves |> Map.values()]
+
+        if state.up_since <= up_times |> Enum.min() do
           IO.puts("Master disconnected, upgrading self to master")
 
           MasterSupervisor.upgrade_to_master()

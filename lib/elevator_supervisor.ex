@@ -12,7 +12,8 @@ defmodule ElevatorSupervisor do
     children = [
       Timer,
       {Driver, [{127, 0, 0, 1}, Application.fetch_env!(:elevator_project, :port_driver)]},
-      ElevatorPoller
+      ElevatorController,
+      HardwarePoller
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

@@ -162,9 +162,15 @@ defmodule StateServer do
         {:reply, {:error, msg}, state}
 
       ^elevator ->
-        if elevator.counter > get_elevator_init(node_name, state.elevators).counter do
+        old_elevator = get_elevator_init(node_name, state.elevators)
+
+        if elevator.counter > old_elevator.counter do
           # sends new elevator state to master
           # master distributes it
+
+          if old_elevator.obstructed != elevator.obstructed do
+            StateDistribution.node_active(node_name, not elevator.obstructed)
+          end
 
           # async call to master to update everybody
           StateDistribution.new_elevator_state(node_name, elevator)

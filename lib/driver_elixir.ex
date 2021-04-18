@@ -86,7 +86,7 @@ defmodule Driver do
     GenServer.call(__MODULE__, {:get_order_button_state, floor, button_type})
   end
 
-  @spec get_floor_sensor_state :: Elevator.floor()
+  @spec get_floor_sensor_state :: Elevator.floor() | :between_floors
   def get_floor_sensor_state do
     GenServer.call(__MODULE__, :get_floor_sensor_state)
   end

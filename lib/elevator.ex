@@ -27,6 +27,7 @@ defmodule Elevator do
             requests: req_list,
             behaviour: :be_idle,
             counter: 0,
+            obstructed: false,
             active: true
 
   @type t :: %__MODULE__{
@@ -35,6 +36,7 @@ defmodule Elevator do
           requests: req_list(),
           behaviour: behaviour(),
           counter: pos_integer(),
+          obstructed: boolean(),
           active: boolean()
         }
 
