@@ -9,6 +9,7 @@ config(:elevator_project,
   button_types: [:btn_hall_up, :btn_hall_down, :btn_cab],
   broadcast_ms: 900,
   master_timeout_ms: 4000,
+  watchdog_timeout_ms: 20_000,
 
   # dev
   # local nodes is primary node + # of slaves

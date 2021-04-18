@@ -2,11 +2,9 @@ defmodule RequestHandler do
   use GenServer
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-  @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
-  @btn_types_map_rev %{0 => :btn_hall_up, 1 => :btn_hall_down, 2 => :btn_cab}
-  # TODO maybe change reverse map out with a btn_types list
+  @button_types Application.fetch_env!(:elevator_project, :button_types)
+  @timeout_ms Application.fetch_env!(:elevator_project, :watchdog_timeout_ms)
   @num_hall_order_types 2
-  @timeout_ms 20 * 1000
 
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
@@ -54,47 +52,12 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      # task = Task.async(fn -> Assignment.assign(sys_state) end)
-
-      current = self()
-      spawn(fn -> Assignment.assign(sys_state, current) end)
-
-      assignee =
-        receive do
-          {:ok, assignee} -> assignee
-        after
-          1000 ->
-            IO.puts("Assignment failed to reply, master takes the order!")
-            IO.puts("The following sys state was given to assignment")
-            IO.inspect(sys_state)
-            Node.self()
-        end
-
-      # assignee =
-      #   try do
-      #     Task.start()
-      #   rescue
-      #     _ ->
-      #       IO.puts("Assignment crashed, master takes the order!")
-      #       IO.puts("The following sys state was given to assignment")
-      #       IO.inspect(sys_state)
-      #       Node.self()
-      #   end
-
-      # assignee =
-      #   case Task.await(task) do
-      #     {:ok, assignee} ->
-      #       assignee
-
-      #     _ ->
-      #       IO.puts("Assignment crashed!")
-      #       Node.self()
-      #   end
+      assignee = Assignment.assign(sys_state)
 
       StateDistribution.update_hall_requests(
         assignee,
         floor,
-        @btn_types_map_rev[btn_type],
+        Enum.at(@button_types, btn_type),
         :assigned
       )
 
@@ -153,14 +116,14 @@ defmodule RequestHandler do
       @timeout_ms ->
         IO.puts("time out!!")
 
+        StateDistribution.node_active(assignee, false)
+
         StateDistribution.update_hall_requests(
           assignee,
           floor,
-          @btn_types_map_rev[btn_type],
+          Enum.at(@button_types, btn_type),
           :new
         )
-
-        StateDistribution.node_active(assignee, false)
     end
   end
 end
