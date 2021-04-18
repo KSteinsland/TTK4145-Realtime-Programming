@@ -139,4 +139,38 @@ defmodule FSM do
         {nil, elevator}
     end
   end
+
+  @spec on_obstruction_change(Elevator.t(), :active | :inactive) ::
+          {:close_doors, Elevator.t()} | {nil, Elevator.t()}
+  @doc """
+  Logic returning the required action to be done when the obstruction state changes
+  and a new `Elevator` state.
+  """
+  def on_obstruction_change(%Elevator{} = elevator, obs_state) do
+    case elevator.behaviour do
+      :be_door_open ->
+        if obs_state == :inactive do
+          elevator = %Elevator{
+            elevator
+            | direction: elevator |> Requests.choose_direction(),
+              obstructed: false
+          }
+
+          if elevator.direction == :dir_stop do
+            {:close_doors, %Elevator{elevator | behaviour: :be_idle}}
+          else
+            {:close_doors, %Elevator{elevator | behaviour: :be_moving}}
+          end
+        else
+          {nil, %Elevator{elevator | obstructed: true}}
+        end
+
+      _ ->
+        if obs_state == :inactive do
+          {nil, %Elevator{elevator | obstructed: false}}
+        else
+          {nil, %Elevator{elevator | obstructed: false}}
+        end
+    end
+  end
 end

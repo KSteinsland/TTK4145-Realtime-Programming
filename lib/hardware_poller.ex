@@ -27,7 +27,7 @@ defmodule HardwarePoller do
     IO.puts("Started hardware poller")
 
     req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
-    state = %{floor: nil, req_list: req_list, obstruction: nil}
+    state = %{floor: nil, req_list: req_list, obstruction: nil, initialized: false}
 
     send(self(), :poll_floor)
     send(self(), :poll_obstruction)
@@ -47,8 +47,14 @@ defmodule HardwarePoller do
 
         new_floor ->
           IO.puts("Floor change!")
-          ElevatorController.floor_change(new_floor)
-          %{state | floor: new_floor}
+
+          if not state.initialized do
+            ElevatorController.init_controller(new_floor)
+            %{state | floor: new_floor, initialized: true}
+          else
+            ElevatorController.floor_change(new_floor)
+            %{state | floor: new_floor}
+          end
       end
 
     Process.send_after(self(), :poll_floor, @floor_poll_rate_ms)
@@ -71,6 +77,7 @@ defmodule HardwarePoller do
 
         new_obs ->
           IO.puts("Obstruction change!")
+          IO.inspect(new_obs)
           ElevatorController.obstruction_change(new_obs)
           %{state | obstruction: new_obs}
       end
