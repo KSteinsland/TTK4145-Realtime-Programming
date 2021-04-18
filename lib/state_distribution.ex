@@ -101,7 +101,7 @@ defmodule StateDistribution do
     case hall_state do
       :new ->
         # TODO REMOVE
-        # ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
+        # ElevatorController.send_hall_request(node_name, floor_ind, btn_type)
 
         # notify request handler of new request
         # TODO make request handler get state itself...
@@ -117,7 +117,7 @@ defmodule StateDistribution do
         # why do we need this again?
         SS.update_hall_requests(node_name, floor_ind, btn_type, hall_state)
 
-        ElevatorPoller.send_hall_request(node_name, floor_ind, btn_type)
+        ElevatorController.send_hall_request(node_name, floor_ind, btn_type, :message)
     end
 
     {:noreply, %{state | last_hall_requests: new_hall_requests}}
@@ -159,6 +159,8 @@ defmodule StateDistribution do
 
     master_sys_state = SS.get_state()
     local_copy = SS.get_elevator(node_name)
+
+    spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
 
     # check if elevatorstate is outdated, probably not needed...
     node_elevator =
