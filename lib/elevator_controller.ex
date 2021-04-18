@@ -67,7 +67,7 @@ defmodule ElevatorController do
   @impl true
   def handle_cast({:assigned_hall_request, floor, btn_type, req_type}, state) do
     if state.initialized do
-      elevator = SS.get_elevator(NodeConnector.get_self())
+      elevator = SS.get_elevator(Node.self())
 
       # performs actions on received request, either a request button press
       # or a request message from distribution
@@ -103,7 +103,7 @@ defmodule ElevatorController do
 
       set_all_cab_lights(elevator)
 
-      :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+      :ok = SS.set_elevator(Node.self(), elevator)
 
       {:noreply, state}
     else
@@ -121,29 +121,29 @@ defmodule ElevatorController do
 
         elevator =
           Elevator.check(%Elevator{
-            SS.get_elevator(NodeConnector.get_self())
+            SS.get_elevator(Node.self())
             | direction: :dir_down,
               behaviour: :be_moving
           })
 
-        :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+        :ok = SS.set_elevator(Node.self(), elevator)
 
         Driver.set_motor_direction(:dir_down)
       else
         elevator =
           Elevator.check(%Elevator{
-            SS.get_elevator(NodeConnector.get_self())
+            SS.get_elevator(Node.self())
             | floor: floor
           })
 
-        :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+        :ok = SS.set_elevator(Node.self(), elevator)
       end
 
       {:noreply, %{state | initialized: true}}
     else
       if floor != :between_floors do
         IO.puts("Arrived at floor!")
-        state = SS.get_elevator(NodeConnector.get_self())
+        state = SS.get_elevator(Node.self())
         {action, new_state} = FSM.on_floor_arrival(state, floor)
 
         Driver.set_floor_indicator(new_state.floor)
@@ -160,7 +160,7 @@ defmodule ElevatorController do
             :ok
         end
 
-        :ok = SS.set_elevator(NodeConnector.get_self(), new_state)
+        :ok = SS.set_elevator(Node.self(), new_state)
       end
 
       {:noreply, state}
@@ -179,8 +179,8 @@ defmodule ElevatorController do
             false
         end
 
-      elevator = %Elevator{SS.get_elevator(NodeConnector.get_self()) | obstructed: obs}
-      :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+      elevator = %Elevator{SS.get_elevator(Node.self()) | obstructed: obs}
+      :ok = SS.set_elevator(Node.self(), elevator)
 
       {:noreply, state}
     else
@@ -191,7 +191,7 @@ defmodule ElevatorController do
   @impl true
   def handle_info(:timed_out, state) do
     if state.initialized do
-      elevator = SS.get_elevator(NodeConnector.get_self())
+      elevator = SS.get_elevator(Node.self())
 
       if not elevator.obstructed do
         # IO.puts("Door open timer has timed out!")
@@ -207,7 +207,7 @@ defmodule ElevatorController do
         end
 
         Timer.timer_stop()
-        :ok = SS.set_elevator(NodeConnector.get_self(), new_elevator)
+        :ok = SS.set_elevator(Node.self(), new_elevator)
       end
 
       {:noreply, state}

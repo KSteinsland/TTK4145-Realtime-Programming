@@ -135,7 +135,7 @@ defmodule StateServer do
   @impl true
   @spec init(any) :: {:ok, StateServer.SystemState.t()}
   def init(_opts) do
-    wait_for_node_startup()
+    NodeConnector.wait_for_node_startup()
     {:ok, %SystemState{}}
   end
 
@@ -218,7 +218,7 @@ defmodule StateServer do
 
     if node_name == :local do
       StateDistribution.update_hall_requests(
-        NodeConnector.get_self(),
+        Node.self(),
         floor_ind,
         btn_type,
         hall_state
@@ -230,13 +230,6 @@ defmodule StateServer do
   end
 
   ## Utils ------------------------------
-
-  defp wait_for_node_startup() do
-    if Node.self() == :nonode@nohost do
-      Process.sleep(10)
-      wait_for_node_startup()
-    end
-  end
 
   defp get_elevator_init(node_name, elevators) do
     case Map.get(elevators, node_name) do

@@ -13,10 +13,11 @@ defmodule RequestHandler do
   end
 
   def init([]) do
-    # Assign all new incase there was a reboot.
+    # All assigned should be made new incase reboot
     sys_state = StateServer.get_state()
     IO.inspect(sys_state.hall_requests.hall_orders)
-    new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
+    new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :assigned)
+    new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests.hall_orders, :new)
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
     wd_list = handle_new_hall_requests(new_reqs, empty_wd_list, sys_state)
     {:ok, wd_list}
@@ -27,7 +28,7 @@ defmodule RequestHandler do
   end
 
   def get_wd() do
-    GenServer.call(__MODULE__, :get_wd)
+    GenServer.call({:global, __MODULE__}, :get_wd)
   end
 
   def handle_call(:get_wd, _from, wd_list) do
@@ -43,7 +44,6 @@ defmodule RequestHandler do
     wd_list = handle_done_hall_requests(done_reqs, wd_list)
 
     new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
-    # todo filter out inactive
     wd_list = handle_new_hall_requests(new_reqs, wd_list, sys_state)
 
     {:noreply, wd_list}
@@ -54,9 +54,42 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      assignee = Assignment.assign(sys_state)
-      # for now
-      # assignee = Node.self()
+      # task = Task.async(fn -> Assignment.assign(sys_state) end)
+
+      current = self()
+      spawn(fn -> Assignment.assign(sys_state, current) end)
+
+      assignee =
+        receive do
+          {:ok, assignee} -> assignee
+        after
+          1000 ->
+            IO.puts("Assignment failed to reply, master takes the order!")
+            IO.puts("The following sys state was given to assignment")
+            IO.inspect(sys_state)
+            Node.self()
+        end
+
+      # assignee =
+      #   try do
+      #     Task.start()
+      #   rescue
+      #     _ ->
+      #       IO.puts("Assignment crashed, master takes the order!")
+      #       IO.puts("The following sys state was given to assignment")
+      #       IO.inspect(sys_state)
+      #       Node.self()
+      #   end
+
+      # assignee =
+      #   case Task.await(task) do
+      #     {:ok, assignee} ->
+      #       assignee
+
+      #     _ ->
+      #       IO.puts("Assignment crashed!")
+      #       Node.self()
+      #   end
 
       StateDistribution.update_hall_requests(
         assignee,

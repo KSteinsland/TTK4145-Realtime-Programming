@@ -61,7 +61,7 @@ defmodule HardwarePoller do
 
     # if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
     #   Timer.timer_stop()
-    #   :ok = SS.set_elevator(NodeConnector.get_self(), new_state)
+    #   :ok = SS.set_elevator(Node.self(), new_state)
     # end
 
     state =

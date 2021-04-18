@@ -2,17 +2,43 @@ defmodule Assignment do
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
 
-  def assign(sys_state) do
+  def assign(sys_state, parent) do
+    sys_state_formated = format_sys_state(sys_state)
+    {:ok, json_in} = JSON.encode(sys_state_formated)
+
+    json_out = call_assigner(json_in)
+    {:ok, el_map} = JSON.decode(json_out)
+
+    winner = extract_winner(el_map)
+
+    send(parent, {:ok, String.to_atom(winner)})
+  end
+
+  def extract_winner(elevator_map) do
+    Enum.reduce(elevator_map, %{}, fn {el_id, list}, winner_map ->
+      if Enum.reduce(List.flatten(list), false, fn bool, acc -> bool or acc end) do
+        Map.put(winner_map, :winner, el_id)
+      else
+        winner_map
+      end
+    end)[:winner]
+  end
+
+  def format_sys_state(sys_state) do
     states =
       Enum.reduce(sys_state.elevators, %{}, fn {id, el}, acc ->
         cab_reqs = Enum.map(el.requests, fn [_, _, c] -> %{0 => false, 1 => true}[c] end)
 
-        Map.put(acc, id, %{
-          behaviour: @behavior_map[el.behaviour],
-          floor: el.floor,
-          direction: @dir_map[el.direction],
-          cabRequests: cab_reqs
-        })
+        if el.active do
+          Map.put(acc, id, %{
+            behaviour: @behavior_map[el.behaviour],
+            floor: el.floor,
+            direction: @dir_map[el.direction],
+            cabRequests: cab_reqs
+          })
+        else
+          acc
+        end
       end)
 
     hall_requests =
@@ -22,23 +48,7 @@ defmodule Assignment do
         acc ++ [[m2[m1[one]], m2[m1[two]]]]
       end)
 
-    sys_map = %{hallRequests: hall_requests, states: states}
-    {:ok, json_in} = JSON.encode(sys_map)
-
-    json_out = call_assigner(json_in)
-
-    {:ok, el_map} = JSON.decode(json_out)
-
-    winner_map =
-      Enum.reduce(el_map, %{}, fn {el_id, list}, winner_map ->
-        if Enum.reduce(List.flatten(list), false, fn bool, acc -> bool or acc end) do
-          Map.put(winner_map, :winner, el_id)
-        else
-          winner_map
-        end
-      end)
-
-    String.to_atom(winner_map[:winner])
+    %{hallRequests: hall_requests, states: states}
   end
 
   defp call_assigner(json_in) do
@@ -79,5 +89,30 @@ defmodule Assignment do
   defp get_extra_opts(opts) do
     opts
     |> Enum.reduce([], fn {key, val}, acc -> ["--" <> to_string(key), to_string(val) | acc] end)
+  end
+
+  def test_assignmenet() do
+    # this input will generate bug, TODO fix bug
+    test_sys_state = %StateServer.SystemState{
+      elevators: %{
+        "HPFND@192.168.0.40": %Elevator{
+          active: false,
+          behaviour: :be_idle,
+          counter: 14,
+          direction: :dir_stop,
+          floor: 2,
+          requests: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        }
+      },
+      hall_requests: %StateServer.HallRequests{
+        hall_orders: [[:new, :done], [:done, :done], [:done, :done], [:done, :done]]
+      }
+    }
+
+    assign(test_sys_state, self())
+
+    receive do
+      {:ok, winner} -> winner
+    end
   end
 end

@@ -47,11 +47,12 @@ tmux send-keys -t $SESSION:'Main' $SIM_PATH ' --port ' $SIM_PORT ' --numfloors '
 
 
 # Create NUM_SIMS-1 more panes and simulators
-for ((i=1;i<$NUM_SIMS;i++))
-do
+i=1
+while [ "$i" -lt "$NUM_SIMS" ]; do
     tmux split-window -t $SESSION -v
     tmux send-keys -t $SESSION:'Main' $SIM_PATH ' --port ' $((SIM_PORT + i)) ' --numfloors ' $SIM_FLOORS ' ' $SIM_OPTS C-m
     tmux select-layout -t $SESSION tiled
+    i=$(( i + 1))
 done
 
 
