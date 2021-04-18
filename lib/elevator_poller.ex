@@ -31,12 +31,12 @@ defmodule ElevatorPoller do
 
       elevator =
         Elevator.check(%Elevator{
-          SS.get_elevator(NodeConnector.get_self())
+          SS.get_elevator(Node.self())
           | direction: :dir_down,
             behaviour: :be_moving
         })
 
-      :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+      :ok = SS.set_elevator(Node.self(), elevator)
 
       Driver.set_motor_direction(:dir_down)
     end
@@ -62,11 +62,11 @@ defmodule ElevatorPoller do
   end
 
   def handle_cast({:assigned_hall_request, floor_ind, btn_type}, state) do
-    elevator = SS.get_elevator(NodeConnector.get_self())
+    elevator = SS.get_elevator(Node.self())
 
     elevator = request_procedure(elevator, floor_ind, btn_type, :message)
 
-    :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+    :ok = SS.set_elevator(Node.self(), elevator)
 
     {:noreply, state}
   end
@@ -82,7 +82,7 @@ defmodule ElevatorPoller do
 
     if f != :between_floors && f != prev_floor do
       IO.puts("Arrived at floor!")
-      state = SS.get_elevator(NodeConnector.get_self())
+      state = SS.get_elevator(Node.self())
       {action, new_state} = FSM.on_floor_arrival(state, f)
 
       Driver.set_floor_indicator(new_state.floor)
@@ -99,14 +99,14 @@ defmodule ElevatorPoller do
           :ok
       end
 
-      :ok = SS.set_elevator(NodeConnector.get_self(), new_state)
+      :ok = SS.set_elevator(Node.self(), new_state)
     end
 
     prev_floor = f
 
     if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
       # IO.puts("Door open timer has timed out!")
-      {action, new_state} = FSM.on_door_timeout(SS.get_elevator(NodeConnector.get_self()))
+      {action, new_state} = FSM.on_door_timeout(SS.get_elevator(Node.self()))
 
       case action do
         :close_doors ->
@@ -118,7 +118,7 @@ defmodule ElevatorPoller do
       end
 
       Timer.timer_stop()
-      :ok = SS.set_elevator(NodeConnector.get_self(), new_state)
+      :ok = SS.set_elevator(Node.self(), new_state)
     end
 
     Process.send_after(self(), :loop_poller, @input_poll_rate_ms)
@@ -141,11 +141,11 @@ defmodule ElevatorPoller do
         prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
         if v == 1 && v != prev_v do
-          elevator = SS.get_elevator(NodeConnector.get_self())
+          elevator = SS.get_elevator(Node.self())
 
           elevator = request_procedure(elevator, floor_ind, btn_type, :button)
 
-          :ok = SS.set_elevator(NodeConnector.get_self(), elevator)
+          :ok = SS.set_elevator(Node.self(), elevator)
         end
 
         v

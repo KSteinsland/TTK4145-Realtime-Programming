@@ -16,55 +16,29 @@ defmodule NodeConnector do
               port: nil,
               # dev
               start_port: nil,
-              name: :nonode@nohost,
               role: :slave,
               up_since: nil,
               watchdog: nil,
-              master: nil,
-              slaves: %{},
-              # dev
-              test_disconnected: false
+              master: {nil, 0},
+              slaves: %{}
   end
 
+  ## client ------------------------------------------
+
   def start_link([]) do
-    start_link([33333, "Elevator"])
+    start_link([33333, "node0"])
   end
 
   def start_link([start_port, name]) do
     GenServer.start_link(__MODULE__, [start_port, name], name: __MODULE__)
   end
 
-  ## client ------------------------------------------
-
   def wait_for_node_startup() do
     # Ensures that we do not register :nonode@nohost in the elevator map
-    if get_self() == :nonode@nohost do
+    if Node.self() == :nonode@nohost do
       Process.sleep(10)
       wait_for_node_startup()
     end
-  end
-
-  def get_all_slaves() do
-    GenServer.call(__MODULE__, :get_all_slaves)
-  end
-
-  def get_self() do
-    GenServer.call(__MODULE__, :get_self)
-  end
-
-  def get_role do
-    GenServer.call(__MODULE__, :get_role)
-  end
-
-  # debug
-  def get_state do
-    GenServer.call(__MODULE__, :get_state)
-  end
-
-  # TODO remove
-  # debug
-  def set_state(new_state) do
-    GenServer.call(__MODULE__, {:set_state, new_state})
   end
 
   ## server ------------------------------------------
@@ -74,68 +48,77 @@ defmodule NodeConnector do
     # port = start_port
     # {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     {:ok, socket, port} = dev_try_create_socket(start_port, start_port + @port_range)
-    name = dev_register_node(name)
+
+    if Node.self() == :nonode@nohost do
+      {:ok, addr} = Utils.Network.get_local_ip()
+      addr_str = :inet.ntoa(addr)
+      full_name = name <> "@" <> to_string(addr_str)
+      IO.puts("New node name: " <> full_name)
+
+      Node.start(String.to_atom(full_name), :longnames)
+      Node.set_cookie(:choc)
+    else
+      IO.puts("Node already named: " <> to_string(Node.self()))
+
+      Node.set_cookie(:choc)
+    end
+
+    # Amount of seconds before timeout
+    # :net_kernel.set_net_ticktime(2, 2)
 
     {:ok,
      %State{
        socket: socket,
        port: port,
        start_port: start_port,
-       name: name,
        up_since: System.os_time(:millisecond),
-       watchdog: start_watchdog()
+       watchdog: restart_watchdog(nil)
      }}
   end
 
-  # calls ------------------------------------------
+  # cast ------------------------------------------
 
-  # TODO remove
-  def handle_call(:get_all_slaves, _from, state) do
-    {:reply, state.slaves, state}
-  end
-
-  def handle_call(:get_self, _from, state) do
-    {:reply, state.name, state}
-  end
-
-  # TODO remove
-  def handle_call(:get_role, _from, state) do
-    {:reply, state.role, state}
-  end
-
-  def handle_call(:get_state, _from, state) do
-    {:reply, state, state}
-  end
-
-  def handle_call({:set_state, new_state}, _from, _state) do
-    {:reply, :ok, new_state}
-  end
-
-  def handle_call(:dev_reconnect, _from, state) do
-    Node.start(state.name, :longnames)
-    Node.set_cookie(:choc)
-
-    state = %State{state | test_disconnected: false}
-
-    if state.role == :master do
-      send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
-    end
-
-    {:reply, :ok, state}
+  def handle_cast({:slaves, slaves}, state) do
+    {:noreply, %State{state | slaves: slaves}}
   end
 
   # info ------------------------------------------
 
   def handle_info(:timed_out, state) do
-    if state.role != :master do
+    up_times = [state.up_since | state.slaves |> Map.values()]
+
+    if state.role != :master and state.up_since <= Enum.min(up_times) do
       IO.puts("Master timed out, upgrading self to master")
 
       MasterSupervisor.upgrade_to_master()
 
-      state = %State{state | role: :master, master: Node.self()}
+      state = %State{
+        state
+        | watchdog: stop_watchdog(state.watchdog),
+          role: :master,
+          master: {Node.self(), state.up_since},
+          # unsure about this one
+          slaves: %{}
+      }
+
       send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
       {:noreply, state}
     else
+      # waiting for another slave to become master
+      IO.puts("waiting for another master")
+
+      new_master_candidate =
+        state.slaves |> Enum.find(fn {_key, val} -> val == Enum.min(up_times) end) |> elem(0)
+
+      new_slaves = state.slaves |> Map.delete(new_master_candidate)
+
+      state = %State{
+        state
+        | master: {nil, 0},
+          slaves: new_slaves,
+          watchdog: restart_watchdog(state.watchdog)
+      }
+
       {:noreply, state}
     end
   end
@@ -143,8 +126,11 @@ defmodule NodeConnector do
   # dev
   # def handle_info(:loop_master, state) do
   def handle_info({:loop_master, start_port, end_port}, state) do
-    if state.role == :master and not state.test_disconnected do
+    if state.role == :master do
       :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
+
+      # dev note, if dev_disconnect has been called, the disconnected node will not be able to send udp
+      # as we close the socket
 
       # dev
       # if Integer.mod(start_port, end_port) == 0, do: IO.puts("sending udp")
@@ -174,55 +160,51 @@ defmodule NodeConnector do
   def handle_info({:udp, _socket, _host, _port, packet}, state) do
     [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
-
     latest_master = String.to_atom(full_name)
+    # IO.inspect(latest_master)
 
-    if not state.test_disconnected do
-      if state.role == :slave do
-        master =
-          case state.master do
-            ^latest_master ->
-              state.master
+    if state.role == :slave do
+      {current_master, current_up_since} = state.master
 
-            _ ->
-              # catches both when state.master = nil
-              # and when state.master is outdated
-              IO.puts("Found master #{full_name}!")
+      if current_master == nil or up_since < current_up_since do
+        IO.puts("Found master #{full_name}!")
 
-              connect_to_master(latest_master, state.up_since)
+        Node.connect(latest_master)
+        send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
 
-              latest_master
-          end
-
-        {:noreply, %State{state | watchdog: restart_watchdog(state.watchdog), master: master}}
+        {:noreply,
+         %State{
+           state
+           | watchdog: restart_watchdog(state.watchdog),
+             master: {latest_master, up_since}
+         }}
       else
-        # handles case when there are multiple masters
-
-        if up_since < state.up_since do
-          # downgrade to slave
-          IO.puts("Downgrading to slave")
-          IO.puts("#{full_name} is the master")
-
-          MasterSupervisor.downgrade_to_slave()
-
-          master = String.to_atom(full_name)
-          connect_to_master(master, up_since)
-
-          {:noreply,
-           %State{
-             state
-             | role: :slave,
-               slaves: %{},
-               watchdog: restart_watchdog(state.watchdog),
-               master: master
-           }}
-        else
-          # do nothing, we are the "first" master and the other node should downgrade
-          {:noreply, state}
-        end
+        {:noreply, %State{state | watchdog: restart_watchdog(state.watchdog)}}
       end
     else
-      {:noreply, state}
+      # handles case when there are multiple masters
+      if up_since < state.up_since do
+        # downgrade to slave
+        IO.puts("Downgrading to slave")
+        IO.puts("#{full_name} is the master")
+
+        MasterSupervisor.downgrade_to_slave()
+
+        Node.connect(latest_master)
+        send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
+
+        {:noreply,
+         %State{
+           state
+           | role: :slave,
+             slaves: %{},
+             watchdog: restart_watchdog(state.watchdog),
+             master: {latest_master, up_since}
+         }}
+      else
+        # do nothing, we are the "first" master and the other node should downgrade
+        {:noreply, state}
+      end
     end
   end
 
@@ -235,51 +217,49 @@ defmodule NodeConnector do
 
     Node.monitor(node_name, true)
     new_slaves = Map.put(state.slaves, node_name, up_since)
-    send({__MODULE__, node_name}, {:slaves, new_slaves})
+    nodes = Node.list()
+    GenServer.abcast(nodes, __MODULE__, {:slaves, new_slaves})
+
     {:noreply, %State{state | slaves: new_slaves}}
   end
 
-  def handle_info({:slaves, slaves}, state) do
-    {:noreply, %State{state | slaves: slaves}}
-  end
-
   def handle_info({:nodedown, node}, state) do
-    IO.puts("Lost connection to node #{node}!")
-    # name = node |> to_string() |> String.split("@") |> Enum.at(0)
+    if state.role == :master do
+      IO.puts("Lost connection to node #{node}!")
 
-    StateDistribution.node_active(node, false)
+      StateDistribution.node_active(node, false)
 
-    # upgrade to master if master disconnected
-    case state.master do
-      ^node ->
-        if state.up_since <= state.slaves |> Map.values() |> Enum.min() do
-          IO.puts("Master disconnected, upgrading self to master")
-
-          MasterSupervisor.upgrade_to_master()
-
-          state = %State{
-            state
-            | watchdog: stop_watchdog(state.watchdog),
-              role: :master,
-              master: Node.self(),
-              slaves: Map.delete(state.slaves, Node.self())
-          }
-
-          send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
-          {:noreply, state}
-        else
-          # somebody else should become master
-          {:noreply, %{state | watchdog: restart_watchdog(state.watchdog)}}
-        end
-
-      master ->
-        {:noreply, %{state | master: master, slaves: Map.delete(state.slaves, node)}}
+      {:noreply, %{state | slaves: Map.delete(state.slaves, node)}}
+    else
+      {:noreply, state}
     end
   end
 
   def handle_info(:shutdown, state) do
+    IO.puts("shutting down nodeconn")
     :gen_udp.close(state.socket)
     Process.exit(self(), :kill)
+    {:noreply, state}
+  end
+
+  def handle_info(:dev_reconnect, state) do
+    Node.set_cookie(:choc)
+    {:ok, socket} = :gen_udp.open(state.port, [{:broadcast, true}, {:reuseaddr, true}])
+    {:noreply, %State{state | socket: socket}}
+  end
+
+  def handle_info(:dev_disconnect, state) do
+    :gen_udp.close(state.socket)
+
+    Enum.map(Node.list(), fn node ->
+      Node.disconnect(node)
+    end)
+
+    # Do this to avoid having no name
+    name = Node.self()
+    Node.stop()
+    Node.start(name, :longnames)
+
     {:noreply, state}
   end
 
@@ -292,52 +272,17 @@ defmodule NodeConnector do
 
   # Utils ------------------------------------------
 
-  defp connect_to_master(master, up_since) do
-    Node.monitor(master, true)
-    Node.connect(master)
-    send({__MODULE__, master}, {:slave_connected, Node.self(), up_since})
-  end
-
-  defp start_watchdog() do
-    Process.send_after(self(), :timed_out, @timeout_time)
-  end
-
   defp restart_watchdog(timer) do
-    if timer != nil do
-      Process.cancel_timer(timer)
-    end
-
+    if timer != nil, do: Process.cancel_timer(timer)
     Process.send_after(self(), :timed_out, @timeout_time)
   end
 
   defp stop_watchdog(timer) do
-    if timer != nil do
-      Process.cancel_timer(timer)
-    end
-
+    if timer != nil, do: Process.cancel_timer(timer)
     nil
   end
 
   # Dev ------------------------------------------
-
-  defp dev_register_node(name) do
-    if Node.self() == :nonode@nohost do
-      {:ok, addr} = Utils.Network.get_local_ip()
-      addr_str = :inet.ntoa(addr)
-      full_name = name <> "@" <> to_string(addr_str)
-      IO.puts("New node name: " <> full_name)
-
-      Node.start(String.to_atom(full_name), :longnames)
-      Node.set_cookie(:choc)
-
-      String.to_atom(full_name)
-    else
-      IO.puts("Node already named: " <> to_string(Node.self()))
-      Node.set_cookie(:choc)
-      # String.split(to_string(Node.self()), "@") |> Enum.at(0)
-      Node.self()
-    end
-  end
 
   defp dev_try_create_socket(port, max_port) do
     case :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}]) do
@@ -355,22 +300,15 @@ defmodule NodeConnector do
 
   def dev_network_loss(timeout) do
     IO.puts("simulating network loss")
-    dev_disconnect()
-    Process.sleep(timeout)
-    dev_reconnect()
+    NodeConnector.dev_disconnect()
+    NodeConnector.dev_reconnect(timeout)
   end
 
   def dev_disconnect() do
-    # To simulate a network failure
-    # do this so we can stop broadcasting master hb
-    Node.stop()
-    state = get_state()
-    set_state(%{state | test_disconnected: true})
-    # do this to avoid having no name
-    # Node.start(state.name, :longnames)
+    send(__MODULE__, :dev_disconnect)
   end
 
-  def dev_reconnect() do
-    GenServer.call(__MODULE__, :dev_reconnect)
+  def dev_reconnect(timeout \\ 0) do
+    Process.send_after(__MODULE__, :dev_reconnect, timeout)
   end
 end

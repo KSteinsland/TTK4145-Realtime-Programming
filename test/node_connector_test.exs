@@ -4,7 +4,8 @@ defmodule NodeConnectorTest do
   doctest NodeConnector
 
   setup_all do
-    port = 33333
+    port = 34444
+    num_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
 
     case NodeConnector.start_link([port, "test_udp"]) do
       {:ok, _pid} ->
@@ -18,41 +19,52 @@ defmodule NodeConnectorTest do
     on_exit(fn ->
       Cluster.spawn(
         Application.fetch_env!(:elevator_project, :port_driver) + 1,
-        Application.fetch_env!(:elevator_project, :local_nodes) - 1
+        num_nodes - 1
       )
     end)
+
+    %{num_nodes: num_nodes}
   end
 
   # We have to do this in one big test, as tests are done in random order!
   # TODO this test needs fixing!
-  test "Check NodeConnector" do
+  test "Check NodeConnector", fixture do
     # Check local role
     Process.sleep(5_000)
-    assert NodeConnector.get_role() == :master
+    local_state = :sys.get_state(NodeConnector)
+    assert local_state.role == :master
 
     # Check for other nodes
     Process.sleep(5_000)
-    # IO.inspect(NodeConnector.get_state())
-    assert length(Map.keys(NodeConnector.get_all_slaves())) ==
-             Application.fetch_env!(:elevator_project, :local_nodes) - 1
+    assert local_state.slaves |> Map.keys() |> length() == fixture.num_nodes - 1
 
     # Check that the slaves are behaving properly
     Node.list()
     |> Enum.map(fn node ->
-      assert Cluster.rpc(node, NodeConnector, :get_role, []) == :slave
-      state = Cluster.rpc(node, NodeConnector, :get_state, [])
-      assert state.master == Node.self()
+      state = Cluster.rpc(node, :sys, :get_state, [NodeConnector])
+      assert state.role == :slave
+      assert state.master == local_state.master
     end)
 
-    # Check that someone takes over when we die
-    Process.whereis(NodeConnector) |> Process.exit(:kill)
-    Process.sleep(5_000)
-    assert NodeConnector.get_role() == :slave
+    # Test slave loosing and restoring internet
+    slave = Node.list() |> Enum.at(0)
+    Cluster.rpc(slave, NodeConnector, :dev_network_loss, [7000])
+    _new_local_state = :sys.get_state(NodeConnector)
+    assert Node.list() |> length() == fixture.num_nodes - 1
+    Process.sleep(8_000)
+    assert Node.list() |> length() == fixture.num_nodes
+    assert :sys.get_state(NodeConnector).slaves == local_state.slaves
 
-    assert Node.list()
-           |> Enum.any?(fn node ->
-             Cluster.rpc(node, NodeConnector, :get_role, []) == :master
-           end)
+    # # Check that someone takes over when we die
+    # Process.whereis(NodeConnector) |> Process.exit(:kill)
+    # Process.sleep(5_000)
+    # assert :sys.get_state(NodeConnector).role == :slave
+
+    # assert Node.list()
+    #        |> Enum.any?(fn node ->
+    #          state = Cluster.rpc(node, :sys, :get_state, [NodeConnector])
+    #          state.role == :master
+    #        end)
 
     Process.sleep(2_000)
   end

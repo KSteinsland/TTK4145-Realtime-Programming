@@ -87,7 +87,7 @@ defmodule StateDistribution do
 
   def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     # distribute hall request change to everyone expect the caller
-    nodes = [NodeConnector.get_self() | Node.list()] |> List.delete(node_name)
+    nodes = [Node.self() | Node.list()] |> List.delete(node_name)
 
     GenServer.abcast(
       nodes,
@@ -125,7 +125,7 @@ defmodule StateDistribution do
 
   def handle_cast({:new_elevator_state, node_name, elevator}, state) do
     # pull everyones elevator state
-    nodes = List.delete([NodeConnector.get_self() | Node.list()], node_name)
+    nodes = List.delete([Node.self() | Node.list()], node_name)
 
     # {el_states_map, _bs} = GenServer.multi_call(nodes, StateDistribution, :get_elevator_state, 500)
 
