@@ -2,7 +2,7 @@ defmodule Assignment do
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
 
-  def assign(sys_state, parent) do
+  def assign(sys_state) do
     sys_state_formated = format_sys_state(sys_state)
     {:ok, json_in} = JSON.encode(sys_state_formated)
 
@@ -11,7 +11,7 @@ defmodule Assignment do
 
     winner = extract_winner(el_map)
 
-    send(parent, {:ok, String.to_atom(winner)})
+    String.to_atom(winner)
   end
 
   def extract_winner(elevator_map) do
@@ -25,20 +25,25 @@ defmodule Assignment do
   end
 
   def format_sys_state(sys_state) do
+    elevators = Enum.filter(sys_state.elevators, fn {_id, el} -> el.active end)
+
+    elevators =
+      if elevators == [] do
+        sys_state.elevators
+      else
+        elevators
+      end
+
     states =
-      Enum.reduce(sys_state.elevators, %{}, fn {id, el}, acc ->
+      Enum.reduce(elevators, %{}, fn {id, el}, acc ->
         cab_reqs = Enum.map(el.requests, fn [_, _, c] -> %{0 => false, 1 => true}[c] end)
 
-        if el.active do
-          Map.put(acc, id, %{
-            behaviour: @behavior_map[el.behaviour],
-            floor: el.floor,
-            direction: @dir_map[el.direction],
-            cabRequests: cab_reqs
-          })
-        else
-          acc
-        end
+        Map.put(acc, id, %{
+          behaviour: @behavior_map[el.behaviour],
+          floor: el.floor,
+          direction: @dir_map[el.direction],
+          cabRequests: cab_reqs
+        })
       end)
 
     hall_requests =
@@ -109,7 +114,7 @@ defmodule Assignment do
       }
     }
 
-    assign(test_sys_state, self())
+    assign(test_sys_state)
 
     receive do
       {:ok, winner} -> winner
