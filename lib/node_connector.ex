@@ -75,8 +75,7 @@ defmodule NodeConnector do
     name = dev_register_node(name)
 
     # Amount of seconds before timeout
-    res = :net_kernel.set_net_ticktime(2, 2)
-    IO.inspect(res)
+    :net_kernel.set_net_ticktime(2, 2)
 
     {:ok,
      %State{
@@ -113,15 +112,15 @@ defmodule NodeConnector do
     {:reply, :ok, new_state}
   end
 
-  def handle_call(:dev_reconnect, _from, state) do
-    :gen_udp.open(state.port, [{:broadcast, true}, {:reuseaddr, true}])
+  def handle_info(:dev_reconnect, state) do
     Node.start(state.name, :longnames)
-    # Node.set_cookie(:choc)
+    Node.set_cookie(:choc)
+    {:ok, socket} = :gen_udp.open(state.port, [{:broadcast, true}, {:reuseaddr, true}])
 
-    {:reply, :ok, state}
+    {:noreply, %State{state | socket: socket}}
   end
 
-  def handle_call(:dev_disconnect, _from, state) do
+  def handle_info(:dev_disconnect, state) do
     :gen_udp.close(state.socket)
 
     Enum.map(Node.list(), fn node ->
@@ -133,21 +132,46 @@ defmodule NodeConnector do
     # do this to avoid having no name
     Node.start(state.name, :longnames)
 
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 
   # info ------------------------------------------
 
   def handle_info(:timed_out, state) do
-    if state.role != :master do
+    up_times = [state.up_since | state.slaves |> Map.values()]
+
+    if state.role != :master and state.up_since <= Enum.min(up_times) do
       IO.puts("Master timed out, upgrading self to master")
 
       MasterSupervisor.upgrade_to_master()
 
-      state = %State{state | role: :master, master: {Node.self(), state.up_since}}
+      state = %State{
+        state
+        | watchdog: stop_watchdog(state.watchdog),
+          role: :master,
+          master: {Node.self(), state.up_since},
+          # unsure about this one
+          slaves: %{}
+      }
+
       send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
       {:noreply, state}
     else
+      # waiting for another slave to become master
+      IO.puts("waiting for another master")
+
+      new_master_candidate =
+        state.slaves |> Enum.find(fn {_key, val} -> val == Enum.min(up_times) end) |> elem(0)
+
+      new_slaves = state.slaves |> Map.delete(new_master_candidate)
+
+      state = %State{
+        state
+        | master: {nil, 0},
+          slaves: new_slaves,
+          watchdog: restart_watchdog(state.watchdog)
+      }
+
       {:noreply, state}
     end
   end
@@ -157,6 +181,9 @@ defmodule NodeConnector do
   def handle_info({:loop_master, start_port, end_port}, state) do
     if state.role == :master do
       :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
+
+      # dev note, if dev_disconnect has been called, the disconnected node will not be able to send udp
+      # as we close the socket
 
       # dev
       # if Integer.mod(start_port, end_port) == 0, do: IO.puts("sending udp")
@@ -186,16 +213,18 @@ defmodule NodeConnector do
   def handle_info({:udp, _socket, _host, _port, packet}, state) do
     [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
-    IO.puts(full_name)
     latest_master = String.to_atom(full_name)
+    # IO.inspect(latest_master)
 
     if state.role == :slave do
       {current_master, current_up_since} = state.master
 
       if current_master == nil or up_since < current_up_since do
+        # unsure about this
         IO.puts("Found master #{full_name}!")
 
-        connect_to_master(latest_master, state.up_since)
+        Node.connect(latest_master)
+        send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
 
         {:noreply,
          %State{
@@ -209,13 +238,15 @@ defmodule NodeConnector do
     else
       # handles case when there are multiple masters
       if up_since < state.up_since do
+        # unsure about this!!
         # downgrade to slave
         IO.puts("Downgrading to slave")
         IO.puts("#{full_name} is the master")
 
         MasterSupervisor.downgrade_to_slave()
 
-        connect_to_master(latest_master, up_since)
+        Node.connect(latest_master)
+        send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
 
         {:noreply,
          %State{
@@ -241,49 +272,25 @@ defmodule NodeConnector do
 
     Node.monitor(node_name, true)
     new_slaves = Map.put(state.slaves, node_name, up_since)
-    send({__MODULE__, node_name}, {:slaves, new_slaves})
+    nodes = Node.list()
+    GenServer.abcast(nodes, __MODULE__, {:slaves, new_slaves})
+    # send({__MODULE__, node_name}, {:slaves, new_slaves})
     {:noreply, %State{state | slaves: new_slaves}}
   end
 
-  def handle_info({:slaves, slaves}, state) do
+  def handle_cast({:slaves, slaves}, state) do
     {:noreply, %State{state | slaves: slaves}}
   end
 
   def handle_info({:nodedown, node}, state) do
-    IO.puts("Lost connection to node #{node}!")
+    if state.role == :master do
+      IO.puts("Lost connection to node #{node}!")
 
-    StateDistribution.node_active(node, false)
+      StateDistribution.node_active(node, false)
 
-    # upgrade to master if master disconnected
-
-    {current_master, _} = state.master
-
-    case node do
-      ^current_master ->
-        if state.up_since <= state.slaves |> Map.values() |> Enum.min() do
-          IO.puts("Master disconnected, upgrading self to master")
-
-          MasterSupervisor.upgrade_to_master()
-
-          state = %State{
-            state
-            | watchdog: stop_watchdog(state.watchdog),
-              role: :master,
-              master: Node.self(),
-              slaves: Map.delete(state.slaves, Node.self())
-          }
-
-          IO.puts("starting loop")
-          send(self(), {:loop_master, state.start_port, state.start_port + @port_range})
-          {:noreply, state}
-        else
-          # somebody else should become master
-          IO.puts(" waiting for new master...")
-          {:noreply, %{state | watchdog: restart_watchdog(state.watchdog)}}
-        end
-
-      node ->
-        {:noreply, %{state | slaves: Map.delete(state.slaves, node)}}
+      {:noreply, %{state | slaves: Map.delete(state.slaves, node)}}
+    else
+      {:noreply, state}
     end
   end
 
@@ -306,12 +313,6 @@ defmodule NodeConnector do
   end
 
   # Utils ------------------------------------------
-
-  defp connect_to_master(master, up_since) do
-    Node.monitor(master, true)
-    Node.connect(master)
-    send({__MODULE__, master}, {:slave_connected, Node.self(), up_since})
-  end
 
   defp restart_watchdog(timer) do
     if timer != nil do
@@ -365,18 +366,16 @@ defmodule NodeConnector do
   end
 
   def dev_network_loss(timeout) do
-    # To simulate a network failure
     IO.puts("simulating network loss")
-    dev_disconnect()
-    Process.sleep(timeout)
-    dev_reconnect()
+    NodeConnector.dev_disconnect()
+    NodeConnector.dev_reconnect(timeout)
   end
 
   def dev_disconnect() do
-    GenServer.call(__MODULE__, :dev_disconnect)
+    send(__MODULE__, :dev_disconnect)
   end
 
-  def dev_reconnect() do
-    GenServer.call(__MODULE__, :dev_reconnect)
+  def dev_reconnect(timeout \\ 0) do
+    Process.send_after(__MODULE__, :dev_reconnect, timeout)
   end
 end
