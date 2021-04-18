@@ -25,7 +25,7 @@ defmodule StateDistribution do
           node(),
           Elevator.floor(),
           Elevator.hall_btn_type(),
-          SS.HallRequests.hall_btn_state()
+          SS.HallOrder.hall_btn_state()
         ) :: :ok
   @doc """
   Distribute the hall request change
@@ -146,7 +146,7 @@ defmodule StateDistribution do
     # update hall requests from node
     node_hall_requests = GenServer.call({StateServer, node_name}, :get_hall_requests)
 
-    node_hall_requests.hall_orders
+    node_hall_requests
     |> Enum.with_index()
     |> Enum.map(fn {floor, floor_ind} ->
       Enum.map(@hall_btn_types_map, fn {btn_type, btn_ind} ->

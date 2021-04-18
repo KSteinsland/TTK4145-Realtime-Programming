@@ -47,7 +47,7 @@ defmodule Assignment do
       end)
 
     hall_requests =
-      Enum.reduce(sys_state.hall_requests.hall_orders, [], fn [one, two], acc ->
+      Enum.reduce(sys_state.hall_requests, [], fn [one, two], acc ->
         m1 = %{new: true}
         m2 = %{nil: false, true: true}
         acc ++ [[m2[m1[one]], m2[m1[two]]]]
@@ -109,9 +109,7 @@ defmodule Assignment do
           requests: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         }
       },
-      hall_requests: %StateServer.HallRequests{
-        hall_orders: [[:new, :done], [:done, :done], [:done, :done], [:done, :done]]
-      }
+      hall_requests: [[:new, :done], [:done, :done], [:done, :done], [:done, :done]]
     }
 
     assign(test_sys_state)

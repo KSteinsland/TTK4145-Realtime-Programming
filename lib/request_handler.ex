@@ -13,9 +13,9 @@ defmodule RequestHandler do
   def init([]) do
     # All assigned should be made new incase reboot
     sys_state = StateServer.get_state()
-    IO.inspect(sys_state.hall_requests.hall_orders)
-    new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :assigned)
-    new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests.hall_orders, :new)
+    IO.inspect(sys_state.hall_requests)
+    new_reqs = find_hall_requests(sys_state.hall_requests, :assigned)
+    new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests, :new)
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
     wd_list = handle_new_hall_requests(new_reqs, empty_wd_list, sys_state)
     {:ok, wd_list}
@@ -38,10 +38,10 @@ defmodule RequestHandler do
   Assign and start watchdog timer for new requests.
   """
   def handle_cast({:new_state, sys_state}, wd_list) do
-    done_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :done)
+    done_reqs = find_hall_requests(sys_state.hall_requests, :done)
     wd_list = handle_done_hall_requests(done_reqs, wd_list)
 
-    new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
+    new_reqs = find_hall_requests(sys_state.hall_requests, :new)
     wd_list = handle_new_hall_requests(new_reqs, wd_list, sys_state)
 
     {:noreply, wd_list}
