@@ -169,7 +169,7 @@ defmodule FSM do
         if obs_state == :inactive do
           {nil, %Elevator{elevator | obstructed: false}}
         else
-          {nil, %Elevator{elevator | obstructed: false}}
+          {nil, %Elevator{elevator | obstructed: true}}
         end
     end
   end

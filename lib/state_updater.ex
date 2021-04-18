@@ -21,17 +21,6 @@ defmodule StateUpdater do
     {:ok, %{last_hall_requests: nil}}
   end
 
-  @spec node_active(node(), boolean()) :: :ok
-  @doc """
-  Distribute if the node `node_name` is active or not
-  """
-  def node_active(node_name, active_state) do
-    GenServer.cast(
-      {:global, StateUpdater},
-      {:node_active, node_name, active_state}
-    )
-  end
-
   @spec update_node(node()) :: :ok
   @doc """
   Update the node `node_name` on re-/connection.
@@ -82,18 +71,6 @@ defmodule StateUpdater do
 
     # set all lights
     spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
-
-    {:noreply, state}
-  end
-
-  def handle_cast({:node_active, node_name, active_state}, state) do
-    el_state = SS.get_elevator(node_name)
-
-    if (not el_state.obstructed and active_state) or not active_state do
-      el_state = %Elevator{el_state | active: active_state}
-      nodes = [Node.self() | Node.list()]
-      GenServer.abcast(nodes, StateServer, {:set_elevator, node_name, el_state})
-    end
 
     {:noreply, state}
   end

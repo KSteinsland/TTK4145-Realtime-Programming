@@ -93,6 +93,7 @@ defmodule ElevatorController do
         IO.puts("opening door!")
         Driver.set_door_open_light(:on)
         Timer.timer_start(self(), @door_open_duration_ms)
+        IO.inspect(req_type)
 
         if req_type == :message do
           SS.update_hall_requests(floor, btn_type, :done)
@@ -191,6 +192,7 @@ defmodule ElevatorController do
     end
 
     :ok = SS.set_elevator(Node.self(), new_elevator)
+    SS.node_active(Node.self(), not new_elevator.obstructed)
 
     {:noreply, %{}}
   end
@@ -240,6 +242,7 @@ defmodule ElevatorController do
       if btn != btn_old and btn_type in @hall_btn_types do
         # IO.puts("updating hall requests!")
         SS.update_hall_requests(floor_ind, btn_type, :done)
+        RequestHandler.new_state()
       end
     end)
   end

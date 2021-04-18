@@ -116,6 +116,20 @@ defmodule StateServer do
     GenServer.call(__MODULE__, :get_hall_requests)
   end
 
+  @spec node_active(node(), boolean()) :: :abcast
+  @doc """
+  Distribute if the node `node_name` is active or not
+  """
+  def node_active(node_name, active_state) do
+    nodes = [Node.self() | Node.list()]
+
+    GenServer.abcast(
+      nodes,
+      __MODULE__,
+      {:node_active, node_name, active_state}
+    )
+  end
+
   @spec set_elevator(node(), Elevator.t()) :: :ok | {:error, String.t()}
   @doc """
   Sets the `Elevator` state corresponding to node `node_name` in `SystemState`.
@@ -209,6 +223,24 @@ defmodule StateServer do
 
     state = %SystemState{state | hall_requests: new_hall_requests}
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:node_active, node_name, active_state}, state) do
+    el_state = get_elevator_init(node_name, state.elevators)
+
+    if (not el_state.obstructed and active_state) or not active_state do
+      el_state = %Elevator{el_state | active: active_state}
+
+      new_state = %SystemState{
+        state
+        | elevators: Map.put(state.elevators, node_name, el_state)
+      }
+
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   ## Utils ------------------------------

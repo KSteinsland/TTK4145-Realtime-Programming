@@ -212,7 +212,7 @@ defmodule NodeConnector do
     IO.puts("Slave #{node_name} connected!")
 
     StateUpdater.update_node(node_name)
-    StateUpdater.node_active(node_name, true)
+    StateServer.node_active(node_name, true)
 
     Node.monitor(node_name, true)
     new_slaves = Map.put(state.slaves, node_name, up_since)
@@ -227,7 +227,7 @@ defmodule NodeConnector do
       IO.puts("Lost connection to node #{node}!")
 
       Node.disconnect(node)
-      StateUpdater.node_active(node, false)
+      StateServer.node_active(node, false)
 
       {:noreply, %{state | slaves: Map.delete(state.slaves, node)}}
     else

@@ -51,19 +51,17 @@ defmodule RequestHandler do
     {:noreply, wd_list}
   end
 
+  def handle_info({:try_active, node_name}, state) do
+    StateServer.node_active(node_name, true)
+    {:noreply, state}
+  end
+
   @doc """
   For all new requests: assign and start watchdog. Returns a new watchdog list
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
       assignee = Assignment.assign(sys_state)
-
-      # StateUpdater.update_hall_requests(
-      #   assignee,
-      #   floor,
-      #   Enum.at(@button_types, btn_type),
-      #   :assigned
-      # )
 
       ElevatorController.send_hall_request(
         assignee,
@@ -72,7 +70,7 @@ defmodule RequestHandler do
         :message
       )
 
-      pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type])
+      pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type, self()])
       wd_list_replace_at(wd_list, floor, btn_type, pid)
     end)
   end
@@ -83,7 +81,6 @@ defmodule RequestHandler do
   def handle_done_hall_requests(done_requests, wd_list) do
     Enum.reduce(done_requests, wd_list, fn {floor, btn_type}, wd_list ->
       wd_pid = Enum.at(Enum.at(wd_list, floor), btn_type)
-      # IO.inspect(wd_pid)
 
       case wd_pid do
         nil ->
@@ -118,7 +115,7 @@ defmodule RequestHandler do
     List.replace_at(wd_list, floor, f)
   end
 
-  def watchdog(assignee, floor, btn_type) do
+  def watchdog(assignee, floor, btn_type, caller) do
     receive do
       :done ->
         IO.puts("confirmed done!")
@@ -127,14 +124,19 @@ defmodule RequestHandler do
       @timeout_ms ->
         IO.puts("time out!!")
 
-        StateUpdater.node_active(assignee, false)
+        # StateServer.node_active(assignee, false)
 
-        # StateUpdater.update_hall_requests(
+        # ElevatorController.send_hall_request(
         #   assignee,
         #   floor,
         #   Enum.at(@button_types, btn_type),
-        #   :new
+        #   :button
         # )
+
+        # spawn(fn ->
+        #   Process.send_after(caller, {:try_active, assignee}, 10_000)
+        # end)
+        # Process.exit(self(), :normal)
     end
   end
 end
