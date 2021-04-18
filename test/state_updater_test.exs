@@ -1,7 +1,7 @@
-defmodule StateDistributionTest do
+defmodule StateUpdaterTest do
   use ExUnit.Case, async: false
   @moduletag :distributed
-  doctest StateDistribution
+  doctest StateUpdater
 
   setup_all do
     # Ensures that the cluster is in a known state before next distributed test

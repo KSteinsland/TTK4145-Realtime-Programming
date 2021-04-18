@@ -58,7 +58,7 @@ defmodule RequestHandler do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
       assignee = Assignment.assign(sys_state)
 
-      # StateDistribution.update_hall_requests(
+      # StateUpdater.update_hall_requests(
       #   assignee,
       #   floor,
       #   Enum.at(@button_types, btn_type),
@@ -127,9 +127,9 @@ defmodule RequestHandler do
       @timeout_ms ->
         IO.puts("time out!!")
 
-        StateDistribution.node_active(assignee, false)
+        StateUpdater.node_active(assignee, false)
 
-        # StateDistribution.update_hall_requests(
+        # StateUpdater.update_hall_requests(
         #   assignee,
         #   floor,
         #   Enum.at(@button_types, btn_type),

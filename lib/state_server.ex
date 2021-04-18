@@ -51,10 +51,6 @@ defmodule StateServer do
     end
 
     def update_hall_requests_logic(req_list, hall_order = %HallOrder{}) do
-      # TODO make this a config maybe?
-      # valid_buttons = [0, 1]
-      # also check floor and btn_type beforehand!
-
       if hall_order.state in @hall_btn_states and hall_order.btn_type in @hall_btn_types do
         {req_at_floor, _list} = List.pop_at(req_list, hall_order.floor)
 
@@ -126,8 +122,6 @@ defmodule StateServer do
   Performs a check to see if the elevator state is valid before writing it to state.
   """
   def set_elevator(node_name, elevator) do
-    # TODO move, Elevator check out of server?
-
     case Elevator.check(elevator) do
       {:error, msg} ->
         {:error, msg}
@@ -145,7 +139,7 @@ defmodule StateServer do
           Elevator.floor(),
           Elevator.hall_btn_type(),
           HallOrder.hall_btn_state()
-        ) :: :ok
+        ) :: :abcast
   @doc """
   Updates the hall request in `StateServer` for node `node_name`.
   If node_name = `:local` it distributes the hall request update
@@ -166,9 +160,7 @@ defmodule StateServer do
   @spec init(any) :: {:ok, StateServer.SystemState.t()}
   def init(_opts) do
     wait_for_master_startup()
-
-    state = StateDistribution.get_master_state()
-    {:ok, state}
+    {:ok, %StateServer.SystemState{}}
   end
 
   @impl true
@@ -186,39 +178,6 @@ defmodule StateServer do
   def handle_call(:get_hall_requests, _from, state) do
     {:reply, state.hall_requests, state}
   end
-
-  # @impl true
-  # def handle_call({:set_elevator, node_name, elevator}, _from, state) do
-  #   case Elevator.check(elevator) do
-  #     {:error, msg} ->
-  #       {:reply, {:error, msg}, state}
-
-  #     {:ok, ^elevator} ->
-  #       old_elevator = get_elevator_init(node_name, state.elevators)
-
-  #       if elevator.counter > old_elevator.counter do
-  #         # sends new elevator state to master
-  #         # master distributes it
-
-  #         if old_elevator.obstructed != elevator.obstructed do
-  #           StateDistribution.node_active(node_name, not elevator.obstructed)
-  #         end
-
-  #         # async call to master to update everybody
-  #         StateDistribution.new_elevator_state(node_name, elevator)
-
-  #         new_state = %SystemState{
-  #           state
-  #           | elevators: Map.put(state.elevators, node_name, elevator)
-  #         }
-
-  #         {:reply, :ok, new_state}
-  #       else
-  #         # IO.puts("bad counter on set el!")
-  #         {:reply, :ok, state}
-  #       end
-  #   end
-  # end
 
   # casts----------------------------------------
 
@@ -266,7 +225,7 @@ defmodule StateServer do
 
   defp wait_for_master_startup() do
     # Ensures that we do not register :nonode@nohost in the elevator map
-    if :global.whereis_name(StateDistribution) == :undefined do
+    if :global.whereis_name(StateUpdater) == :undefined do
       Process.sleep(10)
       wait_for_master_startup()
     end

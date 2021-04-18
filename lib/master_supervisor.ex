@@ -10,7 +10,7 @@ defmodule MasterSupervisor do
   @impl true
   def init(_init_arg) do
     children = [
-      StateDistribution,
+      StateUpdater,
       RequestHandler
     ]
 
