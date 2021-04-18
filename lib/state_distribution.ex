@@ -7,6 +7,7 @@ defmodule StateDistribution do
   """
 
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
+  @hall_btn_types_map Map.delete(@btn_types_map, :btn_cab)
 
   alias StateServer, as: SS
 
@@ -27,8 +28,7 @@ defmodule StateDistribution do
           SS.HallRequests.hall_btn_state()
         ) :: :ok
   @doc """
-  Distribute the hall request change and possibly call for assignment
-  or set the request to an elevator
+  Distribute the hall request change
   """
   def update_hall_requests(node_name, floor_ind, btn_type, hall_state) do
     GenServer.cast(
@@ -62,24 +62,12 @@ defmodule StateDistribution do
 
   @spec update_node(node()) :: :ok
   @doc """
-  Update the node `node_name` by sending it the latest `SystemState` on reconnection
+  Update the node `node_name` on re-/connection.
   """
   def update_node(node_name) do
     GenServer.cast(
       {:global, StateDistribution},
       {:update_node, node_name}
-    )
-  end
-
-  # TODO just move this into update node
-  @spec update_requests(node()) :: :ok
-  @doc """
-  Update the requests to node `node_name` on reconnection
-  """
-  def update_requests(node_name) do
-    GenServer.cast(
-      {:global, StateDistribution},
-      {:update_requests, node_name}
     )
   end
 
@@ -155,11 +143,35 @@ defmodule StateDistribution do
   def handle_cast({:update_node, node_name}, state) do
     # update a node that has just connected
 
+    # update hall requests from node
+    node_hall_requests = GenServer.call({StateServer, node_name}, :get_hall_requests)
+
+    node_hall_requests.hall_orders
+    |> Enum.with_index()
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.map(@hall_btn_types_map, fn {btn_type, btn_ind} ->
+        case Enum.at(floor, btn_ind) do
+          :done ->
+            :ok
+
+          # everything else
+          hall_state ->
+            StateDistribution.update_hall_requests(
+              node_name,
+              floor_ind,
+              btn_type,
+              hall_state
+            )
+        end
+      end)
+    end)
+
     node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
 
     master_sys_state = SS.get_state()
     local_copy = SS.get_elevator(node_name)
 
+    # set all lights
     spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
 
     # check if elevatorstate is outdated, probably not needed...
@@ -191,52 +203,14 @@ defmodule StateDistribution do
     {:noreply, state}
   end
 
-  def handle_cast({:update_requests, node_name}, state) do
-    node_state = GenServer.call({StateServer, node_name}, :get_state)
+  def handle_cast({:node_active, node_name, active_state}, state) do
+    el_state = SS.get_elevator(node_name)
 
-    node_hall_orders = node_state.hall_requests.hall_orders
-
-    node_hall_orders
-    |> Enum.with_index()
-    |> Enum.map(fn {floor, floor_ind} ->
-      case Enum.at(floor, 0) do
-        :done ->
-          :ok
-
-        # everything else
-        hall_state ->
-          StateDistribution.update_hall_requests(
-            node_name,
-            floor_ind,
-            :btn_hall_up,
-            hall_state
-          )
-      end
-
-      case Enum.at(floor, 1) do
-        :done ->
-          :ok
-
-        # everything else
-        hall_state ->
-          StateDistribution.update_hall_requests(
-            node_name,
-            floor_ind,
-            :btn_hall_down,
-            hall_state
-          )
-      end
-    end)
-
-    {:noreply, state}
-  end
-
-  def handle_cast({:node_active, node, active_state}, state) do
-    GenServer.abcast(Node.list(), __MODULE__, {:node_active, node, active_state})
-
-    el_state = SS.get_elevator(node)
-    el_state = %Elevator{el_state | active: active_state}
-    SS.set_elevator(node, el_state)
+    if (not el_state.obstructed and active_state) or not active_state do
+      el_state = %Elevator{el_state | active: active_state}
+      nodes = [Node.self() | Node.list()]
+      GenServer.abcast(nodes, StateServer, {:set_elevator, node_name, el_state})
+    end
 
     {:noreply, state}
   end
@@ -245,7 +219,6 @@ defmodule StateDistribution do
 
   defp update_cab_requests(elevator, latest_elevator) do
     # Adds all cab requests from latest_elevator to elevators requests
-    # Probably not needed...
 
     IO.puts("updating cab requests!!")
 

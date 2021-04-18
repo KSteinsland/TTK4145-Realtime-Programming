@@ -211,7 +211,6 @@ defmodule NodeConnector do
   def handle_info({:slave_connected, node_name, up_since}, state) do
     IO.puts("Slave #{node_name} connected!")
 
-    StateDistribution.update_requests(node_name)
     StateDistribution.update_node(node_name)
     StateDistribution.node_active(node_name, true)
 
@@ -227,6 +226,7 @@ defmodule NodeConnector do
     if state.role == :master do
       IO.puts("Lost connection to node #{node}!")
 
+      Node.disconnect(node)
       StateDistribution.node_active(node, false)
 
       {:noreply, %{state | slaves: Map.delete(state.slaves, node)}}
@@ -259,6 +259,7 @@ defmodule NodeConnector do
     name = Node.self()
     Node.stop()
     Node.start(name, :longnames)
+    Node.set_cookie(:blue)
 
     {:noreply, state}
   end

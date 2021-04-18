@@ -136,7 +136,8 @@ defmodule StateServer do
   @spec init(any) :: {:ok, StateServer.SystemState.t()}
   def init(_opts) do
     NodeConnector.wait_for_node_startup()
-    {:ok, %SystemState{}}
+    state = StateDistribution.get_master_state()
+    {:ok, state}
   end
 
   @impl true
