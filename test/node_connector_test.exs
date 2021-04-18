@@ -49,7 +49,7 @@ defmodule NodeConnectorTest do
     # Test slave loosing and restoring internet
     slave = Node.list() |> Enum.at(0)
     Cluster.rpc(slave, NodeConnector, :dev_network_loss, [7000])
-    new_local_state = :sys.get_state(NodeConnector)
+    _new_local_state = :sys.get_state(NodeConnector)
     assert Node.list() |> length() == fixture.num_nodes - 1
     Process.sleep(8_000)
     assert Node.list() |> length() == fixture.num_nodes
@@ -58,11 +58,12 @@ defmodule NodeConnectorTest do
     # # Check that someone takes over when we die
     # Process.whereis(NodeConnector) |> Process.exit(:kill)
     # Process.sleep(5_000)
-    # assert NodeConnector.get_role() == :slave
+    # assert :sys.get_state(NodeConnector).role == :slave
 
     # assert Node.list()
     #        |> Enum.any?(fn node ->
-    #          Cluster.rpc(node, NodeConnector, :get_role, []) == :master
+    #          state = Cluster.rpc(node, :sys, :get_state, [NodeConnector])
+    #          state.role == :master
     #        end)
 
     Process.sleep(2_000)

@@ -16,7 +16,7 @@ defmodule StateDistributionTest do
   test "test state distribution" do
     IO.puts("State dist test")
 
-    # nodes = [Node.list(), NodeConnector.get_self()]
+    # nodes = [Node.list(), Node.self()]
     valid_buttons = "qwesdfzxcv" |> String.split("", trim: true)
 
     num_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
