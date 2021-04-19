@@ -20,16 +20,16 @@ defmodule ElevatorController do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @spec send_request(node(), Elevator.floor(), Elevator.hall_btn_type(), :button | :message) ::
+  @spec send_request(node(), Elevator.floor(), Elevator.hall_btn_type()) ::
           :ok
   @doc """
   Sends a assigned hall request to the elevator at `node_name`.
   `req_type` determines action
   """
-  def send_request(node_name, floor_ind, btn_type, req_type) do
+  def send_request(node_name, floor_ind, btn_type) do
     GenServer.cast(
       {__MODULE__, node_name},
-      {:send_request, floor_ind, btn_type, req_type}
+      {:send_request, floor_ind, btn_type}
     )
   end
 
@@ -91,11 +91,11 @@ defmodule ElevatorController do
   end
 
   @impl true
-  def handle_cast({:send_request, floor, btn_type, req_type}, _state) do
+  def handle_cast({:send_request, floor, btn_type}, _state) do
     # performs actions on received request, either a request button press
     # or a request message from distribution
 
-    {action, new_elevator} = FSM.on_request(SS.get_elevator(node()), floor, btn_type, req_type)
+    {action, new_elevator} = FSM.on_request(SS.get_elevator(node()), floor, btn_type)
     # IO.inspect(action)
 
     # TODO move req_type check into FSM and return a list of actions instead
@@ -104,31 +104,21 @@ defmodule ElevatorController do
         IO.puts("starting timer")
         Timer.timer_start(self(), @door_open_duration_ms)
 
-        if req_type == :message do
-          SS.update_hall_requests(floor, btn_type, :done)
-          RequestHandler.new_state()
-        end
+        SS.update_hall_requests(floor, btn_type, :done)
+        RequestHandler.new_state()
 
       :open_door ->
         IO.puts("opening door!")
         Driver.set_door_open_light(:on)
         Timer.timer_start(self(), @door_open_duration_ms)
-        IO.inspect(req_type)
 
-        if req_type == :message do
-          SS.update_hall_requests(floor, btn_type, :done)
-          RequestHandler.new_state()
-        end
+        SS.update_hall_requests(floor, btn_type, :done)
+        RequestHandler.new_state()
 
       :move_elevator ->
         Logger.debug("setting motor direction")
         # IO.puts("setting motor direction")
         new_elevator.direction |> Driver.set_motor_direction()
-
-      :update_hall_requests ->
-        IO.puts("New hall request!")
-        SS.update_hall_requests(floor, btn_type, :new)
-        RequestHandler.new_state()
 
       nil ->
         :ok
