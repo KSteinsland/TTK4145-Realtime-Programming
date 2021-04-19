@@ -40,18 +40,17 @@ defmodule Elevator do
           active: boolean()
         }
 
-  @spec check(Elevator.t()) :: {:error, String.t()} | Elevator.t()
+  @spec check(Elevator.t()) :: {:error, String.t()} | {:ok, Elevator.t()}
   @doc """
   Checks if the elevator struct is valid and returns elevator,
   If not, returns error
   """
   def check(%__MODULE__{} = elevator) do
-    # elevator = struct(elevator, map)
     with {:ok, _floor} <- parse_floor(elevator.floor),
          {:ok, _direction} <- parse_direction(elevator.direction),
          {:ok, _requests} <- parse_requests(elevator.requests),
          {:ok, _behaviour} <- parse_behaviour(elevator.behaviour) do
-      elevator
+      {:ok, elevator}
     else
       err -> err
     end

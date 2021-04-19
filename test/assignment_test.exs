@@ -22,14 +22,7 @@ defmodule AssignmentTest do
           requests: [[0, 0, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]]
         }
       },
-      hall_requests: %StateServer.HallRequests{
-        hall_orders: [
-          [:done, :done],
-          [:done, :done],
-          [:done, :new],
-          [:done, :done]
-        ]
-      }
+      hall_requests: [[:done, :done], [:done, :done], [:done, :new], [:done, :done]]
     }
 
     assert Assignment.assign(test_sys_state) == :"CJGasdZ@192.168.0.40"
@@ -55,14 +48,7 @@ defmodule AssignmentTest do
           requests: [[0, 0, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]]
         }
       },
-      hall_requests: %StateServer.HallRequests{
-        hall_orders: [
-          [:done, :done],
-          [:done, :done],
-          [:done, :new],
-          [:done, :done]
-        ]
-      }
+      hall_requests: [[:done, :done], [:done, :done], [:done, :new], [:done, :done]]
     }
 
     assert Assignment.assign(test_sys_state) == :"CJGXZ@192.168.0.40"

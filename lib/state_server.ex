@@ -1,13 +1,10 @@
 defmodule StateServer do
   use GenServer
 
-  defmodule HallRequests do
+  defmodule HallOrder do
     @moduledoc """
       Hall Requests struct.
     """
-
-    @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-    @num_hall_req_types 2
 
     @btn_map Application.fetch_env!(:elevator_project, :button_map)
     @hall_btn_map Map.drop(@btn_map, [:btn_cab])
@@ -15,44 +12,72 @@ defmodule StateServer do
     @btn_types Application.fetch_env!(:elevator_project, :button_types)
 
     @hall_btn_types List.delete(@btn_types, :btn_cab)
-    @hall_btn_states [:new, :done, :assigned]
+    @hall_btn_states [:new, :assigned, :done]
 
     @type hall_btn_state :: :new | :assigned | :done
     @type hall_req_list :: [[hall_btn_state(), ...], ...]
 
-    new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
-
-    defstruct hall_orders: new_hall_orders
+    defstruct floor: nil, btn_type: nil, state: :done
 
     @type t :: %__MODULE__{
-            hall_orders: hall_req_list()
+            floor: boolean(),
+            btn_type: Elevator.hall_btn_type(),
+            state: hall_btn_state()
           }
 
     @spec update_hall_requests_logic(
-            StateServer.HallRequests.t(),
+            hall_req_list(),
             Elevator.floor(),
             Elevator.hall_btn_type(),
             hall_btn_state()
           ) ::
-            {:error, String.t()} | StateServer.HallRequests.t()
+            {:error, String.t()} | hall_req_list()
     @doc """
-    Returns an updated `HallRequests` struct with `hall_state` set at `floor`, `btn_type`.
+    Returns an updated hall_requests list with `hall_state` set at `floor`, `btn_type`.
     """
-    def update_hall_requests_logic(req = %HallRequests{}, floor, btn_type, hall_state) do
+    def update_hall_requests_logic(req_list, floor, btn_type, hall_state) do
       # TODO make this a config maybe?
       # valid_buttons = [0, 1]
       # also check floor and btn_type beforehand!
 
-      req_list = req.hall_orders
-
       if hall_state in @hall_btn_states and btn_type in @hall_btn_types do
         {req_at_floor, _list} = List.pop_at(req_list, floor)
+
         updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], hall_state)
+
         new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
-        %StateServer.HallRequests{req | hall_orders: new_req_list}
+        new_req_list
       else
         {:error, "not valid hall request state!"}
       end
+    end
+
+    def update_hall_requests_logic(req_list, hall_order = %HallOrder{}) do
+      if hall_order.state in @hall_btn_states and hall_order.btn_type in @hall_btn_types do
+        {req_at_floor, _list} = List.pop_at(req_list, hall_order.floor)
+
+        updated_req_at_floor =
+          List.replace_at(req_at_floor, @hall_btn_map[hall_order.btn_type], hall_order.state)
+
+        new_req_list = List.replace_at(req_list, hall_order.floor, updated_req_at_floor)
+        new_req_list
+      else
+        {:error, "not valid hall request state!"}
+      end
+    end
+
+    def valid_hall_request_change?(req_list, floor, btn_type, hall_state) do
+      current_hall_state = Enum.at(Enum.at(req_list, floor), Map.get(@hall_btn_map, btn_type))
+
+      current_index =
+        Enum.find_index(@hall_btn_states, fn hall_btn_state ->
+          current_hall_state == hall_btn_state
+        end)
+
+      index =
+        Enum.find_index(@hall_btn_states, fn hall_btn_state -> hall_state == hall_btn_state end)
+
+      Integer.mod(current_index + 1, 3) == index
     end
   end
 
@@ -61,10 +86,16 @@ defmodule StateServer do
       System state struct.
     """
 
-    defstruct hall_requests: %HallRequests{}, elevators: %{}
+    @num_floors Application.fetch_env!(:elevator_project, :num_floors)
+    @num_hall_req_types 2
+
+    new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
+    defstruct hall_requests: new_hall_orders, elevators: %{}
+
+    @type req_list :: [[StateServer.HallOrder.hall_btn_state(), ...], ...]
 
     @type t :: %__MODULE__{
-            hall_requests: HallRequests.t(),
+            hall_requests: req_list(),
             elevators: %{node() => Elevator.t()}
           }
   end
@@ -93,12 +124,26 @@ defmodule StateServer do
     GenServer.call(__MODULE__, {:get_elevator, node_name})
   end
 
-  @spec get_hall_requests :: StateServer.HallRequests.t()
+  @spec get_hall_requests :: StateServer.SystemState.req_list()
   @doc """
-  Returns the `HallRequests` struct containing all hall orders.
+  Returns the hall requests list containing all hall orders.
   """
   def get_hall_requests() do
     GenServer.call(__MODULE__, :get_hall_requests)
+  end
+
+  @spec node_active(node(), boolean()) :: :abcast
+  @doc """
+  Distribute if the node `node_name` is active or not
+  """
+  def node_active(node_name, active_state) do
+    nodes = [node() | Node.list()]
+
+    GenServer.abcast(
+      nodes,
+      __MODULE__,
+      {:node_active, node_name, active_state}
+    )
   end
 
   @spec set_elevator(node(), Elevator.t()) :: :ok | {:error, String.t()}
@@ -107,24 +152,33 @@ defmodule StateServer do
   Performs a check to see if the elevator state is valid before writing it to state.
   """
   def set_elevator(node_name, elevator) do
-    # TODO move, Elevator check out of server?
-    # and just use a cast?
-    elevator = %Elevator{elevator | counter: elevator.counter + 1}
-    GenServer.call(__MODULE__, {:set_elevator, node_name, elevator})
+    case Elevator.check(elevator) do
+      {:error, msg} ->
+        {:error, msg}
+
+      {:ok, ^elevator} ->
+        elevator = %Elevator{elevator | counter: elevator.counter + 1}
+        nodes = [node() | Node.list()]
+        GenServer.abcast(nodes, __MODULE__, {:set_elevator, node_name, elevator})
+        :ok
+    end
   end
 
   @spec update_hall_requests(
           node() | :local,
           Elevator.floor(),
           Elevator.hall_btn_type(),
-          HallRequests.hall_btn_state()
-        ) :: :ok
+          HallOrder.hall_btn_state()
+        ) :: :abcast
   @doc """
   Updates the hall request in `StateServer` for node `node_name`.
   If node_name = `:local` it distributes the hall request update
   """
   def update_hall_requests(node_name \\ :local, floor_ind, btn_type, hall_state) do
-    GenServer.cast(
+    nodes = [node() | Node.list()]
+
+    GenServer.abcast(
+      nodes,
       __MODULE__,
       {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
     )
@@ -135,8 +189,8 @@ defmodule StateServer do
   @impl true
   @spec init(any) :: {:ok, StateServer.SystemState.t()}
   def init(_opts) do
-    NodeConnector.wait_for_node_startup()
-    {:ok, %SystemState{}}
+    wait_for_master_startup()
+    {:ok, %StateServer.SystemState{}}
   end
 
   @impl true
@@ -153,39 +207,6 @@ defmodule StateServer do
   @impl true
   def handle_call(:get_hall_requests, _from, state) do
     {:reply, state.hall_requests, state}
-  end
-
-  @impl true
-  def handle_call({:set_elevator, node_name, elevator}, _from, state) do
-    case Elevator.check(elevator) do
-      {:error, msg} ->
-        {:reply, {:error, msg}, state}
-
-      ^elevator ->
-        old_elevator = get_elevator_init(node_name, state.elevators)
-
-        if elevator.counter > old_elevator.counter do
-          # sends new elevator state to master
-          # master distributes it
-
-          if old_elevator.obstructed != elevator.obstructed do
-            StateDistribution.node_active(node_name, not elevator.obstructed)
-          end
-
-          # async call to master to update everybody
-          StateDistribution.new_elevator_state(node_name, elevator)
-
-          new_state = %SystemState{
-            state
-            | elevators: Map.put(state.elevators, node_name, elevator)
-          }
-
-          {:reply, :ok, new_state}
-        else
-          # IO.puts("bad counter on set el!")
-          {:reply, :ok, state}
-        end
-    end
   end
 
   # casts----------------------------------------
@@ -213,20 +234,35 @@ defmodule StateServer do
   def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     hall_requests = state.hall_requests
 
-    new_hall_requests =
-      HallRequests.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
+    if (node_name == :local and
+          HallOrder.valid_hall_request_change?(hall_requests, floor_ind, btn_type, hall_state)) or
+         node_name != :local do
+      new_hall_requests =
+        HallOrder.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
-    if node_name == :local do
-      StateDistribution.update_hall_requests(
-        Node.self(),
-        floor_ind,
-        btn_type,
-        hall_state
-      )
+      state = %SystemState{state | hall_requests: new_hall_requests}
+      {:noreply, state}
+    else
+      {:noreply, state}
     end
+  end
 
-    state = %SystemState{state | hall_requests: new_hall_requests}
-    {:noreply, state}
+  @impl true
+  def handle_cast({:node_active, node_name, active_state}, state) do
+    el_state = get_elevator_init(node_name, state.elevators)
+
+    if (not el_state.obstructed and active_state) or not active_state do
+      el_state = %Elevator{el_state | active: active_state}
+
+      new_state = %SystemState{
+        state
+        | elevators: Map.put(state.elevators, node_name, el_state)
+      }
+
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end
   end
 
   ## Utils ------------------------------
@@ -238,6 +274,14 @@ defmodule StateServer do
 
       elevator_state ->
         elevator_state
+    end
+  end
+
+  defp wait_for_master_startup() do
+    # Ensures that we do not register :nonode@nohost in the elevator map
+    if :global.whereis_name(StateUpdater) == :undefined do
+      Process.sleep(10)
+      wait_for_master_startup()
     end
   end
 end

@@ -35,7 +35,7 @@ defmodule NodeConnector do
 
   def wait_for_node_startup() do
     # Ensures that we do not register :nonode@nohost in the elevator map
-    if Node.self() == :nonode@nohost do
+    if node() == :nonode@nohost do
       Process.sleep(10)
       wait_for_node_startup()
     end
@@ -49,7 +49,9 @@ defmodule NodeConnector do
     # {:ok, socket} = :gen_udp.open(port, [{:broadcast, true}, {:reuseaddr, true}])
     {:ok, socket, port} = dev_try_create_socket(start_port, start_port + @port_range)
 
-    if Node.self() == :nonode@nohost do
+    if node() == :nonode@nohost do
+      System.cmd("epmd", ["-daemon"])
+
       {:ok, addr} = Utils.Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
       full_name = name <> "@" <> to_string(addr_str)
@@ -58,7 +60,7 @@ defmodule NodeConnector do
       Node.start(String.to_atom(full_name), :longnames)
       Node.set_cookie(:choc)
     else
-      IO.puts("Node already named: " <> to_string(Node.self()))
+      IO.puts("Node already named: " <> to_string(node()))
 
       Node.set_cookie(:choc)
     end
@@ -90,13 +92,15 @@ defmodule NodeConnector do
     if state.role != :master and state.up_since <= Enum.min(up_times) do
       IO.puts("Master timed out, upgrading self to master")
 
-      MasterSupervisor.upgrade_to_master()
+      {master, _} = state.master
+      StateServer.node_active(master, false)
+      MasterStarter.upgrade_to_master()
 
       state = %State{
         state
         | watchdog: stop_watchdog(state.watchdog),
           role: :master,
-          master: {Node.self(), state.up_since},
+          master: {node(), state.up_since},
           # unsure about this one
           slaves: %{}
       }
@@ -127,7 +131,7 @@ defmodule NodeConnector do
   # def handle_info(:loop_master, state) do
   def handle_info({:loop_master, start_port, end_port}, state) do
     if state.role == :master do
-      :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{Node.self()}_#{state.up_since}")
+      :gen_udp.send(state.socket, @broadcast_ip, start_port, "#{node()}_#{state.up_since}")
 
       # dev note, if dev_disconnect has been called, the disconnected node will not be able to send udp
       # as we close the socket
@@ -170,7 +174,7 @@ defmodule NodeConnector do
         IO.puts("Found master #{full_name}!")
 
         Node.connect(latest_master)
-        send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
+        send({__MODULE__, latest_master}, {:slave_connected, node(), state.up_since})
 
         {:noreply,
          %State{
@@ -188,10 +192,10 @@ defmodule NodeConnector do
         IO.puts("Downgrading to slave")
         IO.puts("#{full_name} is the master")
 
-        MasterSupervisor.downgrade_to_slave()
+        MasterStarter.downgrade_to_slave()
 
         Node.connect(latest_master)
-        send({__MODULE__, latest_master}, {:slave_connected, Node.self(), state.up_since})
+        send({__MODULE__, latest_master}, {:slave_connected, node(), state.up_since})
 
         {:noreply,
          %State{
@@ -211,9 +215,8 @@ defmodule NodeConnector do
   def handle_info({:slave_connected, node_name, up_since}, state) do
     IO.puts("Slave #{node_name} connected!")
 
-    StateDistribution.update_requests(node_name)
-    StateDistribution.update_node(node_name)
-    StateDistribution.node_active(node_name, true)
+    StateUpdater.update_node(node_name)
+    StateServer.node_active(node_name, true)
 
     Node.monitor(node_name, true)
     new_slaves = Map.put(state.slaves, node_name, up_since)
@@ -227,7 +230,8 @@ defmodule NodeConnector do
     if state.role == :master do
       IO.puts("Lost connection to node #{node}!")
 
-      StateDistribution.node_active(node, false)
+      Node.disconnect(node)
+      StateServer.node_active(node, false)
 
       {:noreply, %{state | slaves: Map.delete(state.slaves, node)}}
     else
@@ -256,9 +260,10 @@ defmodule NodeConnector do
     end)
 
     # Do this to avoid having no name
-    name = Node.self()
+    name = node()
     Node.stop()
     Node.start(name, :longnames)
+    Node.set_cookie(:blue)
 
     {:noreply, state}
   end

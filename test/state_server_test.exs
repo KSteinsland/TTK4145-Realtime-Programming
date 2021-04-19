@@ -16,8 +16,8 @@ defmodule StateServerTest do
   #   el1 = String.to_atom("node1@" <> Enum.at(slaves["node1"], 0))
   #   el2 = String.to_atom("node2@" <> Enum.at(slaves["node2"], 0))
 
-  #   assert Cluster.rpc(el1, StateDistribution, :get_state, []).floor == 0
-  #   assert Cluster.rpc(el2, StateDistribution, :get_state, []).floor == 0
+  #   assert Cluster.rpc(el1, StateUpdater, :get_state, []).floor == 0
+  #   assert Cluster.rpc(el2, StateUpdater, :get_state, []).floor == 0
 
   #   # give orders on two elevators at the same time
   #   Simulator.send_key('c', 1)
@@ -48,7 +48,7 @@ defmodule StateServerTest do
 
   #   IO.inspect(Node.list())
   #   NodeConnector.dev_disconnect(nil)
-  #   # Cluster.rpc(node, NodeConnector, :dev_network_loss, [Node.self(), 3_000])
+  #   # Cluster.rpc(node, NodeConnector, :dev_network_loss, [node(), 3_000])
   #   IO.inspect(Node.list())
 
   #   Simulator.send_key('x', 0)

@@ -10,19 +10,22 @@ defmodule RequestHandler do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
+  # TODO use tasksupervisor!
+
   def init([]) do
     # All assigned should be made new incase reboot
     sys_state = StateServer.get_state()
-    IO.inspect(sys_state.hall_requests.hall_orders)
-    new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :assigned)
-    new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests.hall_orders, :new)
+    IO.inspect(sys_state.hall_requests)
+    spawn(fn -> LightHandler.light_check(sys_state.hall_requests, nil) end)
+    new_reqs = find_hall_requests(sys_state.hall_requests, :assigned)
+    new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests, :new)
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
     wd_list = handle_new_hall_requests(new_reqs, empty_wd_list, sys_state)
     {:ok, wd_list}
   end
 
-  def new_state(sys_state) do
-    GenServer.cast({:global, __MODULE__}, {:new_state, sys_state})
+  def new_state() do
+    GenServer.cast({:global, __MODULE__}, :new_state)
   end
 
   def get_wd() do
@@ -37,14 +40,23 @@ defmodule RequestHandler do
   kill watchdog for done requests.
   Assign and start watchdog timer for new requests.
   """
-  def handle_cast({:new_state, sys_state}, wd_list) do
-    done_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :done)
+  def handle_cast(:new_state, wd_list) do
+    sys_state = StateServer.get_state()
+
+    spawn(fn -> LightHandler.light_check(sys_state.hall_requests, nil) end)
+
+    done_reqs = find_hall_requests(sys_state.hall_requests, :done)
     wd_list = handle_done_hall_requests(done_reqs, wd_list)
 
-    new_reqs = find_hall_requests(sys_state.hall_requests.hall_orders, :new)
+    new_reqs = find_hall_requests(sys_state.hall_requests, :new)
     wd_list = handle_new_hall_requests(new_reqs, wd_list, sys_state)
 
     {:noreply, wd_list}
+  end
+
+  def handle_info({:try_active, node_name}, state) do
+    StateServer.node_active(node_name, true)
+    {:noreply, state}
   end
 
   @doc """
@@ -52,16 +64,26 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
+      pid = Enum.at(wd_list, floor) |> Enum.at(btn_type)
+      if is_pid(pid), do: send(pid, :die)
+
       assignee = Assignment.assign(sys_state)
 
-      StateDistribution.update_hall_requests(
+      StateServer.update_hall_requests(
         assignee,
         floor,
         Enum.at(@button_types, btn_type),
         :assigned
       )
 
-      pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type])
+      ElevatorController.send_request(
+        assignee,
+        floor,
+        Enum.at(@button_types, btn_type),
+        :message
+      )
+
+      pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type, self()])
       wd_list_replace_at(wd_list, floor, btn_type, pid)
     end)
   end
@@ -72,7 +94,6 @@ defmodule RequestHandler do
   def handle_done_hall_requests(done_requests, wd_list) do
     Enum.reduce(done_requests, wd_list, fn {floor, btn_type}, wd_list ->
       wd_pid = Enum.at(Enum.at(wd_list, floor), btn_type)
-      # IO.inspect(wd_pid)
 
       case wd_pid do
         nil ->
@@ -107,23 +128,31 @@ defmodule RequestHandler do
     List.replace_at(wd_list, floor, f)
   end
 
-  def watchdog(assignee, floor, btn_type) do
+  def watchdog(assignee, floor, btn_type, caller) do
     receive do
       :done ->
         IO.puts("confirmed done!")
+        Process.exit(self(), :normal)
+
+      :die ->
+        IO.puts("killed prev wd!")
         Process.exit(self(), :normal)
     after
       @timeout_ms ->
         IO.puts("time out!!")
 
-        StateDistribution.node_active(assignee, false)
+        StateServer.node_active(assignee, false)
 
-        StateDistribution.update_hall_requests(
+        StateServer.update_hall_requests(
           assignee,
           floor,
           Enum.at(@button_types, btn_type),
           :new
         )
+
+        RequestHandler.new_state()
+        Process.send_after(caller, {:try_active, assignee}, 10_000)
+        Process.exit(self(), :normal)
     end
   end
 end

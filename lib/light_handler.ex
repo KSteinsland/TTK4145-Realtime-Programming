@@ -7,22 +7,22 @@ defmodule LightHandler do
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   @doc """
-  Checks if hall_orders have changed by comparing prevoius and current hall_orders state.
+  Checks if hall_requests have changed by comparing prevoius and current hall_requests state.
   If no state change -> do nothing.
   If state change -> continue and call light_controller.
   """
   def light_check(current_state, previous_state) do
     if previous_state != current_state || previous_state == nil do
-      light_controller(current_state.hall_orders)
+      light_controller(current_state)
     end
   end
 
   @doc """
   If state change -> turn light on or off.
   """
-  def light_controller(hall_orders) do
-    # Iterates through hall_orders, [[:done, :done][:done, :done][:done, :done]], and returns hall_order [:done, :done].
-    for {hall_order, i} <- Enum.with_index(hall_orders) do
+  def light_controller(hall_requests) do
+    # Iterates through hall_requests, [[:done, :done][:done, :done][:done, :done]], and returns hall_order [:done, :done].
+    for {hall_order, i} <- Enum.with_index(hall_requests) do
       # Turns the light on or off
       light_logic(hall_order, i)
     end
