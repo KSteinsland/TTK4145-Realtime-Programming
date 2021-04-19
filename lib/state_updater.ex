@@ -54,7 +54,6 @@ defmodule StateUpdater do
 
           # everything else
           hall_state ->
-            IO.puts("found hall state!!")
             StateServer.update_hall_requests(
               node_name,
               floor_ind,

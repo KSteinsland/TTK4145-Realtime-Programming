@@ -76,8 +76,7 @@ defmodule HardwarePoller do
           state
 
         new_obs ->
-          IO.puts("Obstruction change!")
-          IO.inspect(new_obs)
+          # IO.puts("Obstruction change!")
           ElevatorController.obstruction_change(new_obs)
           %{state | obstruction: new_obs}
       end
