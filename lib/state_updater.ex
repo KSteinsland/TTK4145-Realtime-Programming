@@ -8,6 +8,8 @@ defmodule StateUpdater do
 
   @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
   @hall_btn_types_map Map.delete(@btn_types_map, :btn_cab)
+  @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   alias StateServer, as: SS
 
@@ -40,11 +42,13 @@ defmodule StateUpdater do
     # update hall requests from node
     node_hall_requests = GenServer.call({StateServer, node_name}, :get_hall_requests)
 
-    node_hall_requests
-    |> Enum.with_index()
+    Enum.with_index(node_hall_requests)
     |> Enum.map(fn {floor, floor_ind} ->
-      Enum.map(@hall_btn_types_map, fn {btn_type, btn_ind} ->
-        case Enum.at(floor, btn_ind) do
+      Enum.with_index(floor)
+      |> Enum.map(fn {hall_state, hall_ind} ->
+        btn_type = @hall_btn_types |> Enum.at(hall_ind)
+
+        case hall_state do
           :done ->
             :ok
 

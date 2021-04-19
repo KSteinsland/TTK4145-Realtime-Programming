@@ -46,7 +46,7 @@ defmodule HardwarePoller do
           state
 
         new_floor ->
-          IO.puts("Floor change!")
+          # IO.puts("Floor change!")
 
           if not state.initialized do
             ElevatorController.init_controller(new_floor)
@@ -67,7 +67,7 @@ defmodule HardwarePoller do
 
     # if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
     #   Timer.timer_stop()
-    #   :ok = SS.set_elevator(Node.self(), new_state)
+    #   :ok = SS.set_elevator(node(), new_state)
     # end
 
     state =
@@ -76,8 +76,7 @@ defmodule HardwarePoller do
           state
 
         new_obs ->
-          IO.puts("Obstruction change!")
-          IO.inspect(new_obs)
+          # IO.puts("Obstruction change!")
           ElevatorController.obstruction_change(new_obs)
           %{state | obstruction: new_obs}
       end
@@ -103,7 +102,7 @@ defmodule HardwarePoller do
           prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
           if v == 1 && v != prev_v do
-            ElevatorController.send_hall_request(Node.self(), floor_ind, btn_type, :button)
+            ElevatorController.send_hall_request(node(), floor_ind, btn_type, :button)
           end
 
           v

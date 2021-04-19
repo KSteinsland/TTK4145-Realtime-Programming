@@ -16,6 +16,7 @@ defmodule RequestHandler do
     # All assigned should be made new incase reboot
     sys_state = StateServer.get_state()
     IO.inspect(sys_state.hall_requests)
+    spawn(fn -> LightHandler.light_check(sys_state.hall_requests, nil) end)
     new_reqs = find_hall_requests(sys_state.hall_requests, :assigned)
     new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests, :new)
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
@@ -67,6 +68,13 @@ defmodule RequestHandler do
       if is_pid(pid), do: send(pid, :die)
 
       assignee = Assignment.assign(sys_state)
+
+      StateServer.update_hall_requests(
+        assignee,
+        floor,
+        Enum.at(@button_types, btn_type),
+        :assigned
+      )
 
       ElevatorController.send_hall_request(
         assignee,
@@ -135,17 +143,15 @@ defmodule RequestHandler do
 
         StateServer.node_active(assignee, false)
 
-        ElevatorController.send_hall_request(
+        StateServer.update_hall_requests(
           assignee,
           floor,
           Enum.at(@button_types, btn_type),
-          :button
+          :new
         )
 
-        spawn(fn ->
-          Process.send_after(caller, {:try_active, assignee}, 10_000)
-        end)
-
+        RequestHandler.new_state()
+        Process.send_after(caller, {:try_active, assignee}, 10_000)
         Process.exit(self(), :normal)
     end
   end

@@ -12,7 +12,7 @@ defmodule StateServer do
     @btn_types Application.fetch_env!(:elevator_project, :button_types)
 
     @hall_btn_types List.delete(@btn_types, :btn_cab)
-    @hall_btn_states [:new, :done, :assigned]
+    @hall_btn_states [:new, :assigned, :done]
 
     @type hall_btn_state :: :new | :assigned | :done
     @type hall_req_list :: [[hall_btn_state(), ...], ...]
@@ -42,7 +42,9 @@ defmodule StateServer do
 
       if hall_state in @hall_btn_states and btn_type in @hall_btn_types do
         {req_at_floor, _list} = List.pop_at(req_list, floor)
+
         updated_req_at_floor = List.replace_at(req_at_floor, @hall_btn_map[btn_type], hall_state)
+
         new_req_list = List.replace_at(req_list, floor, updated_req_at_floor)
         new_req_list
       else
@@ -62,6 +64,20 @@ defmodule StateServer do
       else
         {:error, "not valid hall request state!"}
       end
+    end
+
+    def valid_hall_request_change?(req_list, floor, btn_type, hall_state) do
+      current_hall_state = Enum.at(Enum.at(req_list, floor), Map.get(@hall_btn_map, btn_type))
+
+      current_index =
+        Enum.find_index(@hall_btn_states, fn hall_btn_state ->
+          current_hall_state == hall_btn_state
+        end)
+
+      index =
+        Enum.find_index(@hall_btn_states, fn hall_btn_state -> hall_state == hall_btn_state end)
+
+      Integer.mod(current_index + 1, 3) == index
     end
   end
 
@@ -121,7 +137,7 @@ defmodule StateServer do
   Distribute if the node `node_name` is active or not
   """
   def node_active(node_name, active_state) do
-    nodes = [Node.self() | Node.list()]
+    nodes = [node() | Node.list()]
 
     GenServer.abcast(
       nodes,
@@ -142,7 +158,7 @@ defmodule StateServer do
 
       {:ok, ^elevator} ->
         elevator = %Elevator{elevator | counter: elevator.counter + 1}
-        nodes = [Node.self() | Node.list()]
+        nodes = [node() | Node.list()]
         GenServer.abcast(nodes, __MODULE__, {:set_elevator, node_name, elevator})
         :ok
     end
@@ -159,7 +175,7 @@ defmodule StateServer do
   If node_name = `:local` it distributes the hall request update
   """
   def update_hall_requests(node_name \\ :local, floor_ind, btn_type, hall_state) do
-    nodes = [Node.self() | Node.list()]
+    nodes = [node() | Node.list()]
 
     GenServer.abcast(
       nodes,
@@ -218,11 +234,17 @@ defmodule StateServer do
   def handle_cast({:update_hall_requests, node_name, floor_ind, btn_type, hall_state}, state) do
     hall_requests = state.hall_requests
 
-    new_hall_requests =
-      HallOrder.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
+    if (node_name == :local and
+          HallOrder.valid_hall_request_change?(hall_requests, floor_ind, btn_type, hall_state)) or
+         node_name != :local do
+      new_hall_requests =
+        HallOrder.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
-    state = %SystemState{state | hall_requests: new_hall_requests}
-    {:noreply, state}
+      state = %SystemState{state | hall_requests: new_hall_requests}
+      {:noreply, state}
+    else
+      {:noreply, state}
+    end
   end
 
   @impl true
