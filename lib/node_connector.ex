@@ -66,7 +66,7 @@ defmodule NodeConnector do
     end
 
     # Amount of seconds before timeout
-    :net_kernel.set_net_ticktime(10, 10)
+    :net_kernel.set_net_ticktime(5, 5)
 
     {:ok,
      %State{
