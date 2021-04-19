@@ -104,16 +104,20 @@ defmodule ElevatorController do
         IO.puts("starting timer")
         Timer.timer_start(self(), @door_open_duration_ms)
 
-        SS.update_hall_requests(floor, btn_type, :done)
-        RequestHandler.new_state()
+        if btn_type in @hall_btn_types do
+          SS.update_hall_requests(floor, btn_type, :done)
+          RequestHandler.new_state()
+        end
 
       :open_door ->
         IO.puts("opening door!")
         Driver.set_door_open_light(:on)
         Timer.timer_start(self(), @door_open_duration_ms)
 
-        SS.update_hall_requests(floor, btn_type, :done)
-        RequestHandler.new_state()
+        if btn_type in @hall_btn_types do
+          SS.update_hall_requests(floor, btn_type, :done)
+          RequestHandler.new_state()
+        end
 
       :move_elevator ->
         Logger.debug("setting motor direction")
