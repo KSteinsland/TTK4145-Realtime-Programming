@@ -76,7 +76,6 @@ defmodule StateSynchronizer do
           %Elevator{
             node_elevator
             | requests: update_cab_requests(node_elevator, local_copy),
-              # floor: local_copy.floor,
               counter: local_copy.counter + 1
           }
 
@@ -86,10 +85,16 @@ defmodule StateSynchronizer do
 
     # update nodes system state
     master_sys_state = SS.get_state()
+
+    master_sys_state = %StateServer.SystemState{
+      master_sys_state
+      | elevators: Map.put(master_sys_state.elevators, node_name, node_elevator)
+    }
+
     GenServer.cast({StateServer, node_name}, {:set_state, master_sys_state})
 
     # put nodes elevator state back
-    StateServer.set_elevator(node_name, node_elevator)
+    # StateServer.set_elevator(node_name, node_elevator)
 
     # set all lights
     spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
