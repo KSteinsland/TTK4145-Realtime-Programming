@@ -175,10 +175,11 @@ defmodule NodeConnector do
     if state.role == :slave do
       {current_master, current_up_since} = state.master
 
+      Node.connect(latest_master)
+
       if current_master == nil or up_since < current_up_since do
         IO.puts("Found master #{full_name}!")
 
-        Node.connect(latest_master)
         send({__MODULE__, latest_master}, {:slave_connected, node(), state.up_since})
 
         {:noreply,
