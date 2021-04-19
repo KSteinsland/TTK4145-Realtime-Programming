@@ -10,6 +10,8 @@ defmodule RequestHandler do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
+  # TODO use tasksupervisor!
+
   def init([]) do
     # All assigned should be made new incase reboot
     sys_state = StateServer.get_state()
