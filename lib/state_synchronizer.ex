@@ -67,6 +67,8 @@ defmodule StateSynchronizer do
 
     local_copy = StateServer.get_elevator(node_name)
 
+    IO.inspect(node_elevator)
+
     # check if elevatorstate is outdated, probably not needed...
     node_elevator =
       cond do
@@ -82,6 +84,8 @@ defmodule StateSynchronizer do
         true ->
           node_elevator
       end
+
+    IO.inspect(node_elevator)
 
     # update nodes system state
     master_sys_state = SS.get_state()
