@@ -1,13 +1,11 @@
-defmodule StateUpdater do
+defmodule StateSynchronizer do
   use GenServer
 
   @moduledoc """
-    Handles distribution of state and calling on request assigning and execution.
+    Handles synchronizing of state when a node joins.
     Master only process
   """
 
-  @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
-  @hall_btn_types_map Map.delete(@btn_types_map, :btn_cab)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
@@ -29,7 +27,7 @@ defmodule StateUpdater do
   """
   def update_node(node_name) do
     GenServer.cast(
-      {:global, StateUpdater},
+      {:global, StateSynchronizer},
       {:update_node, node_name}
     )
   end

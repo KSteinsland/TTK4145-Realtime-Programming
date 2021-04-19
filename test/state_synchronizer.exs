@@ -1,7 +1,7 @@
-defmodule StateUpdaterTest do
+defmodule StateSynchronizerTest do
   use ExUnit.Case, async: false
   @moduletag :distributed
-  doctest StateUpdater
+  doctest StateSynchronizer
 
   setup_all do
     # Ensures that the cluster is in a known state before next distributed test

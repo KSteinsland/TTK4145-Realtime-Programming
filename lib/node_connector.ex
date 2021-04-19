@@ -215,7 +215,7 @@ defmodule NodeConnector do
   def handle_info({:slave_connected, node_name, up_since}, state) do
     IO.puts("Slave #{node_name} connected!")
 
-    StateUpdater.update_node(node_name)
+    StateSynchronizer.update_node(node_name)
     StateServer.node_active(node_name, true)
 
     Node.monitor(node_name, true)

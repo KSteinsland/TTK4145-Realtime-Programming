@@ -79,8 +79,7 @@ defmodule RequestHandler do
       ElevatorController.send_request(
         assignee,
         floor,
-        Enum.at(@button_types, btn_type),
-        :message
+        Enum.at(@button_types, btn_type)
       )
 
       pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type, self()])

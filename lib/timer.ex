@@ -1,6 +1,5 @@
 defmodule Timer do
   use GenServer
-  require Kernel
 
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)

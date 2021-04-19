@@ -9,6 +9,8 @@ defmodule HardwarePoller do
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @hall_btn_types List.delete(@btn_types, :btn_cab)
+
   @num_buttons length(@btn_types)
 
   # @input_poll_rate_ms Application.compile_env!(:elevator_project, :input_poll_rate_ms)
@@ -102,7 +104,13 @@ defmodule HardwarePoller do
           prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
           if v == 1 && v != prev_v do
-            ElevatorController.send_request(node(), floor_ind, btn_type, :button)
+            if btn_type in @hall_btn_types do
+              IO.puts("New hall request!")
+              StateServer.update_hall_requests(floor_ind, btn_type, :new)
+              RequestHandler.new_state()
+            else
+              ElevatorController.send_request(node(), floor_ind, btn_type)
+            end
           end
 
           v
