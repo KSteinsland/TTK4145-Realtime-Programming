@@ -6,46 +6,43 @@ defmodule Timer do
   end
 
   def init([]) do
-    {:ok, nil}
+    {:ok, %{door: nil, move: nil}}
   end
 
   def stop do
     GenServer.stop(__MODULE__)
   end
 
-  # TODO make task supervisor
-  # and link calling pid to task
-
   # User API ----------------------------------------------
 
-  def timer_start(pid, time) do
-    GenServer.cast(__MODULE__, {:timer_start, pid, time})
+  def timer_start(pid, time, timer) do
+    GenServer.cast(__MODULE__, {:timer_start, pid, time, timer})
   end
 
-  def timer_stop do
-    GenServer.call(__MODULE__, :timer_stop)
+  def timer_stop(timer) do
+    GenServer.call(__MODULE__, {:timer_stop, timer})
   end
 
   # Cast/calls  ----------------------------------------------
 
-  def handle_cast({:timer_start, pid, time}, state) do
-    timer = state
+  def handle_cast({:timer_start, pid, time, timer}, state) do
+    timer_ref = Map.get(state, timer)
 
-    if timer != nil do
-      Process.cancel_timer(timer)
+    if timer_ref != nil do
+      Process.cancel_timer(timer_ref)
     end
 
-    timer = Process.send_after(pid, :timed_out, time)
-    {:noreply, timer}
+    timer_ref = Process.send_after(pid, {:timed_out, timer}, time)
+    {:noreply, Map.put(state, timer, timer_ref)}
   end
 
-  def handle_call(:timer_stop, _from, state) do
-    timer = state
+  def handle_call({:timer_stop, timer}, _from, state) do
+    timer_ref = Map.get(state, timer)
 
-    if timer != nil do
-      Process.cancel_timer(timer)
+    if timer_ref != nil do
+      Process.cancel_timer(timer_ref)
     end
 
-    {:reply, :ok, timer}
+    {:reply, :ok, Map.put(state, timer, timer_ref)}
   end
 end

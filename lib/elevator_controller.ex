@@ -12,6 +12,7 @@ defmodule ElevatorController do
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   @door_open_duration_ms Application.compile_env!(:elevator_project, :door_open_duration_ms)
+  @move_timeout 7_000
 
   @doc """
   Starts to process and registers its name to `ElevatorController`
@@ -78,6 +79,7 @@ defmodule ElevatorController do
     case action do
       :move_down ->
         new_elevator.direction |> Driver.set_motor_direction()
+        Timer.timer_start(self(), @move_timeout, :move)
 
       _ ->
         Driver.set_floor_indicator(new_elevator.floor)
@@ -98,11 +100,10 @@ defmodule ElevatorController do
     {action, new_elevator} = FSM.on_request(SS.get_elevator(node()), floor, btn_type)
     # IO.inspect(action)
 
-    # TODO move req_type check into FSM and return a list of actions instead
     case action do
       :start_timer ->
         IO.puts("starting timer")
-        Timer.timer_start(self(), @door_open_duration_ms)
+        Timer.timer_start(self(), @door_open_duration_ms, :door)
 
         if btn_type in @hall_btn_types do
           SS.update_hall_requests(floor, btn_type, :done)
@@ -112,7 +113,7 @@ defmodule ElevatorController do
       :open_door ->
         IO.puts("opening door!")
         Driver.set_door_open_light(:on)
-        Timer.timer_start(self(), @door_open_duration_ms)
+        Timer.timer_start(self(), @door_open_duration_ms, :door)
 
         if btn_type in @hall_btn_types do
           SS.update_hall_requests(floor, btn_type, :done)
@@ -123,6 +124,7 @@ defmodule ElevatorController do
         Logger.debug("setting motor direction")
         # IO.puts("setting motor direction")
         new_elevator.direction |> Driver.set_motor_direction()
+        Timer.timer_start(self(), @move_timeout, :move)
 
       nil ->
         :ok
@@ -143,13 +145,14 @@ defmodule ElevatorController do
       {action, new_elevator} = FSM.on_floor_arrival(elevator, floor)
 
       Driver.set_floor_indicator(new_elevator.floor)
+      Timer.timer_stop(:move)
 
       case action do
         :stop ->
           set_all_hall_requests(new_elevator.requests, elevator.requests, new_elevator.floor)
           Driver.set_motor_direction(:dir_stop)
           Driver.set_door_open_light(:on)
-          Timer.timer_start(self(), @door_open_duration_ms)
+          Timer.timer_start(self(), @door_open_duration_ms, :door)
           set_all_cab_lights(new_elevator)
 
         _ ->
@@ -168,7 +171,7 @@ defmodule ElevatorController do
 
     case action do
       :start_timer ->
-        Timer.timer_start(self(), @door_open_duration_ms)
+        Timer.timer_start(self(), @door_open_duration_ms, :door)
         set_all_cab_lights(new_elevator)
 
       _ ->
@@ -182,8 +185,8 @@ defmodule ElevatorController do
   end
 
   @impl true
-  def handle_info(:timed_out, _state) do
-    # IO.puts("Door open timer has timed out!")
+  def handle_info({:timed_out, :door}, _state) do
+    IO.puts("Door open timer has timed out!")
     {action, new_elevator} = FSM.on_door_timeout(SS.get_elevator(node()))
 
     case action do
@@ -191,12 +194,24 @@ defmodule ElevatorController do
         Driver.set_door_open_light(:off)
         new_elevator.direction |> Driver.set_motor_direction()
 
+        if new_elevator.direction != :dir_stop,
+          do: Timer.timer_start(self(), @move_timeout, :move)
+
       _ ->
         :ok
     end
 
-    Timer.timer_stop()
+    Timer.timer_stop(:door)
     :ok = SS.set_elevator(node(), new_elevator)
+
+    {:noreply, %{}}
+  end
+
+  @impl true
+  def handle_info({:timed_out, :move}, _state) do
+    IO.puts("Move timer has timed out!")
+    elevator = SS.get_elevator(node())
+    if elevator.behaviour == :be_moving, do: throw(:error)
 
     {:noreply, %{}}
   end
