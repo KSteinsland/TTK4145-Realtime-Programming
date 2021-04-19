@@ -279,7 +279,7 @@ defmodule StateServer do
 
   defp wait_for_master_startup() do
     # Ensures that we do not register :nonode@nohost in the elevator map
-    if :global.whereis_name(StateUpdater) == :undefined do
+    if :global.whereis_name(StateSynchronizer) == :undefined do
       Process.sleep(10)
       wait_for_master_startup()
     end
