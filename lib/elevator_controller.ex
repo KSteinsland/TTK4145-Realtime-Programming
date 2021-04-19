@@ -77,7 +77,7 @@ defmodule ElevatorController do
     {action, new_elevator} = FSM.on_init_between_floors(SS.get_elevator(node()), floor)
 
     case action do
-      :move_down ->
+      :move ->
         new_elevator.direction |> Driver.set_motor_direction()
         Timer.timer_start(self(), @move_timeout, :move)
 

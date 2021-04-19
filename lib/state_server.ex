@@ -213,6 +213,8 @@ defmodule StateServer do
 
   @impl true
   def handle_cast({:set_elevator, node_name, elevator}, state) do
+    # IO.inspect(node_name)
+    # IO.inspect(elevator)
     if elevator.counter > get_elevator_init(node_name, state.elevators).counter do
       new_state = %SystemState{
         state

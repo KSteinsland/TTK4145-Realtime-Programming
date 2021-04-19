@@ -63,65 +63,50 @@ defmodule StateSynchronizer do
       end)
     end)
 
-    node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
-    IO.inspect(node_elevator)
-
     local_copy = StateServer.get_elevator(node_name)
     update_cab_requests(local_copy.requests, node_name)
 
-    node_elevator = %Elevator{
-      node_elevator
-      | counter: Enum.max([node_elevator.counter, local_copy.counter]) + 1
-    }
+    # update hall requests to node
+    master_hall_requests = StateServer.get_hall_requests()
 
-    IO.inspect(node_elevator)
+    Enum.with_index(master_hall_requests)
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.with_index(floor)
+      |> Enum.map(fn {hall_state, hall_ind} ->
+        btn_type = @hall_btn_types |> Enum.at(hall_ind)
 
-    # update nodes system state
-    master_sys_state = SS.get_state()
+        case hall_state do
+          :done ->
+            :ok
 
-    master_sys_state = %StateServer.SystemState{
-      master_sys_state
-      | elevators: Map.put(master_sys_state.elevators, node_name, node_elevator)
-    }
-
-    GenServer.cast({StateServer, node_name}, {:set_state, master_sys_state})
-
-    # put nodes elevator state back
-    StateServer.set_elevator(node_name, node_elevator)
+          # everything else
+          hall_state ->
+            GenServer.cast(
+              {StateServer, node_name},
+              {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
+            )
+        end
+      end)
+    end)
 
     # set all lights
-    spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
+    spawn(fn -> LightHandler.light_check(master_hall_requests, nil) end)
+
+    master_state = StateServer.get_state()
+
+    Enum.map(master_state.elevators, fn {node_el, elevator} ->
+      GenServer.cast({StateServer, node_name}, {:set_elevator, node_el, elevator})
+    end)
+
+    # put nodes elevator state back
+    node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
+    IO.inspect(node_elevator)
+    :ok = StateServer.set_elevator(node_name, node_elevator)
 
     {:reply, :ok, state}
   end
 
   # utils ----------------------------------------
-
-  defp old_update_cab_requests(elevator, latest_elevator) do
-    # Adds all cab requests from latest_elevator to elevators requests
-
-    IO.puts("updating cab requests!!")
-
-    new_requests =
-      latest_elevator.requests
-      |> Enum.with_index()
-      |> Enum.reduce(elevator.requests, fn {floor, floor_ind}, acc ->
-        val = Enum.at(floor, Map.get(@btn_types_map, :btn_cab))
-
-        if val == 1 do
-          Elevator.update_requests(
-            acc,
-            floor_ind,
-            :btn_cab,
-            val
-          )
-        else
-          acc
-        end
-      end)
-
-    new_requests
-  end
 
   defp update_cab_requests(requests, node_name) do
     # Adds all cab requests from latest_elevator to elevators requests
