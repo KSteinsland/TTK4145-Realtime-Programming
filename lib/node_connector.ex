@@ -78,6 +78,15 @@ defmodule NodeConnector do
      }}
   end
 
+  def master? do
+    GenServer.call(__MODULE__, :check_master)
+  end
+
+  def handle_call(:check_master, _from, state) do
+    {master, _} = state.master
+    {:reply, master == node(), state}
+  end
+
   # cast ------------------------------------------
 
   def handle_cast({:slaves, slaves}, state) do

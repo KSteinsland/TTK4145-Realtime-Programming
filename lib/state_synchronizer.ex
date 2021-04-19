@@ -22,6 +22,13 @@ defmodule StateSynchronizer do
     {:ok, %{last_hall_requests: nil}}
   end
 
+  def get_master_state() do
+    GenServer.call(
+      {:global, StateSynchronizer},
+      :get_master_state
+    )
+  end
+
   @spec update_node(node()) :: :ok
   @doc """
   Update the node `node_name` on re-/connection.
@@ -34,6 +41,17 @@ defmodule StateSynchronizer do
   end
 
   # casts ----------------------------------------
+
+  def handle_call(:get_master_state, from, state) do
+    IO.inspect(from)
+    {from_pid, _} = from
+
+    if from_pid == Process.whereis(StateServer) do
+      {:reply, %StateServer.SystemState{}, state}
+    else
+      {:reply, StateServer.get_state(), state}
+    end
+  end
 
   def handle_call({:update_node, node_name}, _from, state) do
     # update a node that has just connected
@@ -63,11 +81,14 @@ defmodule StateSynchronizer do
       end)
     end)
 
-    local_copy = StateServer.get_elevator(node_name)
-    update_cab_requests(local_copy.requests, node_name)
+    # local_copy = StateServer.get_elevator(node_name)
+    # update_cab_requests(local_copy.requests, node_name)
 
     # update hall requests to node
     master_hall_requests = StateServer.get_hall_requests()
+
+    # set all lights
+    spawn(fn -> LightHandler.light_check(master_hall_requests, nil) end)
 
     Enum.with_index(master_hall_requests)
     |> Enum.map(fn {floor, floor_ind} ->
@@ -88,9 +109,6 @@ defmodule StateSynchronizer do
         end
       end)
     end)
-
-    # set all lights
-    spawn(fn -> LightHandler.light_check(master_hall_requests, nil) end)
 
     master_state = StateServer.get_state()
 

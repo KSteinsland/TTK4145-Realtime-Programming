@@ -190,7 +190,7 @@ defmodule StateServer do
   @spec init(any) :: {:ok, StateServer.SystemState.t()}
   def init(_opts) do
     wait_for_master_startup()
-    {:ok, %StateServer.SystemState{}}
+    {:ok, StateSynchronizer.get_master_state()}
   end
 
   @impl true
