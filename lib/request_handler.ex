@@ -15,13 +15,30 @@ defmodule RequestHandler do
   def init([]) do
     # All assigned should be made new incase reboot
     sys_state = StateServer.get_state()
-    IO.inspect(sys_state.hall_requests)
+    #IO.inspect(sys_state)
+
     spawn(fn -> LightHandler.light_check(sys_state.hall_requests, nil) end)
+
     new_reqs = find_hall_requests(sys_state.hall_requests, :assigned)
     new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests, :new)
+
+    # must replace :assigned with :new in sys_state_hall_requests
+    hall_reqs = hall_reqs_replace(sys_state.hall_requests, :assigned, :new)
+    sys_state = %{sys_state | hall_requests: hall_reqs}
+
     empty_wd_list = List.duplicate(nil, @num_hall_order_types) |> List.duplicate(@num_floors)
     wd_list = handle_new_hall_requests(new_reqs, empty_wd_list, sys_state)
     {:ok, wd_list}
+  end
+
+  def hall_reqs_replace(hall_reqs, from, to) do
+    Enum.reduce(hall_reqs, [], fn [one, two], acc ->
+      m1 = Map.new([{from, to}])
+      m2 = Map.new([{nil, one}, {to, to}])
+      m3 = Map.new([{nil, two}, {to, to}])
+
+      acc ++ [[m2[m1[one]], m3[m1[two]]]]
+    end)
   end
 
   def new_state() do
