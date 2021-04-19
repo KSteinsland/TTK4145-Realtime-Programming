@@ -66,7 +66,7 @@ defmodule NodeConnector do
     end
 
     # Amount of seconds before timeout
-    # :net_kernel.set_net_ticktime(2, 2)
+    :net_kernel.set_net_ticktime(10, 10)
 
     {:ok,
      %State{
@@ -93,7 +93,12 @@ defmodule NodeConnector do
       IO.puts("Master timed out, upgrading self to master")
 
       {master, _} = state.master
-      if master != nil, do: StateServer.node_active(master, false)
+
+      if master != nil do
+        Node.disconnect(master)
+        StateServer.node_active(master, false)
+      end
+
       MasterStarter.upgrade_to_master()
 
       state = %State{
