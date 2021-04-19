@@ -200,8 +200,8 @@ defmodule FSMTest do
 
     {action, new_elevator} = FSM.on_obstruction_change(elevator, :inactive)
 
-    assert action == :close_doors
-    assert new_elevator.behaviour == :be_idle
+    assert action == :start_timer
+    assert new_elevator.behaviour == elevator.behaviour
     assert new_elevator.obstructed == false
 
     elevator = %Elevator{
@@ -219,8 +219,8 @@ defmodule FSMTest do
 
     {action, new_elevator} = FSM.on_obstruction_change(elevator, :inactive)
 
-    assert action == :close_doors
-    assert new_elevator.behaviour == :be_idle
+    assert action == :start_timer
+    assert new_elevator.behaviour == elevator.behaviour
     assert new_elevator.obstructed == false
   end
 end

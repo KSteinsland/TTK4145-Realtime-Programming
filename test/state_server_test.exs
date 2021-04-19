@@ -48,7 +48,7 @@ defmodule StateServerTest do
 
   #   IO.inspect(Node.list())
   #   NodeConnector.dev_disconnect(nil)
-  #   # Cluster.rpc(node, NodeConnector, :dev_network_loss, [Node.self(), 3_000])
+  #   # Cluster.rpc(node, NodeConnector, :dev_network_loss, [node(), 3_000])
   #   IO.inspect(Node.list())
 
   #   Simulator.send_key('x', 0)

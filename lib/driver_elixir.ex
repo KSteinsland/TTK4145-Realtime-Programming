@@ -60,7 +60,7 @@ defmodule Driver do
           :abcast
   def set_order_button_light_on_nodes(button_type, floor, state) do
     GenServer.abcast(
-      [Node.self() | Node.list()],
+      [node() | Node.list()],
       __MODULE__,
       {:set_order_button_light, button_type, floor, state}
     )

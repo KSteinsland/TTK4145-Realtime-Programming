@@ -33,6 +33,7 @@ defmodule ElevatorController do
     )
   end
 
+  @spec init_controller(Elevator.floor()) :: :ok
   def init_controller(floor) do
     GenServer.cast(
       __MODULE__,
@@ -69,13 +70,30 @@ defmodule ElevatorController do
   end
 
   @impl true
-  def handle_cast({:assigned_hall_request, floor, btn_type, req_type}, _state) do
-    elevator = SS.get_elevator(Node.self())
+  def handle_cast({:init_controller, floor}, _state) do
+    IO.puts("initializing elevator!")
 
+    {action, new_elevator} = FSM.on_init_between_floors(SS.get_elevator(node()), floor)
+
+    case action do
+      :move_down ->
+        new_elevator.direction |> Driver.set_motor_direction()
+
+      _ ->
+        :ok
+    end
+
+    :ok = SS.set_elevator(node(), new_elevator)
+
+    {:noreply, %{}}
+  end
+
+  @impl true
+  def handle_cast({:assigned_hall_request, floor, btn_type, req_type}, _state) do
     # performs actions on received request, either a request button press
     # or a request message from distribution
 
-    {action, elevator} = FSM.on_request(elevator, floor, btn_type, req_type)
+    {action, new_elevator} = FSM.on_request(SS.get_elevator(node()), floor, btn_type, req_type)
     # IO.inspect(action)
 
     # TODO move req_type check into FSM and return a list of actions instead
@@ -103,7 +121,7 @@ defmodule ElevatorController do
       :move_elevator ->
         Logger.debug("setting motor direction")
         # IO.puts("setting motor direction")
-        elevator.direction |> Driver.set_motor_direction()
+        new_elevator.direction |> Driver.set_motor_direction()
 
       :update_hall_requests ->
         IO.puts("New hall request!")
@@ -114,39 +132,9 @@ defmodule ElevatorController do
         :ok
     end
 
-    set_all_cab_lights(elevator)
+    set_all_cab_lights(new_elevator)
 
-    :ok = SS.set_elevator(Node.self(), elevator)
-
-    {:noreply, %{}}
-  end
-
-  @impl true
-  def handle_cast({:init_controller, floor}, _state) do
-    IO.puts("initializing elevator!")
-
-    if floor == :between_floors do
-      # IO.puts("Between floors!")
-
-      {:ok, elevator} =
-        Elevator.check(%Elevator{
-          SS.get_elevator(Node.self())
-          | direction: :dir_down,
-            behaviour: :be_moving
-        })
-
-      :ok = SS.set_elevator(Node.self(), elevator)
-
-      Driver.set_motor_direction(:dir_down)
-    else
-      {:ok, elevator} =
-        Elevator.check(%Elevator{
-          SS.get_elevator(Node.self())
-          | floor: floor
-        })
-
-      :ok = SS.set_elevator(Node.self(), elevator)
-    end
+    :ok = SS.set_elevator(node(), new_elevator)
 
     {:noreply, %{}}
   end
@@ -155,7 +143,7 @@ defmodule ElevatorController do
   def handle_cast({:floor_change, floor}, _state) do
     if floor != :between_floors do
       IO.puts("Arrived at floor!")
-      elevator = SS.get_elevator(Node.self())
+      elevator = SS.get_elevator(node())
       {action, new_elevator} = FSM.on_floor_arrival(elevator, floor)
 
       Driver.set_floor_indicator(new_elevator.floor)
@@ -172,7 +160,7 @@ defmodule ElevatorController do
           :ok
       end
 
-      :ok = SS.set_elevator(Node.self(), new_elevator)
+      :ok = SS.set_elevator(node(), new_elevator)
     end
 
     {:noreply, %{}}
@@ -180,7 +168,27 @@ defmodule ElevatorController do
 
   @impl true
   def handle_cast({:obstruction_change, obs_state}, _state) do
-    {action, new_elevator} = FSM.on_obstruction_change(SS.get_elevator(Node.self()), obs_state)
+    {action, new_elevator} = FSM.on_obstruction_change(SS.get_elevator(node()), obs_state)
+
+    case action do
+      :start_timer ->
+        Timer.timer_start(self(), @door_open_duration_ms)
+        set_all_cab_lights(new_elevator)
+
+      _ ->
+        :ok
+    end
+
+    :ok = SS.set_elevator(node(), new_elevator)
+    SS.node_active(node(), not new_elevator.obstructed)
+
+    {:noreply, %{}}
+  end
+
+  @impl true
+  def handle_info(:timed_out, _state) do
+    # IO.puts("Door open timer has timed out!")
+    {action, new_elevator} = FSM.on_door_timeout(SS.get_elevator(node()))
 
     case action do
       :close_doors ->
@@ -191,32 +199,8 @@ defmodule ElevatorController do
         :ok
     end
 
-    :ok = SS.set_elevator(Node.self(), new_elevator)
-    SS.node_active(Node.self(), not new_elevator.obstructed)
-
-    {:noreply, %{}}
-  end
-
-  @impl true
-  def handle_info(:timed_out, _state) do
-    elevator = SS.get_elevator(Node.self())
-
-    if not elevator.obstructed do
-      # IO.puts("Door open timer has timed out!")
-      {action, new_elevator} = FSM.on_door_timeout(elevator)
-
-      case action do
-        :close_doors ->
-          Driver.set_door_open_light(:off)
-          new_elevator.direction |> Driver.set_motor_direction()
-
-        _ ->
-          :ok
-      end
-
-      Timer.timer_stop()
-      :ok = SS.set_elevator(Node.self(), new_elevator)
-    end
+    Timer.timer_stop()
+    :ok = SS.set_elevator(node(), new_elevator)
 
     {:noreply, %{}}
   end

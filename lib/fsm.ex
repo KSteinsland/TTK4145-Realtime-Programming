@@ -6,13 +6,20 @@ defmodule FSM do
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
-  # def on_init_between_floors(%Elevator{} = elevator) do
-  #   {:dir_down, %Elevator{elevator |
-  #   direction: :dir_down,
-  #   behaviour: :be_moving}}
-  # end
+  @spec on_init_between_floors(Elevator.t(), Elevator.floor()) ::
+          {:move_down, Elevator.t()} | {nil, Elevator.t()}
+  @doc """
+  Logic returning the required action to be done when the elevator is initialized.
+  """
+  def on_init_between_floors(%Elevator{} = elevator, floor) do
+    case floor do
+      :between_floors ->
+        {:move_down, %Elevator{elevator | direction: :dir_down, behaviour: :be_moving}}
 
-  # TODO use Elevator.check function to check for errors!
+      floor ->
+        {nil, %Elevator{elevator | floor: floor}}
+    end
+  end
 
   @spec on_request(Elevator.t(), Elevator.floor(), Elevator.btn_type(), :button | :message) ::
           {:move_elevator, Elevator.t()}
@@ -127,12 +134,16 @@ defmodule FSM do
   def on_door_timeout(%Elevator{} = elevator) do
     case elevator.behaviour do
       :be_door_open ->
-        elevator = %Elevator{elevator | direction: elevator |> Requests.choose_direction()}
+        if not elevator.obstructed do
+          elevator = %Elevator{elevator | direction: elevator |> Requests.choose_direction()}
 
-        if elevator.direction == :dir_stop do
-          {:close_doors, %Elevator{elevator | behaviour: :be_idle}}
+          if elevator.direction == :dir_stop do
+            {:close_doors, %Elevator{elevator | behaviour: :be_idle}}
+          else
+            {:close_doors, %Elevator{elevator | behaviour: :be_moving}}
+          end
         else
-          {:close_doors, %Elevator{elevator | behaviour: :be_moving}}
+          {nil, elevator}
         end
 
       _ ->
@@ -141,7 +152,7 @@ defmodule FSM do
   end
 
   @spec on_obstruction_change(Elevator.t(), :active | :inactive) ::
-          {:close_doors, Elevator.t()} | {nil, Elevator.t()}
+          {:start_timer, Elevator.t()} | {nil, Elevator.t()}
   @doc """
   Logic returning the required action to be done when the obstruction state changes
   and a new `Elevator` state.
@@ -150,17 +161,7 @@ defmodule FSM do
     case elevator.behaviour do
       :be_door_open ->
         if obs_state == :inactive do
-          elevator = %Elevator{
-            elevator
-            | direction: elevator |> Requests.choose_direction(),
-              obstructed: false
-          }
-
-          if elevator.direction == :dir_stop do
-            {:close_doors, %Elevator{elevator | behaviour: :be_idle}}
-          else
-            {:close_doors, %Elevator{elevator | behaviour: :be_moving}}
-          end
+          {:start_timer, %Elevator{elevator | obstructed: false}}
         else
           {nil, %Elevator{elevator | obstructed: true}}
         end

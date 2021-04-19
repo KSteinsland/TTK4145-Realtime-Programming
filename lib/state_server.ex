@@ -121,7 +121,7 @@ defmodule StateServer do
   Distribute if the node `node_name` is active or not
   """
   def node_active(node_name, active_state) do
-    nodes = [Node.self() | Node.list()]
+    nodes = [node() | Node.list()]
 
     GenServer.abcast(
       nodes,
@@ -142,7 +142,7 @@ defmodule StateServer do
 
       {:ok, ^elevator} ->
         elevator = %Elevator{elevator | counter: elevator.counter + 1}
-        nodes = [Node.self() | Node.list()]
+        nodes = [node() | Node.list()]
         GenServer.abcast(nodes, __MODULE__, {:set_elevator, node_name, elevator})
         :ok
     end
@@ -159,7 +159,7 @@ defmodule StateServer do
   If node_name = `:local` it distributes the hall request update
   """
   def update_hall_requests(node_name \\ :local, floor_ind, btn_type, hall_state) do
-    nodes = [Node.self() | Node.list()]
+    nodes = [node() | Node.list()]
 
     GenServer.abcast(
       nodes,
