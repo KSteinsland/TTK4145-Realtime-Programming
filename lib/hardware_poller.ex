@@ -46,7 +46,7 @@ defmodule HardwarePoller do
           state
 
         new_floor ->
-          IO.puts("Floor change!")
+          # IO.puts("Floor change!")
 
           if not state.initialized do
             ElevatorController.init_controller(new_floor)

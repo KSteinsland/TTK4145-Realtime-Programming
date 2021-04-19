@@ -80,9 +80,11 @@ defmodule ElevatorController do
         new_elevator.direction |> Driver.set_motor_direction()
 
       _ ->
-        :ok
+        Driver.set_floor_indicator(new_elevator.floor)
     end
 
+    Driver.set_door_open_light(:off)
+    set_all_cab_lights(new_elevator)
     :ok = SS.set_elevator(node(), new_elevator)
 
     {:noreply, %{}}
