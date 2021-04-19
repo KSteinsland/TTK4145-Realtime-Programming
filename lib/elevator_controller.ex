@@ -159,6 +159,7 @@ defmodule ElevatorController do
           :ok
       end
 
+      SS.node_active(node(), not new_elevator.obstructed)
       :ok = SS.set_elevator(node(), new_elevator)
     end
 
@@ -211,6 +212,7 @@ defmodule ElevatorController do
   def handle_info({:timed_out, :move}, _state) do
     IO.puts("Move timer has timed out!")
     elevator = SS.get_elevator(node())
+    SS.node_active(node(), false)
     if elevator.behaviour == :be_moving, do: throw(:error)
 
     {:noreply, %{}}

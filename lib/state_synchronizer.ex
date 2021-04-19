@@ -7,6 +7,7 @@ defmodule StateSynchronizer do
   """
 
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
+  @btn_types_map Application.fetch_env!(:elevator_project, :button_map)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   alias StateServer, as: SS
@@ -64,6 +65,14 @@ defmodule StateSynchronizer do
 
     node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
 
+    local_copy = StateServer.get_elevator(node_name)
+
+    node_elevator = %Elevator{
+      node_elevator
+      | requests: update_cab_requests(node_elevator, local_copy),
+        counter: local_copy.counter + 1
+    }
+
     # update nodes system state
     master_sys_state = SS.get_state()
     GenServer.cast({StateServer, node_name}, {:set_state, master_sys_state})
@@ -76,4 +85,33 @@ defmodule StateSynchronizer do
 
     {:noreply, state}
   end
+
+    # utils ----------------------------------------
+
+    defp update_cab_requests(elevator, latest_elevator) do
+      # Adds all cab requests from latest_elevator to elevators requests
+
+      IO.puts("updating cab requests!!")
+
+      new_requests =
+        latest_elevator.requests
+        |> Enum.with_index()
+        |> Enum.reduce(elevator.requests, fn {floor, floor_ind}, acc ->
+          val = Enum.at(floor, Map.get(@btn_types_map, :btn_cab))
+
+          if val == 1 do
+            Elevator.update_requests(
+              acc,
+              floor_ind,
+              :btn_cab,
+              val
+            )
+          else
+            acc
+          end
+        end)
+
+      new_requests
+    end
+
 end
