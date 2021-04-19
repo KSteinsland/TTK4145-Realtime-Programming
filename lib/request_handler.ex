@@ -64,30 +64,27 @@ defmodule RequestHandler do
   """
   def handle_new_hall_requests(new_requests, wd_list, sys_state) do
     Enum.reduce(new_requests, wd_list, fn {floor, btn_type}, wd_list ->
-      wd_already_spawned? = is_pid(Enum.at(wd_list, floor) |> Enum.at(0))
+      pid = Enum.at(wd_list, floor) |> Enum.at(btn_type)
+      if is_pid(pid), do: send(pid, :die)
 
-      if not wd_already_spawned? do
-        assignee = Assignment.assign(sys_state)
+      assignee = Assignment.assign(sys_state)
 
-        StateServer.update_hall_requests(
-          assignee,
-          floor,
-          Enum.at(@button_types, btn_type),
-          :assigned
-        )
+      StateServer.update_hall_requests(
+        assignee,
+        floor,
+        Enum.at(@button_types, btn_type),
+        :assigned
+      )
 
-        ElevatorController.send_hall_request(
-          assignee,
-          floor,
-          Enum.at(@button_types, btn_type),
-          :message
-        )
+      ElevatorController.send_hall_request(
+        assignee,
+        floor,
+        Enum.at(@button_types, btn_type),
+        :message
+      )
 
-        pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type, self()])
-        wd_list_replace_at(wd_list, floor, btn_type, pid)
-      else
-        wd_list
-      end
+      pid = spawn(__MODULE__, :watchdog, [assignee, floor, btn_type, self()])
+      wd_list_replace_at(wd_list, floor, btn_type, pid)
     end)
   end
 
@@ -135,6 +132,10 @@ defmodule RequestHandler do
     receive do
       :done ->
         IO.puts("confirmed done!")
+        Process.exit(self(), :normal)
+
+      :die ->
+        IO.puts("killed prev wd!")
         Process.exit(self(), :normal)
     after
       @timeout_ms ->
