@@ -27,7 +27,7 @@ defmodule StateSynchronizer do
   Update the node `node_name` on re-/connection.
   """
   def update_node(node_name) do
-    GenServer.cast(
+    GenServer.call(
       {:global, StateSynchronizer},
       {:update_node, node_name}
     )
@@ -35,7 +35,7 @@ defmodule StateSynchronizer do
 
   # casts ----------------------------------------
 
-  def handle_cast({:update_node, node_name}, state) do
+  def handle_call({:update_node, node_name}, _from, state) do
     # update a node that has just connected
 
     # update hall requests from node
@@ -64,26 +64,15 @@ defmodule StateSynchronizer do
     end)
 
     node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
-
-    local_copy = StateServer.get_elevator(node_name)
-
     IO.inspect(node_elevator)
 
-    # check if elevatorstate is outdated, probably not needed...
-    node_elevator =
-      cond do
-        node_elevator.counter <= local_copy.counter and node_name != Node.self() ->
-          IO.puts("Node outdated!")
+    local_copy = StateServer.get_elevator(node_name)
+    update_cab_requests(local_copy.requests, node_name)
 
-          %Elevator{
-            node_elevator
-            | requests: update_cab_requests(node_elevator, local_copy),
-              counter: local_copy.counter + 1
-          }
-
-        true ->
-          node_elevator
-      end
+    node_elevator = %Elevator{
+      node_elevator
+      | counter: Enum.max([node_elevator.counter, local_copy.counter]) + 1
+    }
 
     IO.inspect(node_elevator)
 
@@ -98,17 +87,17 @@ defmodule StateSynchronizer do
     GenServer.cast({StateServer, node_name}, {:set_state, master_sys_state})
 
     # put nodes elevator state back
-    # StateServer.set_elevator(node_name, node_elevator)
+    StateServer.set_elevator(node_name, node_elevator)
 
     # set all lights
     spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
 
-    {:noreply, state}
+    {:reply, :ok, state}
   end
 
   # utils ----------------------------------------
 
-  defp update_cab_requests(elevator, latest_elevator) do
+  defp old_update_cab_requests(elevator, latest_elevator) do
     # Adds all cab requests from latest_elevator to elevators requests
 
     IO.puts("updating cab requests!!")
@@ -132,5 +121,31 @@ defmodule StateSynchronizer do
       end)
 
     new_requests
+  end
+
+  defp update_cab_requests(requests, node_name) do
+    # Adds all cab requests from latest_elevator to elevators requests
+
+    IO.puts("updating cab requests!!")
+
+    Enum.with_index(requests)
+    |> Enum.map(fn {floor, floor_ind} ->
+      Enum.with_index(floor)
+      |> Enum.map(fn {btn, btn_ind} ->
+        btn_type = @btn_types |> Enum.at(btn_ind)
+
+        case btn do
+          1 ->
+            ElevatorController.send_request(
+              node_name,
+              floor_ind,
+              btn_type
+            )
+
+          _ ->
+            :ok
+        end
+      end)
+    end)
   end
 end
