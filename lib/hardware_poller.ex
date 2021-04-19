@@ -102,7 +102,7 @@ defmodule HardwarePoller do
           prev_v = prev_req_list |> Enum.at(floor_ind) |> Enum.at(btn_ind)
 
           if v == 1 && v != prev_v do
-            ElevatorController.send_hall_request(node(), floor_ind, btn_type, :button)
+            ElevatorController.send_request(node(), floor_ind, btn_type, :button)
           end
 
           v

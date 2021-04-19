@@ -20,16 +20,16 @@ defmodule ElevatorController do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  @spec send_hall_request(node(), Elevator.floor(), Elevator.hall_btn_type(), :button | :message) ::
+  @spec send_request(node(), Elevator.floor(), Elevator.hall_btn_type(), :button | :message) ::
           :ok
   @doc """
   Sends a assigned hall request to the elevator at `node_name`.
   `req_type` determines action
   """
-  def send_hall_request(node_name, floor_ind, btn_type, req_type) do
+  def send_request(node_name, floor_ind, btn_type, req_type) do
     GenServer.cast(
       {__MODULE__, node_name},
-      {:assigned_hall_request, floor_ind, btn_type, req_type}
+      {:send_request, floor_ind, btn_type, req_type}
     )
   end
 
@@ -91,7 +91,7 @@ defmodule ElevatorController do
   end
 
   @impl true
-  def handle_cast({:assigned_hall_request, floor, btn_type, req_type}, _state) do
+  def handle_cast({:send_request, floor, btn_type, req_type}, _state) do
     # performs actions on received request, either a request button press
     # or a request message from distribution
 

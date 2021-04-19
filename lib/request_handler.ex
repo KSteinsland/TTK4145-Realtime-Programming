@@ -76,7 +76,7 @@ defmodule RequestHandler do
         :assigned
       )
 
-      ElevatorController.send_hall_request(
+      ElevatorController.send_request(
         assignee,
         floor,
         Enum.at(@button_types, btn_type),
