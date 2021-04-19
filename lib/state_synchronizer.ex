@@ -67,11 +67,22 @@ defmodule StateSynchronizer do
 
     local_copy = StateServer.get_elevator(node_name)
 
-    node_elevator = %Elevator{
-      node_elevator
-      | requests: update_cab_requests(node_elevator, local_copy),
-        counter: local_copy.counter + 1
-    }
+    # check if elevatorstate is outdated, probably not needed...
+    node_elevator =
+      cond do
+        node_elevator.counter <= local_copy.counter and node_name != Node.self() ->
+          IO.puts("Node outdated!")
+
+          %Elevator{
+            node_elevator
+            | requests: update_cab_requests(node_elevator, local_copy),
+              # floor: local_copy.floor,
+              counter: local_copy.counter + 1
+          }
+
+        true ->
+          node_elevator
+      end
 
     # update nodes system state
     master_sys_state = SS.get_state()
@@ -86,32 +97,31 @@ defmodule StateSynchronizer do
     {:noreply, state}
   end
 
-    # utils ----------------------------------------
+  # utils ----------------------------------------
 
-    defp update_cab_requests(elevator, latest_elevator) do
-      # Adds all cab requests from latest_elevator to elevators requests
+  defp update_cab_requests(elevator, latest_elevator) do
+    # Adds all cab requests from latest_elevator to elevators requests
 
-      IO.puts("updating cab requests!!")
+    IO.puts("updating cab requests!!")
 
-      new_requests =
-        latest_elevator.requests
-        |> Enum.with_index()
-        |> Enum.reduce(elevator.requests, fn {floor, floor_ind}, acc ->
-          val = Enum.at(floor, Map.get(@btn_types_map, :btn_cab))
+    new_requests =
+      latest_elevator.requests
+      |> Enum.with_index()
+      |> Enum.reduce(elevator.requests, fn {floor, floor_ind}, acc ->
+        val = Enum.at(floor, Map.get(@btn_types_map, :btn_cab))
 
-          if val == 1 do
-            Elevator.update_requests(
-              acc,
-              floor_ind,
-              :btn_cab,
-              val
-            )
-          else
-            acc
-          end
-        end)
+        if val == 1 do
+          Elevator.update_requests(
+            acc,
+            floor_ind,
+            :btn_cab,
+            val
+          )
+        else
+          acc
+        end
+      end)
 
-      new_requests
-    end
-
+    new_requests
+  end
 end

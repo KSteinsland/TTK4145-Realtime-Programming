@@ -123,4 +123,11 @@ defmodule HardwarePoller do
 
     {:noreply, state}
   end
+
+  def wait_for_init() do
+    if not Map.get(:sys.get_state(HardwarePoller), :initialized) do
+      Process.sleep(10)
+      wait_for_init()
+    end
+  end
 end
