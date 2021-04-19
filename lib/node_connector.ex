@@ -50,6 +50,8 @@ defmodule NodeConnector do
     {:ok, socket, port} = dev_try_create_socket(start_port, start_port + @port_range)
 
     if node() == :nonode@nohost do
+      System.cmd("epmd", ["-daemon"])
+
       {:ok, addr} = Utils.Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
       full_name = name <> "@" <> to_string(addr_str)
@@ -90,6 +92,8 @@ defmodule NodeConnector do
     if state.role != :master and state.up_since <= Enum.min(up_times) do
       IO.puts("Master timed out, upgrading self to master")
 
+      {master, _} = state.master
+      StateServer.node_active(master, false)
       MasterStarter.upgrade_to_master()
 
       state = %State{
