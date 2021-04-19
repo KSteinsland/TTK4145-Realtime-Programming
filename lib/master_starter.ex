@@ -23,6 +23,9 @@ defmodule MasterStarter do
           :ok
         end
 
+      {:error, {:already_started, _}} ->
+        :ok
+
       {:ok, _} ->
         :ok
     end
