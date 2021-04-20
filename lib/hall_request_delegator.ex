@@ -11,13 +11,13 @@ defmodule HallRequestDelegator do
   end
 
   def init([]) do
+    # Run the assignment procedure on all new and assigned hall reqs in case master restarted.
     sys_state = StateServer.get_state()
-    IO.inspect(sys_state.hall_requests)
     spawn(fn -> LightHandler.light_check(sys_state.hall_requests, nil) end)
+
     new_reqs = find_hall_requests(sys_state.hall_requests, :assigned)
     new_reqs = new_reqs ++ find_hall_requests(sys_state.hall_requests, :new)
 
-    # All assigned should be made new incase reboot
     hall_reqs = hall_reqs_replace(sys_state.hall_requests, :assigned, :new)
     sys_state = %{sys_state | hall_requests: hall_reqs}
 
@@ -28,14 +28,6 @@ defmodule HallRequestDelegator do
 
   def new_state() do
     GenServer.cast({:global, __MODULE__}, :new_state)
-  end
-
-  def get_wd() do
-    GenServer.call({:global, __MODULE__}, :get_wd)
-  end
-
-  def handle_call(:get_wd, _from, wd_list) do
-    {:reply, wd_list, wd_list}
   end
 
   @doc """
@@ -61,6 +53,7 @@ defmodule HallRequestDelegator do
     {:noreply, state}
   end
 
+  @spec handle_new_hall_requests(any, any, any) :: any
   @doc """
   For all new requests: assign and start watchdog. Returns a new watchdog list
   """
@@ -69,7 +62,6 @@ defmodule HallRequestDelegator do
       pid = Enum.at(wd_list, floor) |> Enum.at(btn_type)
       if is_pid(pid), do: send(pid, :die)
 
-      # remove those not in node.list
       connected_elevators =
         Enum.reduce([node() | Node.list()], %{}, fn elevator, elevators ->
           Map.put(elevators, elevator, sys_state.elevators[elevator])
@@ -95,6 +87,7 @@ defmodule HallRequestDelegator do
     end)
   end
 
+  @spec handle_done_hall_requests(any, any) :: any
   @doc """
   For all done requests: kill watchdog timer. Returns a new watchdog list
   """
@@ -115,39 +108,21 @@ defmodule HallRequestDelegator do
     end)
   end
 
+  @spec watchdog(any, any, any, any) :: true
   @doc """
-  Takes in hall_requests, returns a list of tuples of finds {floor, btn_type} that contain new/done orders
+  On a new hall order this watchdog should be spawned.
+  If its not completed before timeout the hall order is resent,
+  and the failed elevator is set to be non-active for 30sec.
   """
-  def find_hall_requests(hall_requests, type) do
-    r = Enum.with_index(List.flatten(hall_requests))
-
-    Enum.reduce(r, [], fn {t, i}, finds ->
-      if t == type do
-        finds ++ [{div(i, @num_hall_order_types), rem(i, @num_hall_order_types)}]
-      else
-        finds
-      end
-    end)
-  end
-
-  def wd_list_replace_at(wd_list, floor, btn_type, value) do
-    f = List.replace_at(Enum.at(wd_list, floor), btn_type, value)
-    List.replace_at(wd_list, floor, f)
-  end
-
   def watchdog(assignee, floor, btn_type, caller) do
     receive do
       :done ->
-        IO.puts("confirmed done!")
         Process.exit(self(), :normal)
 
       :die ->
-        IO.puts("killed prev wd!")
         Process.exit(self(), :normal)
     after
       @timeout_ms ->
-        IO.puts("time out!!")
-
         StateServer.node_active(assignee, false)
 
         StateServer.update_hall_requests(
@@ -163,7 +138,7 @@ defmodule HallRequestDelegator do
     end
   end
 
-  def hall_reqs_replace(hall_reqs, from, to) do
+  defp hall_reqs_replace(hall_reqs, from, to) do
     Enum.reduce(hall_reqs, [], fn [one, two], acc ->
       m1 = Map.new([{from, to}])
       m2 = Map.new([{nil, one}, {to, to}])
@@ -171,5 +146,22 @@ defmodule HallRequestDelegator do
 
       acc ++ [[m2[m1[one]], m3[m1[two]]]]
     end)
+  end
+
+  defp find_hall_requests(hall_requests, type) do
+    r = Enum.with_index(List.flatten(hall_requests))
+
+    Enum.reduce(r, [], fn {t, i}, finds ->
+      if t == type do
+        finds ++ [{div(i, @num_hall_order_types), rem(i, @num_hall_order_types)}]
+      else
+        finds
+      end
+    end)
+  end
+
+  defp wd_list_replace_at(wd_list, floor, btn_type, value) do
+    f = List.replace_at(Enum.at(wd_list, floor), btn_type, value)
+    List.replace_at(wd_list, floor, f)
   end
 end

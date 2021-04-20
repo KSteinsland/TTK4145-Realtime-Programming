@@ -8,6 +8,7 @@ defmodule LightHandler do
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
+
   @spec light_check(
           StateServer.SystemState.hall_req_list(),
           StateServer.SystemState.hall_req_list()
@@ -36,7 +37,7 @@ defmodule LightHandler do
     end
   end
 
-  @spec light_logic(StateServer.SystemState.req_list(), Elevator.floor()) :: :abcast
+  @spec light_logic([StateServer.SystemState.hall_btn_state(), ...], Elevator.floor()) :: :abcast
   @doc """
   Takes in  hall_order, ex.: [:new, :done],
     where hall_order[0] = :btn_hall_up,

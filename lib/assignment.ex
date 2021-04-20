@@ -1,7 +1,15 @@
 defmodule Assignment do
+  @moduledoc """
+    Calculates which elevator should be assigned to which hall order.
+  """
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
 
+  @spec assign(atom | %{:elevators => any, :hall_requests => any, optional(any) => any}) :: atom
+  @doc """
+  Takes in a system state struct with a new hall order,
+  returns which elevator should take the order.
+  """
   def assign(sys_state) do
     sys_state_formated = format_sys_state(sys_state)
     {:ok, json_in} = JSON.encode(sys_state_formated)
@@ -14,7 +22,7 @@ defmodule Assignment do
     String.to_atom(winner)
   end
 
-  def extract_winner(elevator_map) do
+  defp extract_winner(elevator_map) do
     Enum.reduce(elevator_map, %{}, fn {el_id, list}, winner_map ->
       if Enum.reduce(List.flatten(list), false, fn bool, acc -> bool or acc end) do
         Map.put(winner_map, :winner, el_id)
@@ -24,7 +32,7 @@ defmodule Assignment do
     end)[:winner]
   end
 
-  def format_sys_state(sys_state) do
+  defp format_sys_state(sys_state) do
     elevators = Enum.filter(sys_state.elevators, fn {_id, el} -> el.active end)
 
     elevators =
@@ -57,33 +65,20 @@ defmodule Assignment do
   end
 
   defp call_assigner(json_in) do
-    # Calls the correct assigner executable based on OS
-
-    # We might need to change some of these options, especially clearRequestType
-    # %{travelDuration: 2500, doorOpenDuration: 3000}
     opts = %{}
-    # --travelDuration : Travel time between two floors in milliseconds (default 2500)
-    # --doorOpenDuration : Door open time in milliseconds (default 3000)
-    # --clearRequestType : When stopping at a floor, clear either all requests or only those inDirn (default)
-    # --includeCab : Includes the cab requests in the output. The output becomes a 3xN boolean matrix for each elevator ([[up-0, down-0, cab-0], [...],...]). (disabled by default)
 
     case :os.type() do
       {:unix, os} ->
         os = if os == :linux, do: to_string(os), else: "mac"
-
         {:ok, dir_path} = File.cwd()
         assigner_path = Path.join(dir_path, "assignment/#{os}/hall_request_assigner")
-
         {json_out, _} = System.cmd(assigner_path, ["-i", json_in | get_extra_opts(opts)])
-
         json_out
 
       {:win32, _} ->
         {:ok, dir_path} = File.cwd()
         assigner_path = Path.join(dir_path, "assignment/windows/hall_request_assigner.exe")
-
         {json_out, _} = System.cmd(assigner_path, ["-i", json_in | get_extra_opts(opts)])
-
         json_out
     end
   end
