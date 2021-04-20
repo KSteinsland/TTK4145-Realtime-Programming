@@ -8,7 +8,8 @@ defmodule LightHandler do
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
-  @spec light_check(StateServer.HallOrder.hall_req_list(), StateServer.HallOrder.hall_req_list()) :: nil | list
+  @spec light_check(StateServer.HallOrder.hall_req_list(), StateServer.HallOrder.hall_req_list()) ::
+          nil | list
   @doc """
   Checks if hall_requests have changed by comparing prevoius and current hall_requests state.
   If no state change -> do nothing.
