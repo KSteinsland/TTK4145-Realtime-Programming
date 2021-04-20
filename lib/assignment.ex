@@ -6,12 +6,13 @@ defmodule Assignment do
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
 
-  @spec assign(atom | %{:elevators => any, :hall_requests => any, optional(any) => any}) :: atom
+
+  @spec assign(StateServer.SystemState.t()) :: node()
   @doc """
   Takes in a system state struct with a new hall order,
   returns which elevator should take the order.
   """
-  def assign(sys_state) do
+  def assign(sys_state = %StateServer.SystemState{}) do
     sys_state_formated = format_sys_state(sys_state)
     {:ok, json_in} = JSON.encode(sys_state_formated)
 

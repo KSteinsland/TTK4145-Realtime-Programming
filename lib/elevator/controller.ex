@@ -16,9 +16,7 @@ defmodule Elevator.Controller do
   @door_open_duration_ms Application.compile_env!(:elevator_project, :door_open_duration_ms)
   @move_timeout_ms Application.compile_env!(:elevator_project, :move_timeout_ms)
 
-  @doc """
-  Starts to process and registers its name to `ElevatorController`
-  """
+
   def start_link([]) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
@@ -37,6 +35,9 @@ defmodule Elevator.Controller do
   end
 
   @spec init_controller(Elevator.floor()) :: :ok
+  @doc """
+  Tells controller to initialize.
+  """
   def init_controller(floor) do
     GenServer.cast(
       __MODULE__,
