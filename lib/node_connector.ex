@@ -100,7 +100,6 @@ defmodule NodeConnector do
         | watchdog: stop_watchdog(state.watchdog),
           role: :master,
           master: {node(), state.up_since},
-          # unsure about this one
           slaves: %{}
       }
 
