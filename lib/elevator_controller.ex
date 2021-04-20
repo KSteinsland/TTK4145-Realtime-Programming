@@ -169,6 +169,7 @@ defmodule ElevatorController do
 
         _ ->
           if new_elevator.direction != :dir_stop do
+            new_elevator.direction |> Driver.set_motor_direction()
             Timer.timer_start(self(), @move_timeout, :move)
           else
             Driver.set_motor_direction(:dir_stop)
