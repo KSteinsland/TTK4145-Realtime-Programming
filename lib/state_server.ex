@@ -276,6 +276,7 @@ defmodule StateServer do
   ## Utils ------------------------------
 
   defp get_elevator_init(node_name, elevators) do
+    # If node_name doesn't exist in map, return a new state
     case Map.get(elevators, node_name) do
       nil ->
         %Elevator{}

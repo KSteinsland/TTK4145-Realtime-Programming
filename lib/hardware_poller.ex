@@ -40,16 +40,14 @@ defmodule HardwarePoller do
   def handle_info(:poll_floor, state) do
     f = state.floor
 
-    # if f != :between_floors && f != prev_floor do
     state =
       case Driver.get_floor_sensor_state() do
         ^f ->
           state
 
         new_floor ->
-          # IO.puts("Floor change!")
-
           if not state.initialized do
+            # Tell controller to init
             ElevatorController.init_controller(new_floor)
             %{state | floor: new_floor, initialized: true}
           else
@@ -66,18 +64,12 @@ defmodule HardwarePoller do
   def handle_info(:poll_obstruction, state) do
     obs = state.obstruction
 
-    # if Timer.has_timed_out() and Driver.get_obstruction_switch_state() == :inactive do
-    #   Timer.timer_stop()
-    #   :ok = SS.set_elevator(node(), new_state)
-    # end
-
     state =
       case Driver.get_obstruction_switch_state() do
         ^obs ->
           state
 
         new_obs ->
-          # IO.puts("Obstruction change!")
           ElevatorController.obstruction_change(new_obs)
           %{state | obstruction: new_obs}
       end
@@ -88,7 +80,7 @@ defmodule HardwarePoller do
   end
 
   def handle_info(:poll_buttons, state) do
-    # Iterates through all num_floors x buttons and checks for button press
+    # Iterates through all num_floors x buttons and checks for button presses
     prev_req_list = state.req_list
 
     req_list =
@@ -104,10 +96,11 @@ defmodule HardwarePoller do
 
           if v == 1 && v != prev_v do
             if btn_type in @hall_btn_types do
-              IO.puts("New hall request!")
+              # IO.puts("New hall request!")
               StateServer.update_hall_requests(floor_ind, btn_type, :new)
               RequestHandler.new_state()
             else
+              # Cab order
               ElevatorController.send_request(node(), floor_ind, btn_type)
             end
           end
