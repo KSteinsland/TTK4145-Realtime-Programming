@@ -102,7 +102,6 @@ defmodule HallRequestDelegator do
 
         pid ->
           send(pid, :done)
-          IO.puts("sent hall req confirmation")
       end
 
       wd_list_replace_at(wd_list, floor, btn_type, nil)
