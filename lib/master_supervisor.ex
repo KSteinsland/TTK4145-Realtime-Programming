@@ -11,7 +11,7 @@ defmodule MasterSupervisor do
   def init(_init_arg) do
     children = [
       StateSynchronizer,
-      RequestHandler
+      HallRequestDelegator
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
