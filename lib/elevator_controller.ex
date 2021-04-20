@@ -76,12 +76,20 @@ defmodule ElevatorController do
 
     {action, new_elevator} = FSM.on_init_between_floors(SS.get_elevator(node()), floor)
 
+    IO.inspect(action)
+    IO.inspect(new_elevator)
+
     case action do
-      :move_down ->
+      :move ->
         new_elevator.direction |> Driver.set_motor_direction()
         Timer.timer_start(self(), @move_timeout, :move)
 
       _ ->
+        if new_elevator.behaviour == :be_moving do
+          Timer.timer_start(self(), @move_timeout, :move)
+          new_elevator.direction |> Driver.set_motor_direction()
+        end
+
         Driver.set_floor_indicator(new_elevator.floor)
     end
 
@@ -156,9 +164,11 @@ defmodule ElevatorController do
           set_all_cab_lights(new_elevator)
 
         _ ->
-          :ok
+          if new_elevator.direction != :dir_stop,
+            do: Timer.timer_start(self(), @move_timeout, :move)
       end
 
+      SS.node_active(node(), not new_elevator.obstructed)
       :ok = SS.set_elevator(node(), new_elevator)
     end
 
@@ -211,6 +221,7 @@ defmodule ElevatorController do
   def handle_info({:timed_out, :move}, _state) do
     IO.puts("Move timer has timed out!")
     elevator = SS.get_elevator(node())
+    SS.node_active(node(), false)
     if elevator.behaviour == :be_moving, do: throw(:error)
 
     {:noreply, %{}}

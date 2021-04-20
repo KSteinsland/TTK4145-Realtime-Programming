@@ -213,7 +213,9 @@ defmodule StateServer do
 
   @impl true
   def handle_cast({:set_elevator, node_name, elevator}, state) do
-    if elevator.counter > get_elevator_init(node_name, state.elevators).counter do
+    old_elevator = get_elevator_init(node_name, state.elevators)
+
+    if elevator.counter > old_elevator.counter do
       new_state = %SystemState{
         state
         | elevators: Map.put(state.elevators, node_name, elevator)
@@ -221,7 +223,13 @@ defmodule StateServer do
 
       {:noreply, new_state}
     else
-      {:noreply, state}
+      if elevator.counter < old_elevator.counter do
+        nodes = Node.list()
+        GenServer.abcast(nodes, StateServer, {:set_elevator, node_name, old_elevator})
+        {:noreply, state}
+      else
+        {:noreply, state}
+      end
     end
   end
 

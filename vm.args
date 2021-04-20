@@ -1,0 +1,7 @@
+
+
+## Cookie for distributed erlang
+-setcookie choc 
+
+## tick time
+-kernel net_ticktime 10
