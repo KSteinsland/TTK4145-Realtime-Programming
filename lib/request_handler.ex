@@ -1,4 +1,4 @@
-defmodule RequestHandler do
+defmodule HallRequestDelegator do
   use GenServer
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
@@ -157,7 +157,7 @@ defmodule RequestHandler do
           :new
         )
 
-        RequestHandler.new_state()
+        HallRequestDelegator.new_state()
         Process.send_after(caller, {:try_active, assignee}, 30_000)
         Process.exit(self(), :normal)
     end
