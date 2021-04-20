@@ -19,7 +19,7 @@ defmodule Elevator.Timer do
 
   # User API ----------------------------------------------
 
-  @spec timer_start(pid(), pos_integer(), atom()) :: :ok
+  @spec timer_start(pid(), pos_integer(), :door | :move) :: :ok
   @doc """
   Starts a timer which sends a message to `pid` after
     `time` milliseconds on the form `{:timed_out, timer}`.
@@ -28,7 +28,7 @@ defmodule Elevator.Timer do
     GenServer.cast(__MODULE__, {:timer_start, pid, time, timer})
   end
 
-  @spec timer_stop(atom) :: any
+  @spec timer_stop(:door | :move) :: any
   @doc """
   Stop the timer registered to `timer`.
   """
