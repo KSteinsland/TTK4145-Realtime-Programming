@@ -14,9 +14,9 @@ defmodule FSM do
     case floor do
       :between_floors ->
         if elevator.direction == :dir_stop do
-          {:move, %Elevator{elevator | direction: :dir_down, behaviour: :be_moving}}
+          {:move, %Elevator{elevator | direction: :dir_down, behaviour: :be_moving, floor: floor}}
         else
-          {:move, %Elevator{elevator | behaviour: :be_moving}}
+          {:move, %Elevator{elevator | behaviour: :be_moving, floor: floor}}
         end
 
       floor ->
