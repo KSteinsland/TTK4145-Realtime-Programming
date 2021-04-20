@@ -82,8 +82,7 @@ be found at [https://hexdocs.pm/elevator_project](https://hexdocs.pm/elevator_pr
 
 ## Dependencies
 
-The dependencies (libraries) used can be found in 'mix.exs' 
-(not including Erlang functions since it's build upon Elixir). 
+The dependencies (libraries) used can be found in 'mix.exs':
 
 ```elixir
 def deps do
@@ -94,7 +93,10 @@ def deps do
   ]
  end
  '''
-Ex_doc and excoveralls are used in documentation and testing 
-respectively and are therefore not directly used in the program. 
-The JSON dependency is used in 'assignment.ex' where it's main 
-function is to convert elixir code into JSON-format and vice versa.
+
+Ex_doc and excoveralls are used in documentation and testing respectively and are therefore 
+not directly used in the program. 
+The JSON dependency is used in 'assignment.ex' where it's main function is to convert elixir 
+code into JSON-format and vice versa.
+More documentation on JSON can be found at [https://hexdocs.pm/json/readme.html].
+(The dependencies used are not including Elang functions since it's build upon Elixir)
