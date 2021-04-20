@@ -12,12 +12,10 @@ config(:elevator_project,
   master_timeout_ms: 5000,
   move_timeout_ms: 7000,
   watchdog_timeout_ms: 20_000,
+  port_driver: 17779,
 
   # dev
-  # local nodes is primary node + # of slaves
-  # when testing on a single computer
   local_nodes: 3,
-  port_driver: 17779,
   env: Mix.env()
   # to enable :test or :dev specific behaviour of functions
 )
