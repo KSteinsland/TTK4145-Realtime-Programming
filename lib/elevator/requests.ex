@@ -1,30 +1,33 @@
 defmodule Elevator.Requests do
   @moduledoc """
-  Pure functions that operate on elevator struct
+  Finds actions that should be performed based on requests.
   """
 
   @button_map Application.fetch_env!(:elevator_project, :button_map)
   @num_buttons length(Map.values(@button_map))
 
+  @spec request_above?(Elevator.t()) :: boolean
   @doc """
-  Returns bool ':true' if there is a request above current floor. 'false' if not.
+  Returns true if there is a request above current floor. false if not.
   """
   def request_above?(%Elevator{} = elevator) do
     {_below, above} = elevator.requests |> Enum.split(elevator.floor + 1)
     above |> List.flatten() |> Enum.sum() > 0
   end
 
+  @spec request_below?(Elevator.t()) :: boolean
   @doc """
-  Returns bool ':true' if there is a request below current floor. 'false' if not.
+  Returns true if there is a request below current floor. false if not.
   """
   def request_below?(%Elevator{} = elevator) do
     {below, _above} = elevator.requests |> Enum.split(elevator.floor)
     below |> List.flatten() |> Enum.sum() > 0
   end
 
+  @spec choose_direction(Elevator.t()) :: :dir_down | :dir_stop | :dir_up
   @doc """
-  Returns direction ':dir_up', ':dir_down' or ':dir_stop' based on current
-  traveling direction and whether or not there are orders above or below.
+  Returns direction based on current traveling direction
+  and whether or not there are orders above or below.
   Will continue in same direction when possible.
   """
   def choose_direction(%Elevator{} = elevator) do
@@ -48,6 +51,7 @@ defmodule Elevator.Requests do
     end
   end
 
+  @spec should_stop?(Elevator.t()) :: boolean
   @doc """
   Returns bool ':true' or ':false' on wheter the elevator should stop.
   Stops if there is an hall order that matches direction, a cab order or no more
@@ -73,6 +77,7 @@ defmodule Elevator.Requests do
     end
   end
 
+  @spec clear_at_current_floor(Elevator.t()) :: Elevator.t()
   @doc """
   Returns a new elevator struct with a orders at current floor set to zero.
   Uses the clear all variant of order behaviour.
