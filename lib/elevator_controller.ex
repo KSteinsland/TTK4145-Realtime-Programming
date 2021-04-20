@@ -152,6 +152,10 @@ defmodule ElevatorController do
       elevator = SS.get_elevator(node())
       {action, new_elevator} = FSM.on_floor_arrival(elevator, floor)
 
+      IO.inspect(elevator)
+      IO.inspect(action)
+      IO.inspect(new_elevator)
+
       Driver.set_floor_indicator(new_elevator.floor)
       Timer.timer_stop(:move)
 
