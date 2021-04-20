@@ -1,10 +1,13 @@
 defmodule StateServer do
   use GenServer
 
-  defmodule HallOrder do
+  defmodule SystemState do
     @moduledoc """
-      Hall Requests struct.
+      System state struct.
     """
+
+    @num_floors Application.fetch_env!(:elevator_project, :num_floors)
+    @num_hall_req_types 2
 
     @btn_map Application.fetch_env!(:elevator_project, :button_map)
     @hall_btn_map Map.drop(@btn_map, [:btn_cab])
@@ -17,12 +20,14 @@ defmodule StateServer do
     @type hall_btn_state :: :new | :assigned | :done
     @type hall_req_list :: [[hall_btn_state(), ...], ...]
 
-    defstruct floor: nil, btn_type: nil, state: :done
+    new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
+    defstruct hall_requests: new_hall_orders, elevators: %{}
+
+    @type req_list :: [[hall_btn_state(), ...], ...]
 
     @type t :: %__MODULE__{
-            floor: boolean(),
-            btn_type: Elevator.hall_btn_type(),
-            state: hall_btn_state()
+            hall_requests: req_list(),
+            elevators: %{node() => Elevator.t()}
           }
 
     @spec update_hall_requests_logic(
@@ -36,10 +41,6 @@ defmodule StateServer do
     Returns an updated hall_requests list with `hall_state` set at `floor`, `btn_type`.
     """
     def update_hall_requests_logic(req_list, floor, btn_type, hall_state) do
-      # TODO make this a config maybe?
-      # valid_buttons = [0, 1]
-      # also check floor and btn_type beforehand!
-
       if hall_state in @hall_btn_states and btn_type in @hall_btn_types do
         {req_at_floor, _list} = List.pop_at(req_list, floor)
 
@@ -52,20 +53,16 @@ defmodule StateServer do
       end
     end
 
-    def update_hall_requests_logic(req_list, hall_order = %HallOrder{}) do
-      if hall_order.state in @hall_btn_states and hall_order.btn_type in @hall_btn_types do
-        {req_at_floor, _list} = List.pop_at(req_list, hall_order.floor)
-
-        updated_req_at_floor =
-          List.replace_at(req_at_floor, @hall_btn_map[hall_order.btn_type], hall_order.state)
-
-        new_req_list = List.replace_at(req_list, hall_order.floor, updated_req_at_floor)
-        new_req_list
-      else
-        {:error, "not valid hall request state!"}
-      end
-    end
-
+    @spec valid_hall_request_change?(
+            hall_req_list(),
+            Elevator.floor(),
+            Elevator.hall_btn_type(),
+            hall_btn_state()
+          ) :: boolean
+    @doc """
+    Checks if the new hall requests state is valid,
+    e.g. going from :new to :done is not valid, but :assigned to :done is
+    """
     def valid_hall_request_change?(req_list, floor, btn_type, hall_state) do
       current_hall_state = Enum.at(Enum.at(req_list, floor), Map.get(@hall_btn_map, btn_type))
 
@@ -79,25 +76,6 @@ defmodule StateServer do
 
       Integer.mod(current_index + 1, 3) == index
     end
-  end
-
-  defmodule SystemState do
-    @moduledoc """
-      System state struct.
-    """
-
-    @num_floors Application.fetch_env!(:elevator_project, :num_floors)
-    @num_hall_req_types 2
-
-    new_hall_orders = List.duplicate(:done, @num_hall_req_types) |> List.duplicate(@num_floors)
-    defstruct hall_requests: new_hall_orders, elevators: %{}
-
-    @type req_list :: [[StateServer.HallOrder.hall_btn_state(), ...], ...]
-
-    @type t :: %__MODULE__{
-            hall_requests: req_list(),
-            elevators: %{node() => Elevator.t()}
-          }
   end
 
   # Client ----------------------------------------
@@ -148,8 +126,8 @@ defmodule StateServer do
 
   @spec set_elevator(node(), Elevator.t()) :: :ok | {:error, String.t()}
   @doc """
-  Sets the `Elevator` state corresponding to node `node_name` in `SystemState`.
-  Performs a check to see if the elevator state is valid before writing it to state.
+  Distributes the `Elevator` state corresponding to node `node_name`.
+  Performs a check to see if the elevator state is valid before.
   """
   def set_elevator(node_name, elevator) do
     case Elevator.check(elevator) do
@@ -168,11 +146,11 @@ defmodule StateServer do
           node() | :local,
           Elevator.floor(),
           Elevator.hall_btn_type(),
-          HallOrder.hall_btn_state()
+          SystemState.hall_btn_state()
         ) :: :abcast
   @doc """
   Updates the hall request in `StateServer` for node `node_name`.
-  If node_name = `:local` it distributes the hall request update
+  If node_name = `:local` it distributes the hall request update.
   """
   def update_hall_requests(node_name \\ :local, floor_ind, btn_type, hall_state) do
     nodes = [node() | Node.list()]
@@ -243,10 +221,10 @@ defmodule StateServer do
     hall_requests = state.hall_requests
 
     if (node_name == :local and
-          HallOrder.valid_hall_request_change?(hall_requests, floor_ind, btn_type, hall_state)) or
+          SystemState.valid_hall_request_change?(hall_requests, floor_ind, btn_type, hall_state)) or
          node_name != :local do
       new_hall_requests =
-        HallOrder.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
+        SystemState.update_hall_requests_logic(hall_requests, floor_ind, btn_type, hall_state)
 
       state = %SystemState{state | hall_requests: new_hall_requests}
       {:noreply, state}

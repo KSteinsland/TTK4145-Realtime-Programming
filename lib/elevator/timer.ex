@@ -22,7 +22,7 @@ defmodule Elevator.Timer do
   @spec timer_start(pid(), pos_integer(), atom()) :: :ok
   @doc """
   Starts a timer which sends a message to `pid` after
-    `time` milliseconds on the form `{:timed_out, timer}.
+    `time` milliseconds on the form `{:timed_out, timer}`.
   """
   def timer_start(pid, time, timer) do
     GenServer.cast(__MODULE__, {:timer_start, pid, time, timer})

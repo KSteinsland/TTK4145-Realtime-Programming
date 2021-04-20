@@ -5,7 +5,7 @@ defmodule NodeConnector do
   use GenServer
 
   @broadcast_ip {255, 255, 255, 255}
-  # dev
+
   # need port_range to run multiple nodes on a computer
   @port_range Application.compile_env!(:elevator_project, :local_nodes)
   @sleep_time trunc(Application.compile_env!(:elevator_project, :broadcast_ms) / @port_range)
@@ -108,7 +108,7 @@ defmodule NodeConnector do
       {:noreply, state}
     else
       # Another slave should become master
-      IO.puts("waiting for another master")
+      IO.puts("Waiting for another master")
 
       # Remove new master candidate from slave list
       new_master_candidate =
@@ -247,35 +247,6 @@ defmodule NodeConnector do
     IO.puts("shutting down nodeconn")
     :gen_udp.close(state.socket)
     Process.exit(self(), :kill)
-    {:noreply, state}
-  end
-
-  def handle_info(:dev_reconnect, state) do
-    Node.set_cookie(:choc)
-    {:ok, socket} = :gen_udp.open(state.port, [{:broadcast, true}, {:reuseaddr, true}])
-    {:noreply, %State{state | socket: socket}}
-  end
-
-  def handle_info(:dev_disconnect, state) do
-    :gen_udp.close(state.socket)
-
-    Enum.map(Node.list(), fn node ->
-      Node.disconnect(node)
-    end)
-
-    # Do this to avoid having no name
-    name = node()
-    Node.stop()
-    Node.start(name, :longnames)
-    Node.set_cookie(:blue)
-
-    {:noreply, state}
-  end
-
-  def handle_info(msg, state) do
-    # Catches all invalid messages
-    IO.inspect("Invalid Message: ")
-    IO.inspect(msg)
     {:noreply, state}
   end
 
