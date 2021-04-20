@@ -10,8 +10,6 @@ defmodule RequestHandler do
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
-  # TODO use tasksupervisor!
-
   def init([]) do
     sys_state = StateServer.get_state()
     IO.inspect(sys_state.hall_requests)

@@ -12,7 +12,7 @@ defmodule ElevatorController do
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
   @door_open_duration_ms Application.compile_env!(:elevator_project, :door_open_duration_ms)
-  @move_timeout 7_000
+  @move_timeout_ms Application.compile_env!(:elevator_project, :move_timeout_ms)
 
   @doc """
   Starts to process and registers its name to `ElevatorController`
@@ -82,11 +82,11 @@ defmodule ElevatorController do
     case action do
       :move ->
         new_elevator.direction |> Driver.set_motor_direction()
-        Timer.timer_start(self(), @move_timeout, :move)
+        Timer.timer_start(self(), @move_timeout_ms, :move)
 
       _ ->
         if new_elevator.behaviour == :be_moving do
-          Timer.timer_start(self(), @move_timeout, :move)
+          Timer.timer_start(self(), @move_timeout_ms, :move)
           new_elevator.direction |> Driver.set_motor_direction()
         end
 
@@ -132,7 +132,7 @@ defmodule ElevatorController do
         Logger.debug("setting motor direction")
         # IO.puts("setting motor direction")
         new_elevator.direction |> Driver.set_motor_direction()
-        Timer.timer_start(self(), @move_timeout, :move)
+        Timer.timer_start(self(), @move_timeout_ms, :move)
 
       nil ->
         :ok
@@ -170,7 +170,7 @@ defmodule ElevatorController do
         _ ->
           if new_elevator.direction != :dir_stop do
             new_elevator.direction |> Driver.set_motor_direction()
-            Timer.timer_start(self(), @move_timeout, :move)
+            Timer.timer_start(self(), @move_timeout_ms, :move)
           else
             Driver.set_motor_direction(:dir_stop)
           end
@@ -213,7 +213,7 @@ defmodule ElevatorController do
         new_elevator.direction |> Driver.set_motor_direction()
 
         if new_elevator.direction != :dir_stop,
-          do: Timer.timer_start(self(), @move_timeout, :move)
+          do: Timer.timer_start(self(), @move_timeout_ms, :move)
 
       _ ->
         :ok

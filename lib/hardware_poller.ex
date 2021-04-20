@@ -13,10 +13,9 @@ defmodule HardwarePoller do
 
   @num_buttons length(@btn_types)
 
-  # @input_poll_rate_ms Application.compile_env!(:elevator_project, :input_poll_rate_ms)
-  @floor_poll_rate_ms 50
-  @obs_poll_rate_ms 50
-  @buttons_poll_rate_ms 25
+  @floor_poll_rate_ms Application.compile_env!(:elevator_project, :floor_poll_rate_ms)
+  @obs_poll_rate_ms Application.compile_env!(:elevator_project, :obs_poll_rate_ms)
+  @buttons_poll_rate_ms Application.compile_env!(:elevator_project, :buttons_poll_rate_ms)
 
   @doc """
   Starts to process and registers its name to `HardwarePoller`
