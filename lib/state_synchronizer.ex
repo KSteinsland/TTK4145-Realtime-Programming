@@ -3,27 +3,25 @@ defmodule StateSynchronizer do
 
   @moduledoc """
     Handles synchronizing of state when a node joins.
+    Gets called both when a node starts up, and when it regains network connection.
     Master only process
   """
 
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
-  alias StateServer, as: SS
-
   # client ----------------------------------------
   def start_link([]) do
-    # , debug: [:trace])
     GenServer.start_link(__MODULE__, [], name: {:global, __MODULE__})
   end
 
   def init(_opts) do
-    {:ok, %{last_hall_requests: nil}}
+    {:ok, %{}}
   end
 
   @spec update_node(node()) :: :ok
   @doc """
-  Update the node `node_name` on re-/connection.
+  Updates the node `node_name` on re-/connection.
   """
   def update_node(node_name) do
     GenServer.cast(
@@ -34,12 +32,13 @@ defmodule StateSynchronizer do
 
   # casts ----------------------------------------
 
-  def handle_cast({:update_node, node_name}, state) do
-    # update a node that has just connected
+  def handle_cast({:update_node, node_name}, _state) do
+    # Updates a node that has just connected
 
-    # update hall requests from node
+    # Fetch hall requests from node
     node_hall_requests = GenServer.call({StateServer, node_name}, :get_hall_requests)
 
+    # Notify all other nodes about node's hall requests
     Enum.with_index(node_hall_requests)
     |> Enum.map(fn {floor, floor_ind} ->
       Enum.with_index(floor)
@@ -50,7 +49,7 @@ defmodule StateSynchronizer do
           :done ->
             :ok
 
-          # everything else
+          # :new, :assigned
           hall_state ->
             StateServer.update_hall_requests(
               node_name,
@@ -62,18 +61,24 @@ defmodule StateSynchronizer do
       end)
     end)
 
+    # Fetch local elevator state from node
     node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
 
-    # update nodes system state
-    master_sys_state = SS.get_state()
+    ## Update the system state on the connected node
+    # This will overwrite the node's local elevator state if
+    # the master's copy of the nodes elevator state is newer
+    # thus ensuring that the node regains its cab orders
+    master_sys_state = StateServer.get_state()
     GenServer.cast({StateServer, node_name}, {:set_state, master_sys_state})
 
-    # put nodes elevator state back
+    ## Notify all other nodes about the node's elevator state
+    # This will only be accepted if the node's elevator state is
+    # newer than the copy all other nodes have beforehand
     StateServer.set_elevator(node_name, node_elevator)
 
-    # set all lights
+    # Set all lights
     spawn(fn -> LightHandler.light_check(master_sys_state.hall_requests, nil) end)
 
-    {:noreply, state}
+    {:noreply, %{}}
   end
 end
