@@ -65,9 +65,6 @@ defmodule NodeConnector do
       Node.set_cookie(:choc)
     end
 
-    # Amount of seconds before timeout
-    # :net_kernel.set_net_ticktime(2, 2)
-
     {:ok,
      %State{
        socket: socket,
@@ -93,7 +90,12 @@ defmodule NodeConnector do
       IO.puts("Master timed out, upgrading self to master")
 
       {master, _} = state.master
-      if master != nil, do: StateServer.node_active(master, false)
+
+      if master != nil do
+        Node.disconnect(master)
+        StateServer.node_active(master, false)
+      end
+
       MasterStarter.upgrade_to_master()
 
       state = %State{
@@ -170,10 +172,11 @@ defmodule NodeConnector do
     if state.role == :slave do
       {current_master, current_up_since} = state.master
 
+      Node.connect(latest_master)
+
       if current_master == nil or up_since < current_up_since do
         IO.puts("Found master #{full_name}!")
 
-        Node.connect(latest_master)
         send({__MODULE__, latest_master}, {:slave_connected, node(), state.up_since})
 
         {:noreply,

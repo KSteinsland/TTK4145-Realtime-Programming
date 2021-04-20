@@ -6,14 +6,18 @@ defmodule FSM do
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
 
   @spec on_init_between_floors(Elevator.t(), Elevator.floor()) ::
-          {:move_down, Elevator.t()} | {nil, Elevator.t()}
+          {:move, Elevator.t()} | {nil, Elevator.t()}
   @doc """
   Logic returning the required action to be done when the elevator is initialized.
   """
   def on_init_between_floors(%Elevator{} = elevator, floor) do
     case floor do
       :between_floors ->
-        {:move_down, %Elevator{elevator | direction: :dir_down, behaviour: :be_moving}}
+        if elevator.direction == :dir_stop do
+          {:move, %Elevator{elevator | direction: :dir_down, behaviour: :be_moving, floor: floor}}
+        else
+          {:move, %Elevator{elevator | behaviour: :be_moving, floor: floor}}
+        end
 
       floor ->
         {nil, %Elevator{elevator | floor: floor}}

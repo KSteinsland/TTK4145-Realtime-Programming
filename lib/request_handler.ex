@@ -71,7 +71,13 @@ defmodule RequestHandler do
       pid = Enum.at(wd_list, floor) |> Enum.at(btn_type)
       if is_pid(pid), do: send(pid, :die)
 
-      assignee = Assignment.assign(sys_state)
+      # remove those not in node.list
+      connected_elevators =
+        Enum.reduce([node() | Node.list()], %{}, fn elevator, elevators ->
+          Map.put(elevators, elevator, sys_state.elevators[elevator])
+        end)
+
+      assignee = Assignment.assign(%{sys_state | elevators: connected_elevators})
 
       StateServer.update_hall_requests(
         assignee,
@@ -154,7 +160,7 @@ defmodule RequestHandler do
         )
 
         RequestHandler.new_state()
-        Process.send_after(caller, {:try_active, assignee}, 10_000)
+        Process.send_after(caller, {:try_active, assignee}, 30_000)
         Process.exit(self(), :normal)
     end
   end

@@ -8,7 +8,7 @@ config(:elevator_project,
   button_map: %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2},
   button_types: [:btn_hall_up, :btn_hall_down, :btn_cab],
   broadcast_ms: 100,
-  master_timeout_ms: 4000,
+  master_timeout_ms: 5000,
   watchdog_timeout_ms: 20_000,
 
   # dev

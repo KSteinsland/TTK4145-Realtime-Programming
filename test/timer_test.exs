@@ -13,17 +13,17 @@ defmodule TimerTest do
   end
 
   test "timer" do
-    assert Timer.timer_start(self(), 1_00) == :ok
-    assert_receive :timed_out, 2_00
+    assert Timer.timer_start(self(), 1_00, :door) == :ok
+    assert_receive {:timed_out, :door}, 2_00
   end
 
   test "stop" do
-    Timer.timer_start(self(), 1_00)
+    Timer.timer_start(self(), 1_00, :door)
 
-    assert_receive :timed_out, 2_00
-    assert Timer.timer_stop() == :ok
-    Timer.timer_start(self(), 1_00)
-    Timer.timer_stop()
+    assert_receive {:timed_out, :door}, 2_00
+    assert Timer.timer_stop(:door) == :ok
+    Timer.timer_start(self(), 1_00, :door)
+    Timer.timer_stop(:door)
 
     receive do
       msg ->
