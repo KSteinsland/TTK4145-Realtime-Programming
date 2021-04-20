@@ -32,7 +32,11 @@ defmodule ElevatorProject.Application do
 
     case System.get_env("NODE_NAME") do
       nil ->
-        Application.put_env(:elevator_project, :name, Utils.Random.gen_rand_str(5))
+        Application.put_env(
+          :elevator_project,
+          :name,
+          :os.system_time(:seconds) |> Integer.to_string()
+        )
 
       name_str ->
         Application.put_env(:elevator_project, :name, name_str)

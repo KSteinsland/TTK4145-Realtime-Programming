@@ -45,7 +45,7 @@ defmodule NodeConnector do
       # Start a distributed node
       System.cmd("epmd", ["-daemon"])
 
-      {:ok, addr} = Utils.Network.get_local_ip()
+      {:ok, addr} = NodeConnector.Network.get_local_ip()
       addr_str = :inet.ntoa(addr)
       full_name = name <> "@" <> to_string(addr_str)
       IO.puts("New node name: " <> full_name)
@@ -275,6 +275,32 @@ defmodule NodeConnector do
         else
           {:error, :port_out_of_range}
         end
+    end
+  end
+
+  defmodule Network do
+    @broadcast_ip {255, 255, 255, 255}
+    @port 33332
+
+    def get_local_ip() do
+      if Application.fetch_env!(:elevator_project, :env) == :test do
+        # for ease of testing
+        {:ok, {127, 0, 0, 1}}
+      else
+        {:ok, socket} = :gen_udp.open(@port, [{:broadcast, true}, {:reuseaddr, true}])
+        key = "udp_getting_ip" |> String.to_charlist()
+        :gen_udp.send(socket, @broadcast_ip, @port, key)
+
+        receive do
+          {:udp, _port, localip, @port, ^key} ->
+            :gen_udp.close(socket)
+            {:ok, localip}
+        after
+          1000 ->
+            :gen_udp.close(socket)
+            {:error, "could not retreive local ip"}
+        end
+      end
     end
   end
 end

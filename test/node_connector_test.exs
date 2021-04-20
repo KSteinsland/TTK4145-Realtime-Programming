@@ -80,3 +80,18 @@ defmodule NodeConnectorTest do
   #   Process.sleep(10_000)
   # end
 end
+
+defmodule NodeConnectorNetworkTest do
+  use ExUnit.Case
+  doctest NodeConnector.Network
+
+  test "finds local ip" do
+    {:ok, local_ip} = NodeConnector.Network.get_local_ip()
+
+    assert :inet.getif()
+           |> elem(1)
+           |> Enum.map(fn x -> elem(x, 0) end)
+           |> Enum.find(&match?(^local_ip, &1)) ==
+             local_ip
+  end
+end
