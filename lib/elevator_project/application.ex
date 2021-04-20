@@ -5,12 +5,11 @@ defmodule ElevatorProject.Application do
 
   @impl true
   def start(_type, _args) do
-    # check if EL_DRIVER_PORT env variable is set and if so, load it
     load_system_env()
 
     children = [
       MasterStarter,
-      {NodeConnector, [33333, Utils.Random.gen_rand_str(5)]},
+      {NodeConnector, [33333, Application.get_env(:elevator_project, :name)]},
       StateServer,
       Elevator.Supervisor
     ]
@@ -20,12 +19,23 @@ defmodule ElevatorProject.Application do
   end
 
   defp load_system_env() do
-    driver_port =
-      case System.get_env("EL_DRIVER_PORT") do
-        nil -> Application.fetch_env!(:elevator_project, :port_driver)
-        value -> String.to_integer(value)
-      end
+    # export VAR=VAL
 
-    Application.put_env(:elevator_project, :port_driver, driver_port)
+    case System.get_env("EL_DRIVER_PORT") do
+      nil ->
+        :ok
+
+      value ->
+        driver_port = String.to_integer(value)
+        Application.put_env(:elevator_project, :port_driver, driver_port)
+    end
+
+    case System.get_env("NODE_NAME") do
+      nil ->
+        Application.put_env(:elevator_project, :name, Utils.Random.gen_rand_str(5))
+
+      name_str ->
+        Application.put_env(:elevator_project, :name, name_str)
+    end
   end
 end
