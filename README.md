@@ -80,3 +80,23 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/elevator_project](https://hexdocs.pm/elevator_project).
 
+## Dependencies
+
+The dependencies (libraries) used can be found in 'mix.exs':
+
+```elixir
+def deps do
+  [
+    {:ex_doc, "~> 0.21", only: :dev, runtime: false},
+    {:excoveralls, "~> 0.10", only: :test},
+    {:json, "~> 1.4"}
+  ]
+ end
+ '''
+
+Ex_doc and excoveralls are used in documentation and testing respectively and are therefore 
+not directly used in the program. 
+The JSON dependency is used in 'assignment.ex' where it's main function is to convert elixir 
+code into JSON-format and vice versa.
+More documentation on JSON can be found at [https://hexdocs.pm/json/readme.html].
+(The dependencies used are not including Elang functions since it's build upon Elixir)
