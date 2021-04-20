@@ -1,6 +1,6 @@
 defmodule Elevator do
   @moduledoc """
-    Elevator state.
+    Module defining the Elevator state.
   """
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
@@ -15,7 +15,7 @@ defmodule Elevator do
   @type btn_type :: :btn_hall_up | :btn_hall_down | :btn_cab
   @type hall_btn_type :: :btn_hall_up | :btn_hall_down
   @type btn_value :: 0..1
-  # :between_floors
+
   @type floor :: 0..unquote(@num_floors)
   @type behaviour :: :be_idle | :be_door_open | :be_moving
   @type req_list :: [[btn_value(), ...], ...]
@@ -74,12 +74,6 @@ defmodule Elevator do
         err
     end
   end
-
-  @spec btn_types_map :: %{btn_cab: 2, btn_hall_down: 1, btn_hall_up: 0}
-  def btn_types_map, do: @btn_types_map
-
-  @spec btn_types :: [:btn_cab | :btn_hall_down | :btn_hall_up]
-  def btn_types, do: @btn_types
 
   # guards-------------------------------------
   defp parse_floor(nil), do: {:error, "floor is required"}
