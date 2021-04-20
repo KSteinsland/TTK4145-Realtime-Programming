@@ -1,6 +1,7 @@
-defmodule TimerTest do
+defmodule Elevator.TimerTest do
   use ExUnit.Case, async: false
-  doctest Timer
+  alias Elevator.Timer
+  doctest Elevator.Timer
 
   setup do
     case Timer.start_link([]) do

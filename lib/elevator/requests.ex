@@ -1,4 +1,4 @@
-defmodule Requests do
+defmodule Elevator.Requests do
   @moduledoc """
   Pure functions that operate on elevator struct
   """

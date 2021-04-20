@@ -1,6 +1,7 @@
-defmodule FSMTest do
+defmodule Elevator.FSMTest do
   use ExUnit.Case
-  doctest FSM
+  alias Elevator.FSM
+  doctest Elevator.FSM
 
   describe "On request button pressed" do
     test "door open" do

@@ -3,6 +3,8 @@ defmodule LightHandler do
   Puts on/off the light on the hall buttons when a change in hall request occurs in state_server.
   """
 
+  alias Elevator.Hardware.Driver
+
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 

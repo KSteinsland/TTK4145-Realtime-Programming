@@ -1,11 +1,11 @@
-defmodule HardwarePoller do
+defmodule Elevator.Hardware.Poller do
   @moduledoc """
   Polling `GenServer` checking for changes and notifies
   """
 
   use GenServer
-
   require Logger
+  alias Elevator.Hardware.Driver
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
@@ -48,10 +48,10 @@ defmodule HardwarePoller do
         new_floor ->
           if not state.initialized do
             # Tell controller to init
-            ElevatorController.init_controller(new_floor)
+            Elevator.Controller.init_controller(new_floor)
             %{state | floor: new_floor, initialized: true}
           else
-            ElevatorController.floor_change(new_floor)
+            Elevator.Controller.floor_change(new_floor)
             %{state | floor: new_floor}
           end
       end
@@ -70,7 +70,7 @@ defmodule HardwarePoller do
           state
 
         new_obs ->
-          ElevatorController.obstruction_change(new_obs)
+          Elevator.Controller.obstruction_change(new_obs)
           %{state | obstruction: new_obs}
       end
 
@@ -101,7 +101,7 @@ defmodule HardwarePoller do
               RequestHandler.new_state()
             else
               # Cab order
-              ElevatorController.send_request(node(), floor_ind, btn_type)
+              Elevator.Controller.send_request(node(), floor_ind, btn_type)
             end
           end
 

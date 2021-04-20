@@ -1,4 +1,4 @@
-defmodule ElevatorSupervisor do
+defmodule Elevator.Supervisor do
   @moduledoc false
 
   use Supervisor
@@ -10,10 +10,11 @@ defmodule ElevatorSupervisor do
   @impl true
   def init(_init_arg) do
     children = [
-      Timer,
-      {Driver, [{127, 0, 0, 1}, Application.fetch_env!(:elevator_project, :port_driver)]},
-      ElevatorController,
-      HardwarePoller
+      Elevator.Timer,
+      {Elevator.Hardware.Driver,
+       [{127, 0, 0, 1}, Application.fetch_env!(:elevator_project, :port_driver)]},
+      Elevator.Controller,
+      Elevator.Hardware.Poller
     ]
 
     Supervisor.init(children, strategy: :one_for_all)

@@ -12,7 +12,7 @@ defmodule ElevatorProject.Application do
       MasterStarter,
       {NodeConnector, [33333, Utils.Random.gen_rand_str(5)]},
       StateServer,
-      ElevatorSupervisor
+      Elevator.Supervisor
     ]
 
     opts = [strategy: :one_for_one, name: ElevatorProject.Supervisor]

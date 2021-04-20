@@ -1,10 +1,12 @@
-defmodule FSM do
+defmodule Elevator.FSM do
   @moduledoc """
   `FSM` is a pure module implementing the logic of an elevator as a finite state machine.
   """
 
+  alias Elevator.Requests
+
   @spec on_init_between_floors(Elevator.t(), Elevator.floor()) ::
-          {:move, Elevator.t()} | {nil, Elevator.t()}
+          {:ve, Elevator.t()} | {nil, Elevator.t()}
   @doc """
   Logic returning the required action to be done when the elevator is initialized.
   """

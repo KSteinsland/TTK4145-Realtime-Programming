@@ -1,12 +1,14 @@
-defmodule ElevatorController do
+defmodule Elevator.Controller do
   @moduledoc """
   `GenServer` responsible driving a single elevator.
   """
 
   use GenServer
-
-  alias StateServer, as: SS
   require Logger
+  alias StateServer, as: SS
+  alias Elevator.Hardware.Driver
+  alias Elevator.Timer
+  alias Elevator.FSM
 
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)

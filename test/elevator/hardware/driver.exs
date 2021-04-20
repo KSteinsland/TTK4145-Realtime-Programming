@@ -1,7 +1,8 @@
-defmodule DriverTest do
+defmodule Elevator.Hardware.DriverTest do
   use ExUnit.Case
+  alias Elevator.Hardware.Driver
   @moduletag :external
-  doctest Driver, async: false
+  doctest Elevator.Hardware.Driver, async: false
 
   defp wait_for_a_floor() do
     case Driver.get_floor_sensor_state() do

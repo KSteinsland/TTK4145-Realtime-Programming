@@ -1,6 +1,7 @@
-defmodule RequestsTest do
+defmodule Elevator.RequestsTest do
   use ExUnit.Case
-  doctest Elevator
+  alias Elevator.Requests
+  doctest Elevator.Requests
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons 3

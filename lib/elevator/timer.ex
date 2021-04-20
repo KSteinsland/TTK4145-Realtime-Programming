@@ -1,4 +1,4 @@
-defmodule Timer do
+defmodule Elevator.Timer do
   use GenServer
 
   def start_link([]) do
