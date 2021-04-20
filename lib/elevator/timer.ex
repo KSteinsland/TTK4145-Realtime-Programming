@@ -1,4 +1,8 @@
 defmodule Elevator.Timer do
+  @moduledoc """
+  Registry of timers
+  """
+
   use GenServer
 
   def start_link([]) do
@@ -15,10 +19,19 @@ defmodule Elevator.Timer do
 
   # User API ----------------------------------------------
 
+  @spec timer_start(pid(), pos_integer(), atom()) :: :ok
+  @doc """
+  Starts a timer which sends a message to `pid` after
+    `time` milliseconds on the form `{:timed_out, timer}.
+  """
   def timer_start(pid, time, timer) do
     GenServer.cast(__MODULE__, {:timer_start, pid, time, timer})
   end
 
+  @spec timer_stop(atom) :: any
+  @doc """
+  Stop the timer registered to `timer`.
+  """
   def timer_stop(timer) do
     GenServer.call(__MODULE__, {:timer_stop, timer})
   end
