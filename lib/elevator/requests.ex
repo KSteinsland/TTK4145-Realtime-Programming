@@ -1,6 +1,7 @@
 defmodule Elevator.Requests do
   @moduledoc """
-  Finds actions that should be performed based on requests.
+  Pure module that finds actions that should be performed based on requests.
+  Inspired by https://github.com/TTK4145/Project-resources/tree/master/elev_algo
   """
 
   @button_map Application.fetch_env!(:elevator_project, :button_map)

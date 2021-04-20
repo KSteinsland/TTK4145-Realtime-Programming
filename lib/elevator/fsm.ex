@@ -1,6 +1,7 @@
 defmodule Elevator.FSM do
   @moduledoc """
   `FSM` is a pure module implementing the logic of an elevator as a finite state machine.
+  Inspired by https://github.com/TTK4145/Project-resources/tree/master/elev_algo
   """
 
   alias Elevator.Requests

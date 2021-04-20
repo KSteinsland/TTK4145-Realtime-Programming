@@ -1,4 +1,8 @@
 defmodule StateServer do
+  @moduledoc """
+  `StateServer` keeps all the elevator's states and all hall requests.
+  Runs on every node.
+  """
   use GenServer
 
   defmodule SystemState do

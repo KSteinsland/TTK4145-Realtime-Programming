@@ -11,7 +11,7 @@ defmodule LightHandler do
   @spec light_check(
           StateServer.SystemState.hall_req_list(),
           StateServer.SystemState.hall_req_list() | nil
-          ) ::
+        ) ::
           nil | list()
   @doc """
   Checks if hall_requests have changed by comparing prevoius and current hall_requests state.

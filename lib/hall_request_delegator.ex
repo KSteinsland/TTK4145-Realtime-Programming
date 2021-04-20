@@ -1,4 +1,7 @@
 defmodule HallRequestDelegator do
+  @moduledoc """
+  Responsible for assigning hall requests and making sure that they are executed.
+  """
   use GenServer
 
   @num_floors Application.fetch_env!(:elevator_project, :num_floors)

@@ -1,6 +1,7 @@
 defmodule Assignment do
   @moduledoc """
-    Calculates which elevator should be assigned to which hall order.
+  Calculates which elevator should be assigned to which hall order.
+  Uses cost function from https://github.com/TTK4145/Project-resources/tree/master/cost_fns/hall_request_assigner
   """
   @behavior_map %{be_moving: "moving", be_idle: "idle", be_door_open: "doorOpen"}
   @dir_map %{dir_up: "up", dir_down: "down", dir_stop: "stop"}
