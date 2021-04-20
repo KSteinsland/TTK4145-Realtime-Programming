@@ -22,18 +22,19 @@ def deps do
     {:json, "~> 1.4"}
   ]
  end
- '''
+```
 
+More documentation on JSON can be found at "https://hexdocs.pm/json/readme.html".
 Ex_doc and excoveralls are used in documentation and testing respectively and are therefore
 not directly used in the program.
-The JSON dependency is used in 'assignment.ex' where it's main function is to convert elixir
+The JSON dependency is used in assignment.ex' where it's main function is to convert elixir
 code into JSON-format and vice versa.
 More documentation on JSON can be found at "https://hexdocs.pm/json/readme.html".
 (The dependencies used are not including Elang functions since it's build upon Elixir)
 
 ## Credits
 
-The design for one elevator found in the "Elevator" folder is based upon the single elevator code
+The design for ondependencye elevator found in the "Elevator" folder is based upon the single elevator code
 for found at "https://github.com/TTK4145/Project-resources/tree/master/elev_algo".
 
 The "driver" module (found under "hardware") is based upon the Elixir driver given at "https://github.com/TTK4145/driver-elixir".
