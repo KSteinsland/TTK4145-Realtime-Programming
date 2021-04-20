@@ -106,7 +106,7 @@ defmodule Elevator.Controller do
 
         if btn_type in @hall_btn_types do
           SS.update_hall_requests(floor, btn_type, :done)
-          RequestHandler.new_state()
+          HallRequestDelegator.new_state()
         end
 
       :open_door ->
@@ -115,7 +115,7 @@ defmodule Elevator.Controller do
 
         if btn_type in @hall_btn_types do
           SS.update_hall_requests(floor, btn_type, :done)
-          RequestHandler.new_state()
+          HallRequestDelegator.new_state()
         end
 
       :move_elevator ->
@@ -237,7 +237,7 @@ defmodule Elevator.Controller do
 
       if btn != btn_old and btn_type in @hall_btn_types do
         SS.update_hall_requests(floor_ind, btn_type, :done)
-        RequestHandler.new_state()
+        HallRequestDelegator.new_state()
       end
     end)
   end

@@ -99,7 +99,7 @@ defmodule Elevator.Hardware.Poller do
             if btn_type in @hall_btn_types do
               # IO.puts("New hall request!")
               StateServer.update_hall_requests(floor_ind, btn_type, :new)
-              RequestHandler.new_state()
+              HallRequestDelegator.new_state()
             else
               # Cab order
               Elevator.Controller.send_request(node(), floor_ind, btn_type)
