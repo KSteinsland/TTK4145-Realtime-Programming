@@ -12,6 +12,7 @@ defmodule NodeConnector do
   @timeout_time Application.compile_env!(:elevator_project, :master_timeout_ms)
 
   defmodule State do
+    @moduledoc false
     defstruct socket: nil,
               port: nil,
               # dev
@@ -100,7 +101,6 @@ defmodule NodeConnector do
         | watchdog: stop_watchdog(state.watchdog),
           role: :master,
           master: {node(), state.up_since},
-          # unsure about this one
           slaves: %{}
       }
 
@@ -271,6 +271,8 @@ defmodule NodeConnector do
   end
 
   defmodule Network do
+    @moduledoc false
+
     @broadcast_ip {255, 255, 255, 255}
     @port 33332
 

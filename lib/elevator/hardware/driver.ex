@@ -1,4 +1,7 @@
 defmodule Elevator.Hardware.Driver do
+  @moduledoc """
+  Elixir elevator driver from https://github.com/TTK4145/driver-elixir
+  """
   use GenServer
   @call_timeout 1000
   @button_map %{:btn_hall_up => 0, :btn_hall_down => 1, :btn_cab => 2}

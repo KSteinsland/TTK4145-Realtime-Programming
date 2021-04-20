@@ -26,8 +26,6 @@ defmodule NodeConnectorTest do
     %{num_nodes: num_nodes}
   end
 
-  # We have to do this in one big test, as tests are done in random order!
-  # TODO this test needs fixing!
   test "Check NodeConnector", fixture do
     # Check local role
     Process.sleep(5_000)
