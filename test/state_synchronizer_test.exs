@@ -31,12 +31,9 @@ defmodule StateSynchronizerTest do
     Process.sleep(500)
 
     Enum.map(Node.list(), fn node ->
-      # Cluster.rpc(node, Driver, :set_motor_direction, [:dir_stop])
       pid = Cluster.rpc(node, Process, :whereis, [NodeConnector])
       Cluster.rpc(node, Process, :exit, [pid, :kill])
     end)
-
-    # Process.sleep(4_000)
 
     # check that state is the same on all nodes
     system_state = StateServer.get_state()
@@ -46,7 +43,4 @@ defmodule StateSynchronizerTest do
       IO.puts("checking node #{node}")
     end)
   end
-
-  # TODO test disconnecting a node and reconnecting it
-  # test killing a node
 end

@@ -40,9 +40,3 @@ cond do
   true ->
     IO.puts("Running unit tests")
 end
-
-# If we want to stop all processes before running tests
-# Supervisor.stop(ElevatorProject.Supervisor, :normal)
-
-# If we want to just stop a process, i.e. the driver
-# Supervisor.terminate_child(ElevatorProject.Supervisor, Driver)
