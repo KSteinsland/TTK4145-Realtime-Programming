@@ -16,7 +16,7 @@ defmodule ElevatorProject.Application do
       # {ElevatorProject.Worker, arg}
       MasterStarter,
       {NodeConnector, [33333, Utils.Random.gen_rand_str(5)]},
-      StateServer,
+      ElServer,
       ElevatorSupervisor
     ]
 

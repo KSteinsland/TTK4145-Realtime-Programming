@@ -35,76 +35,76 @@ defmodule StateSynchronizer do
 
   # casts ----------------------------------------
 
-  def handle_call({:update_node, node_name}, _from, state) do
-    # update a node that has just connected
+  # def handle_call({:update_node, node_name}, _from, state) do
+  #   # update a node that has just connected
 
-    # update hall requests from node
-    node_hall_requests = GenServer.call({StateServer, node_name}, :get_hall_requests)
+  #   # update hall requests from node
+  #   node_hall_requests = GenServer.call({StateServer, node_name}, :get_hall_requests)
 
-    Enum.with_index(node_hall_requests)
-    |> Enum.map(fn {floor, floor_ind} ->
-      Enum.with_index(floor)
-      |> Enum.map(fn {hall_state, hall_ind} ->
-        btn_type = @hall_btn_types |> Enum.at(hall_ind)
+  #   Enum.with_index(node_hall_requests)
+  #   |> Enum.map(fn {floor, floor_ind} ->
+  #     Enum.with_index(floor)
+  #     |> Enum.map(fn {hall_state, hall_ind} ->
+  #       btn_type = @hall_btn_types |> Enum.at(hall_ind)
 
-        case hall_state do
-          :done ->
-            :ok
+  #       case hall_state do
+  #         :done ->
+  #           :ok
 
-          # everything else
-          hall_state ->
-            StateServer.update_hall_requests(
-              node_name,
-              floor_ind,
-              btn_type,
-              hall_state
-            )
-        end
-      end)
-    end)
+  #         # everything else
+  #         hall_state ->
+  #           StateServer.update_hall_requests(
+  #             node_name,
+  #             floor_ind,
+  #             btn_type,
+  #             hall_state
+  #           )
+  #       end
+  #     end)
+  #   end)
 
-    local_copy = StateServer.get_elevator(node_name)
-    update_cab_requests(local_copy.requests, node_name)
+  #   local_copy = StateServer.get_elevator(node_name)
+  #   update_cab_requests(local_copy.requests, node_name)
 
-    # update hall requests to node
-    master_hall_requests = StateServer.get_hall_requests()
+  #   # update hall requests to node
+  #   master_hall_requests = StateServer.get_hall_requests()
 
-    Enum.with_index(master_hall_requests)
-    |> Enum.map(fn {floor, floor_ind} ->
-      Enum.with_index(floor)
-      |> Enum.map(fn {hall_state, hall_ind} ->
-        btn_type = @hall_btn_types |> Enum.at(hall_ind)
+  #   Enum.with_index(master_hall_requests)
+  #   |> Enum.map(fn {floor, floor_ind} ->
+  #     Enum.with_index(floor)
+  #     |> Enum.map(fn {hall_state, hall_ind} ->
+  #       btn_type = @hall_btn_types |> Enum.at(hall_ind)
 
-        case hall_state do
-          :done ->
-            :ok
+  #       case hall_state do
+  #         :done ->
+  #           :ok
 
-          # everything else
-          hall_state ->
-            GenServer.cast(
-              {StateServer, node_name},
-              {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
-            )
-        end
-      end)
-    end)
+  #         # everything else
+  #         hall_state ->
+  #           GenServer.cast(
+  #             {StateServer, node_name},
+  #             {:update_hall_requests, node_name, floor_ind, btn_type, hall_state}
+  #           )
+  #       end
+  #     end)
+  #   end)
 
-    # set all lights
-    spawn(fn -> LightHandler.light_check(master_hall_requests, nil) end)
+  #   # set all lights
+  #   spawn(fn -> LightHandler.light_check(master_hall_requests, nil) end)
 
-    master_state = StateServer.get_state()
+  #   master_state = StateServer.get_state()
 
-    Enum.map(master_state.elevators, fn {node_el, elevator} ->
-      GenServer.cast({StateServer, node_name}, {:set_elevator, node_el, elevator})
-    end)
+  #   Enum.map(master_state.elevators, fn {node_el, elevator} ->
+  #     GenServer.cast({StateServer, node_name}, {:set_elevator, node_el, elevator})
+  #   end)
 
-    # put nodes elevator state back
-    node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
-    IO.inspect(node_elevator)
-    :ok = StateServer.set_elevator(node_name, node_elevator)
+  #   # put nodes elevator state back
+  #   node_elevator = GenServer.call({StateServer, node_name}, {:get_elevator, node_name})
+  #   IO.inspect(node_elevator)
+  #   :ok = StateServer.set_elevator(node_name, node_elevator)
 
-    {:reply, :ok, state}
-  end
+  #   {:reply, :ok, state}
+  # end
 
   # utils ----------------------------------------
 

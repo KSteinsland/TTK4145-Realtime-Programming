@@ -5,7 +5,6 @@ defmodule ElevatorController do
 
   use GenServer
 
-  alias StateServer, as: SS
   require Logger
 
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
@@ -74,7 +73,9 @@ defmodule ElevatorController do
   def handle_cast({:init_controller, floor}, _state) do
     IO.puts("initializing elevator!")
 
-    {action, new_elevator} = FSM.on_init_between_floors(SS.get_elevator(node()), floor)
+    elevator = ElServer.get_elevator()
+
+    {action, new_elevator} = FSM.on_init_between_floors(elevator, floor)
 
     case action do
       :move ->
@@ -87,7 +88,7 @@ defmodule ElevatorController do
 
     Driver.set_door_open_light(:off)
     set_all_cab_lights(new_elevator)
-    :ok = SS.set_elevator(node(), new_elevator)
+    :ok = ElServer.set_elevator(new_elevator)
 
     {:noreply, %{}}
   end
@@ -97,7 +98,7 @@ defmodule ElevatorController do
     # performs actions on received request, either a request button press
     # or a request message from distribution
 
-    {action, new_elevator} = FSM.on_request(SS.get_elevator(node()), floor, btn_type)
+    {action, new_elevator} = FSM.on_request(ElServer.get_elevator(), floor, btn_type)
     # IO.inspect(action)
 
     case action do
@@ -106,7 +107,8 @@ defmodule ElevatorController do
         Timer.timer_start(self(), @door_open_duration_ms, :door)
 
         if btn_type in @hall_btn_types do
-          SS.update_hall_requests(floor, btn_type, :done)
+          # hmm
+          RequestHandler.update_hall_requests(floor, btn_type, :done)
           RequestHandler.new_state()
         end
 
@@ -116,7 +118,8 @@ defmodule ElevatorController do
         Timer.timer_start(self(), @door_open_duration_ms, :door)
 
         if btn_type in @hall_btn_types do
-          SS.update_hall_requests(floor, btn_type, :done)
+          # hmm
+          RequestHandler.update_hall_requests(floor, btn_type, :done)
           RequestHandler.new_state()
         end
 
@@ -132,7 +135,7 @@ defmodule ElevatorController do
 
     set_all_cab_lights(new_elevator)
 
-    :ok = SS.set_elevator(node(), new_elevator)
+    :ok = ElServer.set_elevator(new_elevator)
 
     {:noreply, %{}}
   end
@@ -141,7 +144,7 @@ defmodule ElevatorController do
   def handle_cast({:floor_change, floor}, _state) do
     if floor != :between_floors do
       IO.puts("Arrived at floor!")
-      elevator = SS.get_elevator(node())
+      elevator = ElServer.get_elevator()
       {action, new_elevator} = FSM.on_floor_arrival(elevator, floor)
 
       Driver.set_floor_indicator(new_elevator.floor)
@@ -160,8 +163,8 @@ defmodule ElevatorController do
             do: Timer.timer_start(self(), @move_timeout, :move)
       end
 
-      SS.node_active(node(), not new_elevator.obstructed)
-      :ok = SS.set_elevator(node(), new_elevator)
+      ElServer.node_active(not new_elevator.obstructed)
+      :ok = ElServer.set_elevator(new_elevator)
     end
 
     {:noreply, %{}}
@@ -169,7 +172,7 @@ defmodule ElevatorController do
 
   @impl true
   def handle_cast({:obstruction_change, obs_state}, _state) do
-    {action, new_elevator} = FSM.on_obstruction_change(SS.get_elevator(node()), obs_state)
+    {action, new_elevator} = FSM.on_obstruction_change(ElServer.get_elevator(), obs_state)
 
     case action do
       :start_timer ->
@@ -180,8 +183,8 @@ defmodule ElevatorController do
         :ok
     end
 
-    :ok = SS.set_elevator(node(), new_elevator)
-    SS.node_active(node(), not new_elevator.obstructed)
+    :ok = ElServer.set_elevator(new_elevator)
+    ElServer.node_active(not new_elevator.obstructed)
 
     {:noreply, %{}}
   end
@@ -189,7 +192,7 @@ defmodule ElevatorController do
   @impl true
   def handle_info({:timed_out, :door}, _state) do
     IO.puts("Door open timer has timed out!")
-    {action, new_elevator} = FSM.on_door_timeout(SS.get_elevator(node()))
+    {action, new_elevator} = FSM.on_door_timeout(ElServer.get_elevator())
 
     case action do
       :close_doors ->
@@ -204,7 +207,7 @@ defmodule ElevatorController do
     end
 
     Timer.timer_stop(:door)
-    :ok = SS.set_elevator(node(), new_elevator)
+    :ok = ElServer.set_elevator(new_elevator)
 
     {:noreply, %{}}
   end
@@ -212,8 +215,9 @@ defmodule ElevatorController do
   @impl true
   def handle_info({:timed_out, :move}, _state) do
     IO.puts("Move timer has timed out!")
-    elevator = SS.get_elevator(node())
-    SS.node_active(node(), false)
+    elevator = ElServer.get_elevator()
+    ElServer.node_active(false)
+    IO.inspect(elevator)
     if elevator.behaviour == :be_moving, do: throw(:error)
 
     {:noreply, %{}}
@@ -239,7 +243,7 @@ defmodule ElevatorController do
 
       if btn != btn_old and btn_type in @hall_btn_types do
         # IO.puts("updating hall requests!")
-        SS.update_hall_requests(floor_ind, btn_type, :done)
+        RequestHandler.update_hall_requests(floor_ind, btn_type, :done)
         RequestHandler.new_state()
       end
     end)

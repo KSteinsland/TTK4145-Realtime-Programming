@@ -29,6 +29,7 @@ defmodule Assignment do
 
     elevators =
       if elevators == [] do
+        IO.puts("no active elevators, choosing from all")
         sys_state.elevators
       else
         elevators

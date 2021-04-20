@@ -105,8 +105,8 @@ defmodule HardwarePoller do
 
           if v == 1 && v != prev_v do
             if btn_type in @hall_btn_types do
-              IO.puts("New hall request!")
-              StateServer.update_hall_requests(floor_ind, btn_type, :new)
+              IO.puts("New hall request!_!_!_!")
+              RequestHandler.update_hall_requests(floor_ind, btn_type, :new)
               RequestHandler.new_state()
             else
               ElevatorController.send_request(node(), floor_ind, btn_type)
