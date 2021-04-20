@@ -70,7 +70,6 @@ defmodule Assignment do
     case :os.type() do
       {:unix, os} ->
         os = if os == :linux, do: to_string(os), else: "mac"
-        IO.puts("Calling #{os} assigner")
 
         {:ok, dir_path} = File.cwd()
         assigner_path = Path.join(dir_path, "assignment/#{os}/hall_request_assigner")
@@ -80,8 +79,6 @@ defmodule Assignment do
         json_out
 
       {:win32, _} ->
-        # IO.puts("Calling windows assigner")
-
         {:ok, dir_path} = File.cwd()
         assigner_path = Path.join(dir_path, "assignment/windows/hall_request_assigner.exe")
 
@@ -94,28 +91,5 @@ defmodule Assignment do
   defp get_extra_opts(opts) do
     opts
     |> Enum.reduce([], fn {key, val}, acc -> ["--" <> to_string(key), to_string(val) | acc] end)
-  end
-
-  def test_assignmenet() do
-    # this input will generate bug, TODO fix bug
-    test_sys_state = %StateServer.SystemState{
-      elevators: %{
-        "HPFND@192.168.0.40": %Elevator{
-          active: false,
-          behaviour: :be_idle,
-          counter: 14,
-          direction: :dir_stop,
-          floor: 2,
-          requests: [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
-        }
-      },
-      hall_requests: [[:new, :done], [:done, :done], [:done, :done], [:done, :done]]
-    }
-
-    assign(test_sys_state)
-
-    receive do
-      {:ok, winner} -> winner
-    end
   end
 end
