@@ -1,16 +1,17 @@
 defmodule Elevator.Hardware.Poller do
   @moduledoc """
-  Polling `GenServer` checking for changes and notifies
+  Polling `GenServer` checking for changes,
+  notifies `Elevator.Controller`.
   """
 
   use GenServer
-  require Logger
+
   alias Elevator.Hardware.Driver
 
-  @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @btn_types Application.fetch_env!(:elevator_project, :button_types)
   @hall_btn_types List.delete(@btn_types, :btn_cab)
 
+  @num_floors Application.fetch_env!(:elevator_project, :num_floors)
   @num_buttons length(@btn_types)
 
   @floor_poll_rate_ms Application.compile_env!(:elevator_project, :floor_poll_rate_ms)

@@ -73,8 +73,6 @@ defmodule Elevator.Controller do
 
   @impl true
   def handle_cast({:init_controller, floor}, _state) do
-    # IO.puts("initializing elevator!")
-
     {action, new_elevator} = FSM.on_init_between_floors(SS.get_elevator(node()), floor)
 
     case action do
@@ -138,7 +136,6 @@ defmodule Elevator.Controller do
   @impl true
   def handle_cast({:floor_change, floor}, _state) do
     if floor != :between_floors do
-      # IO.puts("Arrived at floor!")
       elevator = SS.get_elevator(node())
       {action, new_elevator} = FSM.on_floor_arrival(elevator, floor)
 
@@ -191,7 +188,6 @@ defmodule Elevator.Controller do
 
   @impl true
   def handle_info({:timed_out, :door}, _state) do
-    IO.puts("Door open timer has timed out!")
     {action, new_elevator} = FSM.on_door_timeout(SS.get_elevator(node()))
 
     case action do
@@ -214,7 +210,6 @@ defmodule Elevator.Controller do
 
   @impl true
   def handle_info({:timed_out, :move}, _state) do
-    IO.puts("Move timer has timed out!")
     elevator = SS.get_elevator(node())
     SS.node_active(node(), false)
     if elevator.behaviour == :be_moving, do: throw(:error)
