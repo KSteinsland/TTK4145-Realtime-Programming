@@ -26,7 +26,7 @@ defmodule TimerTest do
     Timer.timer_stop(:door)
 
     receive do
-      msg ->
+      _msg ->
         assert false
     after
       2_00 ->

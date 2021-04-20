@@ -305,18 +305,4 @@ defmodule NodeConnector do
         end
     end
   end
-
-  def dev_network_loss(timeout) do
-    IO.puts("simulating network loss")
-    NodeConnector.dev_disconnect()
-    NodeConnector.dev_reconnect(timeout)
-  end
-
-  def dev_disconnect() do
-    send(__MODULE__, :dev_disconnect)
-  end
-
-  def dev_reconnect(timeout \\ 0) do
-    Process.send_after(__MODULE__, :dev_reconnect, timeout)
-  end
 end
