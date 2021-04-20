@@ -5,8 +5,8 @@ defmodule Elevator.FSM do
 
   alias Elevator.Requests
 
-  @spec on_init_between_floors(Elevator.t(), Elevator.floor()) ::
-          {:ve, Elevator.t()} | {nil, Elevator.t()}
+  @spec on_init_between_floors(Elevator.t(), Elevator.floor() | :between_floors) ::
+          {:move, Elevator.t()} | {nil, Elevator.t()}
   @doc """
   Logic returning the required action to be done when the elevator is initialized.
   """
@@ -14,13 +14,23 @@ defmodule Elevator.FSM do
     case floor do
       :between_floors ->
         if elevator.direction == :dir_stop do
-          {:move, %Elevator{elevator | direction: :dir_down, behaviour: :be_moving, floor: floor}}
+          {:move,
+           %Elevator{
+             elevator
+             | direction: :dir_down,
+               behaviour: :be_moving,
+               floor: :between_floors
+           }}
         else
-          {:move, %Elevator{elevator | behaviour: :be_moving, floor: floor}}
+          {:move, %Elevator{elevator | behaviour: :be_moving, floor: :between_floors}}
         end
 
-      floor ->
-        {nil, %Elevator{elevator | floor: floor}}
+      f ->
+        if elevator.behaviour == :be_moving do
+          {:move, %Elevator{elevator | floor: f}}
+        else
+          {nil, %Elevator{elevator | floor: f}}
+        end
     end
   end
 

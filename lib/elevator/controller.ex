@@ -4,7 +4,7 @@ defmodule Elevator.Controller do
   """
 
   use GenServer
-  require Logger
+
   alias StateServer, as: SS
   alias Elevator.Hardware.Driver
   alias Elevator.Timer
@@ -68,35 +68,31 @@ defmodule Elevator.Controller do
 
   @impl true
   def init([]) do
-    IO.puts("Started!")
     {:ok, %{}}
   end
 
   @impl true
   def handle_cast({:init_controller, floor}, _state) do
-    IO.puts("initializing elevator!")
+    # IO.puts("initializing elevator!")
 
     {action, new_elevator} = FSM.on_init_between_floors(SS.get_elevator(node()), floor)
-
-    IO.inspect(action)
-    IO.inspect(new_elevator)
 
     case action do
       :move ->
         new_elevator.direction |> Driver.set_motor_direction()
         Timer.timer_start(self(), @move_timeout_ms, :move)
 
-      _ ->
-        if new_elevator.behaviour == :be_moving do
-          Timer.timer_start(self(), @move_timeout_ms, :move)
-          new_elevator.direction |> Driver.set_motor_direction()
-        end
+        if new_elevator.floor != :between_floors,
+          do: Driver.set_floor_indicator(new_elevator.floor)
 
+      _ ->
         Driver.set_floor_indicator(new_elevator.floor)
     end
 
     Driver.set_door_open_light(:off)
+
     set_all_cab_lights(new_elevator)
+
     :ok = SS.set_elevator(node(), new_elevator)
 
     {:noreply, %{}}
@@ -104,15 +100,10 @@ defmodule Elevator.Controller do
 
   @impl true
   def handle_cast({:send_request, floor, btn_type}, _state) do
-    # performs actions on received request, either a request button press
-    # or a request message from distribution
-
     {action, new_elevator} = FSM.on_request(SS.get_elevator(node()), floor, btn_type)
-    # IO.inspect(action)
 
     case action do
       :start_timer ->
-        IO.puts("starting timer")
         Timer.timer_start(self(), @door_open_duration_ms, :door)
 
         if btn_type in @hall_btn_types do
@@ -121,7 +112,6 @@ defmodule Elevator.Controller do
         end
 
       :open_door ->
-        IO.puts("opening door!")
         Driver.set_door_open_light(:on)
         Timer.timer_start(self(), @door_open_duration_ms, :door)
 
@@ -131,8 +121,6 @@ defmodule Elevator.Controller do
         end
 
       :move_elevator ->
-        Logger.debug("setting motor direction")
-        # IO.puts("setting motor direction")
         new_elevator.direction |> Driver.set_motor_direction()
         Timer.timer_start(self(), @move_timeout_ms, :move)
 
@@ -150,13 +138,9 @@ defmodule Elevator.Controller do
   @impl true
   def handle_cast({:floor_change, floor}, _state) do
     if floor != :between_floors do
-      IO.puts("Arrived at floor!")
+      # IO.puts("Arrived at floor!")
       elevator = SS.get_elevator(node())
       {action, new_elevator} = FSM.on_floor_arrival(elevator, floor)
-
-      IO.inspect(elevator)
-      IO.inspect(action)
-      IO.inspect(new_elevator)
 
       Driver.set_floor_indicator(new_elevator.floor)
       Timer.timer_stop(:move)
@@ -199,6 +183,7 @@ defmodule Elevator.Controller do
     end
 
     :ok = SS.set_elevator(node(), new_elevator)
+
     SS.node_active(node(), not new_elevator.obstructed)
 
     {:noreply, %{}}
@@ -256,7 +241,6 @@ defmodule Elevator.Controller do
       btn_type = Enum.at(@btn_types, btn_ind)
 
       if btn != btn_old and btn_type in @hall_btn_types do
-        # IO.puts("updating hall requests!")
         SS.update_hall_requests(floor_ind, btn_type, :done)
         RequestHandler.new_state()
       end
