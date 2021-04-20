@@ -26,8 +26,6 @@ defmodule Elevator.Hardware.Poller do
   end
 
   def init([]) do
-    IO.puts("Started hardware poller")
-
     req_list = List.duplicate(0, @num_buttons) |> List.duplicate(@num_floors)
     state = %{floor: nil, req_list: req_list, obstruction: nil, initialized: false}
 
