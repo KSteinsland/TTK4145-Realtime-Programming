@@ -168,8 +168,11 @@ defmodule ElevatorController do
           set_all_cab_lights(new_elevator)
 
         _ ->
-          if new_elevator.direction != :dir_stop,
-            do: Timer.timer_start(self(), @move_timeout, :move)
+          if new_elevator.direction != :dir_stop do
+            Timer.timer_start(self(), @move_timeout, :move)
+          else
+            Driver.set_motor_direction(:dir_stop)
+          end
       end
 
       SS.node_active(node(), not new_elevator.obstructed)
