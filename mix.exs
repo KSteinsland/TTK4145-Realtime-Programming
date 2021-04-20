@@ -19,7 +19,6 @@ defmodule ElevatorProject.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger],
@@ -51,7 +50,6 @@ defmodule ElevatorProject.MixProject do
     floors = Application.fetch_env!(:elevator_project, :num_floors)
     num_local_nodes = Application.fetch_env!(:elevator_project, :local_nodes)
     opts = []
-    # opts = Application.fetch_env!(:elevator_project, :sim_opts)
 
     case :os.type() do
       {:unix, os} ->
@@ -102,11 +100,8 @@ defmodule ElevatorProject.MixProject do
     IO.puts("Started cluster")
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
       {:json, "~> 1.4"}

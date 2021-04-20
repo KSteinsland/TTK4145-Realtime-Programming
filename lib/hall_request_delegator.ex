@@ -26,14 +26,15 @@ defmodule HallRequestDelegator do
     {:ok, wd_list}
   end
 
+  @spec new_state :: :ok
+  @doc """
+  Kill watchdog for done requests.
+  Assign and start watchdog timer for new requests.
+  """
   def new_state() do
     GenServer.cast({:global, __MODULE__}, :new_state)
   end
 
-  @doc """
-  kill watchdog for done requests.
-  Assign and start watchdog timer for new requests.
-  """
   def handle_cast(:new_state, wd_list) do
     sys_state = StateServer.get_state()
 
@@ -108,7 +109,7 @@ defmodule HallRequestDelegator do
     end)
   end
 
-  @spec watchdog(any, any, any, any) :: true
+  @spec watchdog(node(), Elevator.floor(), Elevator.hall_btn_type(), pid()) :: true
   @doc """
   On a new hall order this watchdog should be spawned.
   If its not completed before timeout the hall order is resent,

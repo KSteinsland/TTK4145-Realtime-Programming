@@ -165,7 +165,6 @@ defmodule NodeConnector do
     [full_name | [up_since | _]] = String.split(to_string(packet), "_")
     up_since = String.to_integer(up_since)
     latest_master = String.to_atom(full_name)
-    # IO.inspect(latest_master)
 
     if state.role == :slave do
       {current_master, current_up_since} = state.master
@@ -241,13 +240,6 @@ defmodule NodeConnector do
     else
       {:noreply, state}
     end
-  end
-
-  def handle_info(:shutdown, state) do
-    IO.puts("shutting down nodeconn")
-    :gen_udp.close(state.socket)
-    Process.exit(self(), :kill)
-    {:noreply, state}
   end
 
   # Utils ------------------------------------------
